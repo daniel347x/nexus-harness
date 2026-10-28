@@ -1,0 +1,14 @@
+{
+  "provenance": "Synthetic non-secret V2 state envelope based on tests/opencode-conversation-wire.json. files[] shape verified offline against packages/core/src/tool/plugin/file-diff.ts, edit.ts and patch.ts in local opencode-v2.0.24 clone; patch syntax is jsdiff createTwoFilesPatch. These are constructed cases, not a claimed capture of a live patch. oldPath is an explicit optional recorded variant; current source records only destination file for moves.",
+  "toolName": "patch",
+  "state": {
+    "status": "completed",
+    "input": {"patchText": "recorded input sentinel 雪"},
+    "content": [{"type": "text", "text": "Success. Updated the following files:"}],
+    "metadata": {"files": [
+      {"file": "/fixture/code.py", "status": "modified", "additions": 2, "deletions": 2, "patch": "Index: /fixture/code.py\n===================================================================\n--- /fixture/code.py\n+++ /fixture/code.py\n@@ -124,3 +124,3 @@\n before\n-old\n+new 雪\n after\n@@ -900 +900 @@ function\n-tail\n\\ No newline at end of file\n+TAIL\n\\ No newline at end of file\n"},
+      {"file": "/fixture/new.txt", "status": "added", "additions": 1, "deletions": 0, "patch": "--- /fixture/new.txt\n+++ /fixture/new.txt\n@@ -0,0 +1 @@\n+hello\n"},
+      {"file": "/fixture/deleted.txt", "status": "deleted", "additions": 0, "deletions": 1, "patch": "@@ -1 +0,0 @@\n-goodbye\n"}
+    ]}
+  }
+}

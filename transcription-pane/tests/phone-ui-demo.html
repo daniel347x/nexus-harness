@@ -1,0 +1,475 @@
+<!doctype html><meta charset="utf-8"><title>Phone Manager page · visual fixture</title>
+<!-- Offline visual fixture for the phone page /m (m.html) and its Programs view (m-programs.html)
+     with a realistic Manager conversation. No live request leaves the page.
+     ?shot=chat|chat-board|glimpse|glimpse-compact|glimpse-rows|glimpse-source|glimpse-large|glimpse-wide|tool|tool-readable|tool-markdown|tool-nowrap|tool-diff|tool-diff-large|thinking|refined|draft-max|chat-max|more-menu|refine-view|refine-view-prompt|first|new-manager|new-manager-options|new-manager-started|context|programs|programs-max|programs-collapsed|programs-running|viewer-conductor|viewer-worker|viewer-opencode|tune|programs-glance|glance-large,
+     each also as glare-‹shot›: the same view in outdoor glare mode (the ☀ switch tapped first), swept for any dim text left -->
+<style>html,body{margin:0;height:100%;background:#151922}iframe{display:block;width:390px;height:844px;border:0}</style>
+<iframe id="phone" title="Phone page"></iframe>
+<!-- Fixed 390x844 CSS px: headless Chrome keeps a wider minimum window; the shot crops to the frame. -->
+<script>
+(async()=>{
+  const fullShot=new URLSearchParams(location.search).get('shot')||'chat',glare=fullShot.startsWith('glare-'),shot=glare?fullShot.slice(6):fullShot;
+  const base=new URL('../static/',location.href),shared=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+  const read=async(name,from=base)=>(await fetch(new URL(name,from))).text();
+  const [html,css,marked,purify,markdown,defaults,core,app,records,previews,reading,progHtml,sessionsCss,progCss,sessionsJs,refineView,glareCss,glareJs,seenLatest,highlighter,diffView,diffCss]=await Promise.all([
+    read('m.html'),read('m.css'),read('vendor/marked.umd.js'),read('vendor/purify.min.js'),read('message-markdown.js'),read('refine-defaults.js'),
+    read('refine-core.js'),read('m.js'),read('tool-record-text.js',shared),read('tool-preview-core.js',shared),read('tool-reading.js'),
+    read('m-programs.html'),read('sessions.css'),read('m-programs.css'),read('sessions.js'),read('refine-view.js'),read('glare.css'),read('glare.js'),read('seen-latest.js'),read('vendor/highlight.min.js'),read('diff-view.js'),read('diff-view.css')]);
+  const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+  const inline=(page,styles,scripts)=>page.replace(/<link[^>]+>/g,'').replace('</head>',()=>styles.map(s=>'<style>'+s+'</style>').join('')+'</head>')
+    .replace(/ *<script src="[^"]+"><\/script>\n?/g,'').replace('</body>',()=>scripts.map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+  const now=Math.floor(Date.now()/1000);
+  const mock=`
+    const now=${now},env=x=>({schemaVersion:1,backend:'claude',...x});
+    const str=v=>({kind:'string',characters:Array.from(v).length,jsonCharacters:Array.from(JSON.stringify(v)).length,head:Array.from(v).slice(0,128).join(''),tail:Array.from(v).slice(-128).join('')});
+    const preview=entries=>({schemaVersion:1,status:'available',value:{kind:'object',entries:entries.map(([k,v])=>[k,str(v)])}});
+    const store=new Map([['refine_provider','openrouter'],['refine_openrouter_api_key','offline-fixture'],['refine_openrouter_model','fixture/model']]);
+    Object.defineProperty(window,'localStorage',{value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+      getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=>'',writeText:async()=>{}}});
+    const uuid='11111111-1111-4111-8111-111111111111',uuid2='22222222-2222-4222-8222-222222222222';
+    const row=(id,title,createdAt,lifecycle)=>({source:'host',role:'Manager',uuid:id,executionId:'cc-'+id,generation:1,targetRef:'target-'+id,
+      sessionRef:'session-'+id,scopes:[{label:'main',scopeRef:'main-'+id}],title,createdAt,lifecycle,
+      capabilities:{nativeInput:lifecycle==='live',controls:lifecycle==='live',reconnect:true}});
+    const A=row(uuid,'Manager-Session-194 · phone page round 2',now-3600,'live'),B=row(uuid2,'Manager-Session-193 · Workflowy curation',now-90000,'sleeping');
+    const C=row('33333333-3333-4333-8333-333333333333','Manager-Session-195 · estate audit',now-7200,'live');
+    const readout=(tokens,extra={})=>({state:'measured',occupancy_tokens:tokens,window_tokens:1000000,measured_at:now-40,source:'host completed model call',...extra});
+    const readouts={[A.executionId]:readout(412345),[B.executionId]:readout(233000,{measured_at:now-90000}),[C.executionId]:readout(781200)};
+    const iso=s=>new Date(s*1000).toISOString();
+    const usage={schemaVersion:1,backend:'usage',now,status:'ready',refreshing:false,observedAt:now-70,ageSeconds:70,error:null,chatgptAgeSeconds:70,
+      claude:{ok:true,plan:'default_claude_max_20x',opus_separate:false,extra_usage_enabled:false,reset_credits:[],windows:[
+        {label:'five-hour',kind:'session',percent:41,resets_at:iso(now+9060)},
+        {label:'weekly',kind:'weekly_all',percent:63,resets_at:iso(now+50400)},
+        {label:'Fable weekly',kind:'weekly_scoped',percent:40,resets_at:iso(now+50400),allowance_percent_of_weekly:50,used_percent_of_weekly:20}]},
+      chatgpt:{ok:true,plan:'promax',windows:[{label:'weekly',percent:39,resets_at:now+4.4*86400}],models:{'gpt-6-astra':{available:true,available_at:null}},
+        limit_reached:false,source:'wham/usage · Codex login (auto-refresh)',observed_at:now-70,age_seconds:0,stale:false,notes:[],
+        reset_credits:[{expires_at:now+78000,granted_at:now+78000-30*86400,title:'Rate limit reset'},{expires_at:now+7.6*86400,granted_at:now-22.4*86400,title:'Rate limit reset'},
+          {expires_at:now+16.1*86400,granted_at:now-13.9*86400,title:'Rate limit reset'}]},claudeFrameLine:null};
+    const call=(id,name,entries,extra={})=>{const input=JSON.stringify(Object.fromEntries(entries));
+      // A finished call carries its time and its result's (the row's total time); a running one only its own.
+      const done=!extra.status || extra.status==='stored',took=[2.4,14,83][id.length%3];
+      return {block:1,id,name,callRef:'call-'+id,inputBytes:new TextEncoder().encode(input).length,outputBytes:null,status:'stored',previewData:preview(entries),input,
+        time:now-300,resultTime:done?now-300+took:null,...extra};};
+    const calls={
+      grep:call('grep','Bash',[['command',"grep -n -- '--final' transcription-pane/static/sessions.css"],['description','Find the desktop red']],{outputBytes:212,
+        output:"34:  --final-accent:#ff6b61; --final-bg:rgba(255,107,97,.085); --final-border:rgba(255,107,97,.5); --final-label:#ff9a92;\\n361:.history-event.turn-final { background:var(--final-bg); }"}),
+      read:call('read','Read',[['file_path','/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/static/m.css']],{outputBytes:5400,output:'1\\t:root { color-scheme: dark; }\\n2\\t* { box-sizing: border-box; }'}),
+      edit:call('edit','Edit',[['file_path','/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/static/m.css'],
+        ['old_string','.m-assistant {\\n  border-left-color: #c96;\\n}'],['new_string','.m-assistant {\\n  border-left-color: var(--final-accent);\\n  background: var(--final-bg);\\n}'],['replace_all',false]],
+        {outputBytes:96,output:'The file /mnt/e/.../m.css has been updated successfully.',
+         // A1's normalized diff, as the tool-record routes serve it beside the raw input and output.
+         diff:{files:[{path:'/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/static/m.css',status:'modified',additions:2,deletions:1,
+           hunks:[{oldStart:118,oldLines:6,newStart:118,newLines:7,lines:[' .m-user { border-left-color: var(--you-accent); }',' ',' .m-assistant {','-  border-left-color: #c96;',
+             '+  border-left-color: var(--final-accent);','+  background: var(--final-bg);',' }',' .m-tool { margin: 3px 0; }']}]}],source:'claude-structured-patch',complete:true}}),
+      tests:call('tests','Bash',[['command','python3 transcription-pane/tests/run_browser_checks.py --receipt-dir ../oc-scratch/opencode-companion/receipts/phone'],['description','Run the phone browser suites']],
+        {outputBytes:180000,output:'{"suite": "phone-manager", "passed": true, "checks": 84}\\n'.repeat(40)}),
+      routes:call('routes','Grep',[['pattern','_claude_origin\\\\(\\\\)'],['path','transcription-pane/server.py'],['output_mode','content']],{status:'error',outputBytes:41,output:'Error: path not found in the fixture'}),
+      live:call('live','Bash',[['command','git diff --stat'],['description','Review the change']],{status:'pending-or-missing',output:null}),
+      // A large recorded edit: nine hunks, 2,709 lines, past the reader's 2,000-line first bound.
+      ...(${JSON.stringify(shot)}==='tool-diff-large'?{edit:{...call('edit','Edit',[['file_path','/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/static/rows.js'],
+        ['old_string','export const row0 = render(0);'],['new_string','export const row0 = render(0, {wide: true});']]),outputBytes:80,output:'The file /mnt/e/.../rows.js has been updated successfully.',
+        diff:{files:[{path:'/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/static/rows.js',status:'modified',additions:1800,deletions:900,
+          hunks:Array.from({length:9},(_,k)=>({oldStart:k*400+1,oldLines:101,newStart:k*500+1,newLines:201,lines:[' // section '+k,
+            ...Array.from({length:100},(_,i)=>'-export const row'+(k*100+i)+' = render('+(k*100+i)+');'),
+            ...Array.from({length:200},(_,i)=>'+export const row'+(k*200+i)+' = render('+(k*200+i)+', {wide: true});')]}))}],source:'claude-structured-patch',complete:true}}}:{}),
+      write:call('write','Write',[['file_path','/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/docs/phone-tools.md'],
+        ['content','# Phone tool view\\n\\nThe phone now reads tool calls **the way the desktop inspector does**:\\n\\n- **Readable**: multiline JSON values become documents\\n- **Pretty**: the exact JSON, indented\\n- **Raw**: the stored text\\n\\nWord wrap is one switch for every tool view.']],
+        {outputBytes:120,output:'File created successfully at: /mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/transcription-pane/docs/phone-tools.md'}),
+      spec:call('spec','mcp__workflowy__node',[['verb','read'],['node_handle','[ap:CQIVXO]']],{outputBytes:640,
+        output:'{"success":true,"node":"[ap:CQIVXO]","children":0,"modified":"2026-10-18T21:40:00Z"}\\n\\n## Phone tool view up to par with the desktop\\n\\n**What:** bring the phone page\\u2019s tool view up to the desktop pane\\u2019s. **Desktop unchanged.**\\n\\n- **Readable mode**: JSON strings with newlines read as documents\\n- **JSON at the top, then the rest**: prettified, then rendered as Markdown\\n- **Word wrap** toggle, best effort\\n\\n| Part | Phone |\\n| --- | --- |\\n| Readable | done |\\n| JSON then Markdown | done |\\n| Wrap | done |'}),
+    };
+    const ev=(seq,kind,text,extra={})=>({seq,kind,text,uuid:'event-'+seq,recordRef:'record-'+seq,scope:'main',calls:[],thinking:[],partial:false,time:now-1800+seq*20,...extra});
+    const wire=c=>{const {input,output,diff,...rest}=c;return rest;};
+    // ⤒ First: the conversation's opening page (the Manager's startup prompt, then its first reply).
+    const opening=[ev(0,'user','You are the **Manager** for the Transcription Pane program.\\n\\nRead your socket [ap:XZVOYO] first, then the SkyView, then start the first unit.'),
+      ev(1,'assistant','Read the socket and the SkyView. Starting **unit 1**: the phone chat\\u2019s First button.')];
+    const events=[
+      ev(1,'user','Can you check why the phone page shows the wrong red, and fix the paste selection while you are there?'),
+      ev(2,'assistant','',{thinking:[{blockIndex:0,availability:'stored',streaming:false,text:'Dan wants the exact desktop palette. The desktop keeps its theme in sessions.css; compare it with m.css before editing anything.'}]}),
+      ev(3,'assistant','I will compare the two stylesheets first.',{calls:[wire(calls.grep),wire(calls.read)]}),
+      ev(4,'user','',{toolResults:2}),
+      ev(5,'assistant','',{calls:[wire(calls.edit)]}),
+      ev(6,'user','',{toolResults:1}),
+      ev(7,'assistant','',{calls:[wire(calls.tests)]}),
+      ev(8,'user','',{toolResults:1}),
+      ev(9,'assistant','## Phone colors fixed\\n\\nManager answers now use the **desktop red** and your messages its **green**:\\n\\n| Role | Accent |\\n| --- | --- |\\n| Manager | \`#ff6b61\` |\\n| You | \`#3fcf7a\` |\\n\\nPasting now selects exactly the pasted passage, so **Refine** cleans just that.'),
+      ev(10,'user','Great. Can I also see the running programs from the phone?'),
+      ev(11,'assistant','Looking at the sidebar routes now.',{calls:[wire(calls.spec),wire(calls.write),wire(calls.routes),wire(calls.live)]}),
+    ];
+    // The chess game in chat: a fen block drawn as a board by the shared Markdown renderer.
+    if(${JSON.stringify(shot)}==='chat-board')events.push(
+      ev(12,'user','Knight to f3.\\n\\n🇧8️⃣🇨6️⃣ 🐴'),
+      ev(13,'assistant','Both moves check out: **2. Nf3 Nc6**. White to move.\\n\\n\`\`\`fen\\nr1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3\\nb8c6\\n\`\`\`\\n\\n**Moves:** 1. e4 e5 2. Nf3 Nc6'));
+    // Sessions viewed read-only from Programs (Read ›): a Conductor, its quick worker and an OpenCode helper.
+    calls.dispatch=call('dispatch','Bash',[['command','bash scripts/oc_seat.sh quick --agent quick-opus55-high --socket "[ap:K7M2QF]" --no-wait'],['description','Start the U1 worker']],
+      {outputBytes:61,output:'cc-55555555-5555-4555-8555-555555555555 started · socket [ap:K7M2QF]'});
+    calls.doorbell=call('doorbell','Bash',[['command','bash scripts/oc_seat.sh wait cc-55555555-5555-4555-8555-555555555555 --max 540'],['description','Wait on the worker']],
+      {outputBytes:52,output:'done · result in [ap:K7M2QF] · 21 checks green'});
+    calls.sweep=call('sweep','shell',[['command','ls ../oc-scratch/opencode-companion/receipts/phone-shots'],['description','List the screenshots']],{outputBytes:96,output:'phone-viewer-conductor.png\\nphone-viewer-worker.png\\nphone-viewer-opencode.png'});
+    const viewed={
+      'session-cond':{role:'conductor',executionId:'cc-44444444-4444-4444-8444-444444444444',events:[
+        ev(1,'user','You are the **Conductor** for [ap:UED2ON] (quick program). Read your socket, then dispatch unit 1.'),
+        ev(2,'assistant','Socket read. Dispatching **U1 · phone viewer** to a quick worker.',{calls:[wire(calls.dispatch)]}),
+        ev(3,'assistant','Worker started; waiting on its doorbell.',{calls:[wire(calls.doorbell)]}),
+        ev(4,'user','🔔 Doorbell: cc-55555555 finished · result in [ap:K7M2QF]'),
+        ev(5,'assistant','## U1 landed\\n\\nThe worker\\u2019s result is in **[ap:K7M2QF]**: 21 checks green, three screenshots.\\n\\n| Unit | State |\\n| --- | --- |\\n| U1 · phone viewer | done |\\n| U2 · OpenCode reader | next |')]},
+      'session-work':{role:'worker',executionId:'cc-55555555-5555-4555-8555-555555555555',events:[
+        ev(1,'user','You are a QUICK WORKER (session cc-55555555). Your socket is [ap:K7M2QF]: its note is your prompt.'),
+        ev(2,'assistant','Reading the socket and the feasibility study first.',{calls:[wire(calls.spec)],thinking:[{blockIndex:0,availability:'stored',streaming:false,text:'The study names the files; start with m.js.'}]}),
+        ev(3,'assistant','',{calls:[wire(calls.edit),wire(calls.tests)]}),
+        ev(4,'assistant','The phone viewer works: **21 checks** green.\\n\\n- **Read \\u203a** opens a Conductor or worker read-only\\n- **✕** returns to your Manager, draft intact')]}};
+    const ocEvents=[ev(0,'user','You are a quick helper. Sweep the phone screenshots and list them.'),
+      ev(1,'assistant','',{thinking:[{blockIndex:0,availability:'stored',streaming:false,text:'List the folder, then report the three names.'}]}),
+      ev(2,'assistant','Listing the folder.',{calls:[wire(calls.sweep)]}),
+      ev(3,'assistant','Three screenshots are there: **conductor**, **worker** and **opencode**.')];
+    // ＋ New Manager: a launch is listed at once, still starting, with no message yet.
+    const launched=[],managers=()=>[A,B,C,...launched];
+    window.demo={store,A,B,C,calls,events,usage,launched,ev,delta:[]};
+    window.fetch=async(url,options={})=>{url=String(url);
+      if(url==='https://openrouter.ai/api/v1/chat/completions')return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'Please also show the running programs on the phone, read-only, as a second view.'}}]}));
+      const u=new URL(url,'http://phone.fixture/'),q=Object.fromEntries(u.searchParams);let data;
+      if(u.pathname==='/api/claude/sessions')data=env({sessions:[...launched,A,C,B],hasMore:false,status:'complete'});
+      else if(u.pathname==='/api/claude/launch-defaults')data=env({name:'Manager-Session-196',model:'claude-opus-5-5',effort:'high'});
+      else if(u.pathname==='/api/claude/launch-manager'){const b=JSON.parse(options.body);
+        launched.push({...row(b.nativeUuid,b.name,now,'pending'),state:'initializing',capabilities:{nativeInput:false,controls:false,reconnect:false}});
+        data=env({executionId:'cc-'+b.nativeUuid,uuid:b.nativeUuid,name:b.name,generation:1,state:'initializing',hostStarted:false,alreadyLaunched:false,warnings:[],sent:false});}
+      else if(u.pathname==='/api/usage')data=usage;
+      else if(u.pathname==='/api/claude/events'&&viewed[q.sessionRef]){const v=viewed[q.sessionRef];
+        data=env({sessionRef:q.sessionRef,scopeRef:q.scopeRef,source:'host',role:v.role,executionId:v.executionId,generation:1,fileEpoch:'epoch',
+          events:q.cursor||q.fromSeq?[]:v.events,eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete',liveState:{native_session_state:'running',primary_turn_open:true}});}
+      else if(u.pathname==='/api/opencode/events')data={schemaVersion:1,backend:'opencode',source:'opencode',sessionRef:q.id,scopeRef:'main',fileEpoch:'oc_epoch',busy:true,
+        hasMore:false,status:'complete',deltaCursor:'oc-delta',eventUpdates:[],events:q.cursor||q.fromSeq?[]:ocEvents};
+      else if(u.pathname==='/api/opencode/tool-record'){const c=Object.values(calls).find(c=>c.callRef===q.callRef);
+        data={schemaVersion:1,backend:'opencode',callRef:q.callRef,fileEpoch:q.fileEpoch,input:c.input,output:c.output,inputBytes:c.inputBytes,outputBytes:c.outputBytes,
+          inputAvailability:'stored',outputAvailability:'stored',status:'stored',live:true,terminal:true,inputFinal:true,time:now-300,resultTime:now-298};}
+      else if(u.pathname==='/api/claude/events'){const t=managers().find(t=>t.sessionRef===q.sessionRef);
+        data=env({sessionRef:q.sessionRef,scopeRef:q.scopeRef,source:'host',role:'Manager',executionId:t.executionId,generation:1,fileEpoch:'epoch',
+          events:q.fromSeq==='0'&&t===A?opening:q.cursor&&t===A&&window.demo.delta.length?window.demo.delta.shift():q.cursor||q.fromSeq||launched.includes(t)?[]:t===A?events:events.slice(0,1),eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete',contextReadout:readouts[t.executionId]});}
+      else if(u.pathname==='/api/claude/tool-record'){const c=Object.values(calls).find(c=>c.callRef===q.callRef);
+        data=env({callRef:q.callRef,fileEpoch:q.fileEpoch,input:c.input,output:c.output,inputAvailability:'stored',outputAvailability:c.output===null?'missing':'stored',
+          inputBytes:c.inputBytes,outputBytes:c.outputBytes,status:c.status,live:c.status==='pending-or-missing',terminal:c.status!=='pending-or-missing',inputFinal:true,diff:c.diff??null,
+          time:now-180,resultTime:c.status==='pending-or-missing'?null:now-97});}
+      else if(u.pathname==='/api/claude/state'){const t=managers().find(t=>t.executionId===q.executionId);
+        data=env({targetRef:q.targetRef,executionId:q.executionId,generation:1,uuid:t.uuid,source:'host',role:'Manager',capabilities:t.capabilities,lifecycle:t.lifecycle,
+          liveState:{...(launched.includes(t)||${JSON.stringify(shot)}==='tune'?{native_session_state:'idle',primary_turn_open:false}:{native_session_state:'running',primary_turn_open:true}),
+            controls_effective:{model:'claude-opus-5-5',effort:'high'},setting_control_state:'applied',setting_control_pending:false}});}
+      else if(u.pathname==='/api/claude/context'){const prose=events.filter(e=>e.text).map(e=>(e.kind==='user'?'[USER]':'[ASSISTANT]')+'\\n'+e.text);
+        data=env({status:'stored',targetRef:q.targetRef,targetRevision:Number(q.targetRevision),source:'host',executionId:A.executionId,generation:1,turns:prose.length,text:prose.join('\\n\\n---\\n\\n')});}
+      else throw new Error('offline fixture: '+url);
+      return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});};
+  `;
+  const programsMock=`
+    const now=${now},env=x=>({schemaVersion:1,backend:'claude',...x}),ocv=x=>({schemaVersion:1,backend:'opencode',...x});
+    Object.defineProperty(window,'localStorage',{value:{length:0,key:()=>null,getItem:()=>null,setItem:()=>{},removeItem:()=>{}}});
+    const id=n=>'0000000'+(n%10)+'-0000-4000-8000-00000000000'+Math.floor(n/10);
+    const seat=(n,extra)=>({source:'host',role:'worker',displayRole:'worker',uuid:id(n),executionId:'cc-'+id(n),generation:1,targetRef:'target-'+n,sessionRef:'session-'+n,
+      scopes:[{scopeRef:'scope-'+n,label:'main'}],title:'Session '+n,createdAt:now-4000+n,lifecycle:'live',capabilities:{},liveState:{},
+      turnFacts:{status:'complete',modelsComplete:true,models:['claude-opus-5-5'],levelsComplete:true,levels:['high'],firstAt:now-4000,lastAt:now-60},...extra});
+    const sessions=[
+      seat(1,{role:'manager',displayRole:'manager',title:'Manager-Session-194 · phone page round 2',capabilities:{nativeInput:true,controls:true,subagents:true},liveState:{primary_turn_open:true}}),
+      seat(2,{role:'manager',displayRole:'manager',title:'Manager-Session-193 · Workflowy curation',lifecycle:'sleeping'}),
+      seat(3,{role:'conductor',displayRole:'conductor',title:'[ap:UED2ON]-003 · ⚡ Phone page round 2',liveState:{primary_turn_open:true},
+        lineage:{program:'UED2ON',kind:'conductor',conductorN:3,quickProgram:true,managerSession:'194',title:'[ap:UED2ON]-003 · ⚡ Phone page round 2'}}),
+      seat(4,{displayRole:'quick-worker',title:'[ap:UED2ON]-003 ▸ ⚡ quick worker · tool and thinking views',liveState:{primary_turn_open:true},
+        lineage:{program:'UED2ON',kind:'seat',quick:true,conductorN:3,parentSeat:'cc-'+id(3),title:'[ap:UED2ON]-003 ▸ ⚡ quick worker · tool and thinking views'}}),
+      seat(5,{role:'helper',displayRole:'helper',title:'[ap:UED2ON]-003 ▸ ⚡ quick helper · browser checks',
+        lineage:{program:'UED2ON',kind:'seat',quick:true,conductorN:3,parentSeat:'cc-'+id(4),title:'[ap:UED2ON]-003 ▸ ⚡ quick helper · browser checks'},
+        liveState:{primary_turn_open:false,background_tasks:{'t-1':{task_type:'local_bash',tool_input:{command:'python3 run_browser_checks.py',description:'Run the browser suites'}}}}}),
+      seat(6,{role:'conductor',displayRole:'conductor',lifecycle:'ended',createdAt:now-90000,title:'[ap:MCI012]-002 · MCI ledger audit',
+        lineage:{program:'MCI012',kind:'conductor',conductorN:2,managerSession:'190',title:'[ap:MCI012]-002 · MCI ledger audit'}}),
+      seat(7,{displayRole:'quick-worker',lifecycle:'ended',createdAt:now-80000,title:'[ap:FREE01]-001 ▸ ⚡ quick worker · README sweep',
+        lineage:{program:null,kind:'seat',quick:true,title:'[ap:FREE01]-001 ▸ ⚡ quick worker · README sweep'}}),
+      seat(8,{displayRole:'quick-worker',lifecycle:'ended',title:'[ap:UED2ON]-003 ▸ ⚡ quick worker · colour audit (done)',
+        lineage:{program:'UED2ON',kind:'seat',quick:true,conductorN:3,parentSeat:'cc-'+id(3),title:'[ap:UED2ON]-003 ▸ ⚡ quick worker · colour audit (done)'}}),
+      seat(9,{role:'helper',displayRole:'helper',lifecycle:'ended',title:'[ap:UED2ON]-003 ▸ ⚡ quick helper · palette sweep (done)',
+        lineage:{program:'UED2ON',kind:'seat',quick:true,conductorN:3,parentSeat:'cc-'+id(8),title:'[ap:UED2ON]-003 ▸ ⚡ quick helper · palette sweep (done)'}}),
+    ];
+    // A row's 💬 glance (either backend): its newest messages and its running tool call.
+    const str=v=>({kind:'string',characters:Array.from(v).length,jsonCharacters:Array.from(JSON.stringify(v)).length,head:Array.from(v).slice(0,128).join(''),tail:Array.from(v).slice(-128).join('')});
+    const preview=entries=>({schemaVersion:1,status:'available',value:{kind:'object',entries:entries.map(([k,v])=>[k,str(v)])}});
+    const glanceMessages=[
+      {role:'user',time:now-900,text:'You are a QUICK WORKER (session cc-00000004). Your socket is [ap:K7M2QF]: its note is your prompt. Read it in full and follow it.'},
+      {role:'assistant',time:now-840,text:'Reading the socket and the SkyView first, then the pane\u2019s Project Map and the opc-pane slice.'},
+      {role:'assistant',time:now-600,text:'The pane\u2019s colours come from two theme sheets: sessions.css is variables only, m.css mostly. One glare layer can brighten both without touching any widget, and lift the small print where it is set by hand.'},
+      {role:'assistant',time:now-300,text:'Built the \u2600 switch and the glare layer. The browser suites are running now; next, screenshots at 390 px, before and after.'},
+      {role:'assistant',time:now-60,text:'Suites green except one check that already fails on main (\u2912 First). Writing the result into the socket, then the For-the-human note.'}].map(m=>({...m,chars:m.text.length}));
+    const glanceCall={name:'Bash',status:'pending-or-missing',open:true,time:now-75,resultTime:null,
+      previewData:preview([['command','python3 transcription-pane/tests/run_browser_checks.py --receipt-dir ../oc-scratch/opencode-companion/receipts/glare-receipt'],['description','Run the pane browser suites']])};
+    const oc=[{id:'ses_phonehelp1',program:'UED2ON',kind:'helper',quick:true,parentSeat:'cc-'+id(4),conductorN:3,title:'[ap:UED2ON]-003 ▸ ⚡ quick helper · screenshot sweep',
+      busy:true,outcome:null,agent:'build',model:'openrouter/deepseek/flash',cost:0.04,createdAt:now-500,updatedAt:now-5,idleAt:null,directory:'/mnt/e/repos/quick-worker'}];
+    window.fetch=async url=>{const u=new URL(String(url),'http://phone.fixture/');let data;
+      if(u.pathname==='/api/claude/sessions')data=env({sessions,hasMore:false,status:'complete',listWindowDays:14,diagnostics:[]});
+      else if(u.pathname==='/api/pins')data={schemaVersion:1,pins:{}};
+      else if(u.pathname==='/api/opencode/programs')data=ocv({status:'complete',error:null,sessions:oc});
+      else if(u.pathname==='/api/claude/glance')data=env({status:'complete',uuid:u.searchParams.get('uuid'),model:'claude-opus-5-5',lastAt:now-60,partial:false,
+        messages:glanceMessages,call:glanceCall,read:{mode:'tail',bytes:1048576,window:1000,size:2000000,ms:3}});
+      else if(u.pathname==='/api/opencode/glance')data=ocv({status:'complete',id:u.searchParams.get('id'),busy:true,outcome:null,agent:'build',model:'openrouter/deepseek/flash',
+        cost:0.04,idleAt:null,messages:glanceMessages.slice(-3),call:glanceCall});
+      else if(u.pathname==='/api/opencode/turns')data=ocv({status:'complete',id:u.searchParams.get('id'),firstAt:now-500,lastAt:now-5});
+      else if(u.pathname==='/api/claude/subagents')data=env({sessionRef:u.searchParams.get('sessionRef'),sessions:[],hasMore:false,status:'complete'});
+      else if(u.pathname==='/api/telemetry'){
+        // oc.sh telemetry as the pane server answers it: an implementer's phases, every other role's context and wall clock.
+        const seg=(full,short,live=false,flags=[],n=0)=>({key:'k#'+n,segment:n,kind:n?'follow_up':'fresh',label:n?'+'+n+' follow-up':'fresh',full,short:short||full,line:(n?'+'+n+' follow-up':'fresh')+' · '+full,flags,notes:[],live});
+        const entry=(sid,role,phases,...s)=>({sid,backend:sid.startsWith('cc-')?'claude':'opencode',role,roleSource:'title',phases,unit:phases?'U02':null,lastT:now*1000,segments:s});
+        // One run per row, except the busy worker: a fresh start resumed twice, three lines, the live one last.
+        const all={['cc-'+id(3)]:entry('cc-'+id(3),'CONDUCTOR',false,seg('context 35.6 → 212 KT · 48 min',null,true)),
+          ['cc-'+id(4)]:entry('cc-'+id(4),'IMPLEMENTER',true,seg('start-up 157 KT · edit@186 KT · report@264 KT · end 274 KT · 1/1/17/3 min · ⚑0','157 (1) → 186 (1) → 264 (17) → 274 KT (3 min) ⚑0'),
+            seg('carried 274 KT · src@281 KT · edit@281 KT · report@405 KT · end 425 KT · 5/0/59/5 min · ⚑1','281 (5) → 281 (0) → 405 (59) → 425 KT (5 min) ⚑1',false,['2 report write(s) before the last file edit (first #96)'],1),
+            seg('carried 425 KT · src@431 KT · edit@443 KT · report@— · end 486 KT · 6/2/18/— min · ⚑0','431 (6) → 443 (2) → — → 486 KT (18 min) ⚑0',true,[],2)),
+          ['cc-'+id(5)]:entry('cc-'+id(5),'HELPER',false,seg('context 18.4 → 96.2 KT · 9 min',null,true)),
+          ['cc-'+id(8)]:entry('cc-'+id(8),'IMPLEMENTER',true,seg('start-up 50.3 KT · edit@57.2 KT · report@427 KT · end 481 KT · 0/0/96/14 min · ⚑2','50.3 (0) → 57.2 (0) → 427 (96) → 481 KT (14 min) ⚑2',false,
+            ['the first source read rests on shell parsing at #4 (shell read sessions.js)','2 report write(s) before the last file edit (first #96)'])),
+          ['cc-'+id(9)]:entry('cc-'+id(9),'HELPER',false,seg('context 18.1 → 270 KT · 9 min')),
+          ['cc-'+id(7)]:entry('cc-'+id(7),'unknown',false,seg('context 29.4 → 141 KT · 35 min')),
+          ses_phonehelp1:entry('ses_phonehelp1','HELPER',false,seg('context 18.4 → 127 KT · 26 min',null,true))};
+        const want=u.searchParams.get('program')==='UED2ON'?['cc-'+id(3),'cc-'+id(4),'cc-'+id(5),'cc-'+id(8),'cc-'+id(9),'ses_phonehelp1']:u.searchParams.getAll('sid');
+        data={schemaVersion:1,backend:'telemetry',status:'complete',asOf:now,sessions:Object.fromEntries(want.filter(k=>all[k]).map(k=>[k,all[k]]))};
+      }
+      else throw new Error('offline fixture: '+url);
+      return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});};
+  `;
+  const frame=document.getElementById('phone');
+  frame.srcdoc=inline(html,[css,diffCss,glareCss],[mock,glareJs,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,app+'\nwindow.demo.api=phoneManager;']);
+  await new Promise(r=>frame.onload=r);
+  const w=frame.contentWindow,d=w.document,sleep=ms=>new Promise(r=>setTimeout(r,ms)),el=id=>d.getElementById('m-'+id);
+  const until=async fn=>{for(let i=0;i<300;i++){try{if(fn())return true;}catch(_){}await sleep(10);}return false;};
+  const checks=[],check=(name,ok)=>checks.push({name,passed:!!ok});
+  const api=w.demo.api;
+  await until(()=>el('managers').children.length===3);
+  await api.selectManager(w.demo.A.executionId);
+  check('conversation rendered',await until(()=>el('messages').querySelector('table')));
+  const box=el('draft'),toolNamed=name=>[...d.querySelectorAll('.m-tool')].find(n=>n.textContent.includes(name));
+  const conversation=el('conversation'),reveal=node=>{conversation.scrollTop+=node.getBoundingClientRect().top-conversation.getBoundingClientRect().top-8;conversation.dispatchEvent(new w.Event('scroll'));};
+  box.value='Next I want the programs view to open straight to Running now.';box.dispatchEvent(new w.Event('input',{bubbles:true}));
+  if(glare){el('glare').click();await sleep(30);check('☀ glare mode on: the page, its button and the saved choice',
+    d.documentElement.dataset.glare==='on'&&el('glare').getAttribute('aria-pressed')==='true'&&w.demo.store.get('pane_m_v1:glare')==='on');}
+  if(shot==='tool'){const tool=toolNamed('Edit');tool.querySelector('summary').click();check('tool body read',await until(()=>tool.textContent.includes('new_string')));await sleep(50);reveal(tool);}
+  // Open one tool and bring the named part of it to the top of the conversation.
+  const openTool=async(name,ready,part=t=>t)=>{const tool=toolNamed(name);tool.querySelector('summary').click();
+    check(name+' read',await until(()=>ready(tool)));await sleep(50);reveal(part(tool));return tool;};
+  if(shot==='tool-readable')await openTool('Write',t=>t.querySelector('.inspector-md-rendered h1'),t=>t.querySelector('.m-io-head'));
+  if(shot==='tool-markdown')await openTool('mcp__workflowy__node',t=>t.querySelectorAll('pre.m-io')[1].querySelector('.inspector-md-rendered table'),t=>t.querySelectorAll('.m-io-head')[1]);
+  if(shot==='tool-nowrap'){const tool=await openTool('grep',t=>t.querySelectorAll('pre.m-io')[1].textContent.includes('--final-accent'),t=>t.querySelectorAll('.m-io-head')[0]);
+    [...tool.querySelectorAll('.m-tool-top button')].find(b=>b.textContent==='Wrap').click();await sleep(30);check('wrap off',el('messages').classList.contains('m-nowrap'));}
+  // An Edit opened cold: its recorded diff first (inline at 390 px, line-numbered, colored), Input and Output below.
+  if(shot==='tool-diff'||shot==='tool-diff-large'){const tool=await openTool('Edit',t=>t.querySelector('.m-diff .opc-diff-row'));
+    const rows=tool.querySelectorAll('.m-diff .opc-diff-row'),root=tool.querySelector('.m-diff .opc-diff'),counter=tool.querySelector('.m-diff .opc-diff-count');
+    check('the Diff is first in the opened tool, above Input, inline at 390 px',root.dataset.layout==='inline'&&
+      tool.querySelector('.m-diff').getBoundingClientRect().bottom<=tool.querySelector('.m-io-head').getBoundingClientRect().top&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    if(shot==='tool-diff')check('the rendered rows carry the recorded line numbers and CSS colors',rows[0].querySelector('.opc-diff-old').textContent==='118'&&
+      [...tool.querySelectorAll('.m-diff .opc-diff-add .opc-diff-new')].map(n=>n.textContent).join()==='121,122'&&!!tool.querySelector('.m-diff .opc-diff-code [class^="hljs-"]'));
+    else check('a large diff shows its visible bound and Show all ('+counter.textContent+')',/^Showing [\d,]+ of 2,709 lines$/.test(counter.textContent)&&rows.length<2709&&
+      !tool.querySelector('.m-diff .opc-diff-show').hidden&&!!tool.querySelector('.m-diff .opc-diff-code [class^="hljs-"]'));}
+  if(shot==='chat-board'){const board=d.querySelector('.m-prose figure.opc-chess'),prose=board?.closest('.m-prose');
+    check('board drawn in the chat, 64 squares, within the message width',!!board&&board.querySelectorAll('.opc-chess-grid > span').length===64&&!prose.querySelector('pre')&&
+      board.getBoundingClientRect().width<=prose.getBoundingClientRect().width+0.5&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    reveal(prose);}
+  if(shot==='thinking'){const t=d.querySelector('.m-thinking');t.querySelector('summary').click();await sleep(30);reveal(t);}
+  if(shot==='refined'||shot==='draft-max'){
+    box.value='Dictated earlier and already clean.\n\nplease also show the running programs on the phone read only as a second view';box.dispatchEvent(new w.Event('input',{bubbles:true}));
+    box.focus();box.setSelectionRange(36,box.value.length);await api.refine();check('refined tail, ready to keep typing',!box.classList.contains('m-refined')&&box.selectionStart===box.value.length&&box.selectionEnd===box.value.length);
+  }
+  if(shot==='draft-max'){el('draft-max').click();await sleep(30);}
+  if(shot==='chat-max'){el('chat-max').click();await sleep(30);}
+  if(shot==='more-menu'){el('more').click();await sleep(30);check('menu open',!el('more-menu').hidden);}
+  if(shot==='refine-view'||shot==='refine-view-prompt'){
+    box.value='Dictated earlier and already clean.\n\nplease also show the running programs on the phone read only as a second view\n\nThen the Context view.';box.dispatchEvent(new w.Event('input',{bubbles:true}));
+    box.setSelectionRange(box.value.indexOf('please'),box.value.indexOf('\n\nThen'));await api.refineView();
+    check('view rendered',!!d.querySelector('#m-rv-body .rv-history .rv-text')&&!!d.querySelector('#m-rv-body .rv-after .rv-text'));
+    if(shot==='refine-view-prompt'){d.querySelector('#m-rv-body .rv-switch [data-mode="prompt"]').click();await sleep(30);check('prompt shown',!d.querySelector('#m-rv-body .rv-prompt').hidden);}
+  }
+  // Scrolled up while the Manager writes on: two new turns below, the Latest badge's accent "2 new ↓", pulsing.
+  if(shot==='chat-new'){conversation.scrollTop=Math.max(0,conversation.scrollHeight-conversation.clientHeight*2.2);conversation.dispatchEvent(new w.Event('scroll'));await sleep(30);
+    const last=Math.max(...w.demo.events.map(e=>e.seq));
+    w.demo.delta.push([w.demo.ev(last+1,'assistant','Both views now say whether anything below is **new**: a turn counts as seen once its end has been on screen.'),
+      w.demo.ev(last+2,'assistant','The badge pulses for about five seconds whenever something new arrives while you are scrolled up.')]);
+    await api.readChat();await sleep(30);check('accent "2 new ↓" offered',el('latest').textContent==='2 new ↓'&&el('latest').dataset.unseen==='true');}
+  if(shot==='first'){el('first').click();
+    check('⤒ First shows the conversation\u2019s opening page at the top',await until(()=>el('messages').textContent.includes('startup')||el('messages').firstElementChild?.textContent.includes('[ap:XZVOYO]')));
+    check('↓ Latest offered',!el('latest').hidden&&el('conversation').scrollTop===0);}
+  if(shot.startsWith('new-manager')){
+    el('new').click();check('New Manager form open with its defaults',await until(()=>!el('new-form').hidden&&el('new-name').value==='Manager-Session-196'));
+    if(shot==='new-manager-options'){el('new-options').open=true;await sleep(30);}
+    if(shot==='new-manager-started'){el('new-start').click();
+      check('the new Manager is selected in the chip row before any message',await until(()=>el('managers').querySelector('[aria-pressed="true"]')?.textContent==='Manager-Session-196'&&
+        el('new-form').hidden&&el('read-status').textContent.startsWith('No prose messages')));}
+  }
+  if(shot.startsWith('viewer-')){
+    const host=(kind,id,title,label)=>({backend:'claude',sessionRef:'session-'+kind,scopeRef:'main-'+kind,executionId:'cc-'+id,uuid:id,source:'host',title,label});
+    const session={'viewer-conductor':host('cond','44444444-4444-4444-8444-444444444444','⚡ Phone page round 2','Conductor'),
+      'viewer-worker':host('work','55555555-5555-4555-8555-555555555555','tool and thinking views','Quick worker'),
+      'viewer-opencode':{backend:'opencode',id:'ses_phonehelp1',title:'screenshot sweep',label:'Helper'}}[shot];
+    api.openSession({type:'open-session',schemaVersion:1,session});
+    check('the session is viewed read-only with its own chip',await until(()=>el('managers').querySelector('.m-viewer')&&el('messages').querySelector('.m-final')&&!el('readonly').hidden));
+    if(shot==='viewer-worker')await openTool('Edit',t=>t.textContent.includes('new_string'),t=>t.querySelector('.m-io-head'));
+    if(shot==='viewer-opencode')await openTool('shell',t=>t.querySelectorAll('pre.m-io')[1]?.textContent.includes('phone-viewer-opencode.png'),t=>t.closest('.m-row'));
+  }
+  // Press and hold a Manager chip: its model and thinking sheet, xhigh chosen, the model folded open.
+  if(shot==='tune'){const chip=el('managers').querySelector('[aria-pressed="true"]'),r=chip.getBoundingClientRect();
+    chip.dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true,isPrimary:true,button:0,pointerType:'touch',clientX:r.left+12,clientY:r.top+8}));
+    check('a press and hold opens the sheet with the applied readback',await until(()=>!el('tune').hidden&&el('tune-now').textContent==='Opus 5.5 · thinking high · applied'));
+    chip.dispatchEvent(new w.PointerEvent('pointerup',{bubbles:true,isPrimary:true,button:0,pointerType:'touch'}));chip.click();
+    [...el('tune-efforts').children].find(b=>b.dataset.value==='xhigh').click();el('tune-model-box').open=true;await sleep(30);
+    check('xhigh chosen, Apply offers it, the Manager stays selected',el('tune-apply').textContent==='Apply thinking · xhigh'&&!el('tune-apply').disabled&&chip.getAttribute('aria-pressed')==='true');}
+  if(shot==='context'){
+    el('view-context').click();
+    check('context gauges and allotments rendered',await until(()=>el('context-managers').querySelectorAll('.m-meter').length===2&&
+      !el('context-managers').textContent.includes('reading')&&el('claude').querySelectorAll('.m-meter').length===3&&el('chatgpt').querySelectorAll('.m-meter').length===2));
+  }
+  if(shot.startsWith('programs')||shot==='glance-large'){
+    const programs=el('programs-frame');
+    programs.srcdoc=inline(progHtml,[sessionsCss,progCss,glareCss],[programsMock,glareJs,records,previews,sessionsJs]);
+    el('view-programs').click();await new Promise(r=>programs.onload=r);
+    check('programs listed',await until(()=>programs.contentDocument.querySelector('.program')));
+    if(shot==='programs-max'){el('programs-max').click();await sleep(30);}
+    if(shot==='programs-collapsed'||shot==='programs-running'){
+      const pd=programs.contentDocument,cycle=pd.getElementById('sessions-cycle'),has=t=>pd.getElementById('sessions-list').textContent.includes(t);
+      check('the tree starts open, quiet branch included',has('palette sweep'));
+      cycle.click();check('first tap closes the top level',await until(()=>!has('palette sweep')&&cycle.textContent==='Show running'));
+      if(shot==='programs-running'){cycle.click();check('second tap shows only what is running',await until(()=>has('browser checks')&&has('screenshot sweep')&&!has('palette sweep')&&cycle.textContent==='Collapse'));}
+    }
+    const pd=programs.contentDocument;
+    if(glare)check('the Programs frame follows the page\u2019s glare mode',pd.documentElement.dataset.glare==='on');
+    if(shot==='programs-glance'||shot==='glance-large'){
+      // The busy quick worker's 💬: its newest messages and its running tool call, shown under its row.
+      const worker=[...pd.querySelectorAll('#sessions-list .session-item')].find(n=>n.textContent.includes('tool and thinking views')&&n.querySelector('.session-actions > .session-glance-chip'));
+      worker.querySelector('.session-actions > .session-glance-chip').click();
+      check('glance open with its messages and running call',await until(()=>worker.isConnected?worker.querySelector('.claude-glance .glance-call'):
+        pd.querySelector('.claude-glance .glance-call')));
+      const glanceNode=pd.querySelector('.claude-glance'),scroller=pd.getElementById('sessions-scroll');
+      scroller.scrollTop+=glanceNode.closest('.session-item').getBoundingClientRect().top-scroller.getBoundingClientRect().top-4;await sleep(60);
+      if(shot==='glance-large'){pd.querySelector('.claude-glance .glance-large-open').click();
+        check('⤢ Large opens the glance as a sheet, every message whole',await until(()=>pd.querySelector('#glance-large .glance-text')));}
+    }
+  }
+  // View: the actual View page (glimpse.html) in /m's View frame, with the extension's actual shared renderer served at
+  // /nexus-md/ by the shot server's test-only alias, and an inert B2 transport. glimpse-wide shows the page on its own
+  // at desktop width (run with --size 1280,900).
+  let glimpseFrame=null;
+  if(shot.startsWith('glimpse')){
+    const viewHtml=await (await fetch(new URL('glimpse.html',base))).text(),wide=shot==='glimpse-wide';
+    // The picker shots: Dan's favorite Docks (with the pane server's depths) and slice-group names, as listed 2026-10-23.
+    const pickers=shot==='glimpse-docks'||shot==='glimpse-groups';
+    const catalog=pickers?await (await fetch(new URL('../tests/fixtures/view-pickers-catalog.json',base))).json():
+      {docks:[{handle:'[ap:3FAH7A]',name:'🐫 CodeNomad DEPLOYMENT AND USAGE INSTRUCTIONS'},{handle:'[ap:TYEIVK]',name:'⭐ Pane Views · program Dock'}],
+        groups:[{handle:'grp-mci',name:'MCI ledger · all entries'},{handle:'grp-opc',name:'opc · pane slice group'}]};
+    const doc=['# Pane Views · SkyView','','*The human document: what Dan wants and how he will use it.*','',
+      '## Track B · the Markdown modal, as a view of its own','','The extension\u2019s modal is, in Dan\u2019s words, *"complete and utter perfection"*. On the phone he wants **the same rendering, by the same code**.','',
+      '> Phase one is the document view, without the modal\u2019s row list. Raw HTML renders straight into the view, exactly as the dock renders it.','',
+      '| Request | Default on the phone | Full |','| --- | --- | --- |','| Dock · group · subtree | headings only | one tap |','| Node · symbols | the body | — |','',
+      '- <span style="color:#7fe0d6">Raw HTML</span> in a note stays live','- Math: $e^{i\\pi} + 1 = 0$, money stays money: $5 and $10','- `Copy MD` copies the whole held Markdown','',
+      '$$\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}$$','','```js','const request={kind:"parcel",value:{dock:"[ap:3FAH7A]"},options:{headings_only:true}};','```','',
+      '## How Dan will judge it','','**Can Dan use this within seconds on a cold start with real data?** Open the pane\u2019s view of a Dock or a slice group on the phone and see what the modal shows on the desk.'].join('\n');
+    // A Dock's canonical rows (as the daemon's include_rows returns them: name, depth, identity, epoch-second times) and
+    // its resolved render spec; a tap's reply is the focused document with the same whole list.
+    const day=1792900000,rowNames=[[0,'⭐ Pane Views · program Dock'],[1,'SkyView · Pane Views · rev 1 #prog-skyview'],[2,'Track A · IDE-quality diffs for every source edit'],
+      [2,'Track B · the Markdown modal, as a view of its own'],[2,'Stretch · the row list'],[1,'MasterSpec · Pane Views · rev 1 · LOCKED'],[1,'UnitSpec · S · modal row list (stretch) · rev 1 · LOCKED'],
+      [2,'⚖️ RESULT · S · Leg 1 (S1) · continues'],[2,'⚖️ RESULT · S · Leg 2 (S2) · continues'],[2,'⚖️ RESULT · S · Leg 3 (S3) · done'],[3,'🗣️ For the human · S Leg 3'],[1,'How Dan will judge it']];
+    const rows=rowNames.map(([depth,name],i)=>({uuid:'demo-'+i,ancestor_path:i?['demo-0']:[],occurrence:0,depth,name,created:day+i*20000,modified:day+i*21000+(i%4)*9000}));
+    const spec={kind:'raw_root',group_id:null,group_name:null,root_uuid:'demo-0',lightning:null,focus:null,match_scope:'name_and_note',descend_policy:'stop_at_child_anchors',recursive:true,
+      sort_by:'none',sort_direction:'asc',since:null,recent_by:null,headings_only:false,ancestor_notes:false,full_uuids:false,as_markdown:true,content_format:'markdown',tree_mode:'render_tree'};
+    const focused='# ⭐ Pane Views · program Dock\n\n## ⚖️ RESULT · S · Leg 3 (S3) · done\n\nView shows the dock\u2019s row list above the document; a tap on a row shows that row\u2019s focused view, by the extension\u2019s own painter.';
+    const large=['# MCI ledger · all entries',...Array.from({length:640},(_,i)=>'## Entry '+(i+1)+' · ledger item\n\nRecorded change '+(i+1)+': **reviewed**, see [ap:L'+(1000+i)+'].')].join('\n\n');
+    const viewMock=`
+      ${wide?"Object.defineProperty(window,'parent',{configurable:true,value:window});":''}
+      const store=new Map();Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+        getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}});
+      const realFetch=window.fetch.bind(window),json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+      const docs=${JSON.stringify({doc,large,rows,spec,focused,catalog})};
+      window.fetch=async(url,options={})=>{const u=new URL(String(url),${JSON.stringify(location.href)});
+        if(u.pathname.startsWith('/nexus-md/'))return realFetch(url,options);
+        if(u.pathname==='/api/glimpse/catalog')return json(200,{schemaVersion:1,docks:docs.catalog.docks,groups:docs.catalog.groups,errors:[],readAt:'x'});
+        if(u.pathname==='/api/glimpse/render'){const body=JSON.parse(options.body);
+          const full=body.value.group==='grp-mci'?docs.large:docs.doc,markdown=body.value.focus?docs.focused:body.options.headings_only?full.split('\\n').filter(l=>l.startsWith('#')).join('\\n\\n'):full;
+          const rowList=body.options.include_rows&&body.value.group!=='grp-mci'?{rows:docs.rows,render_spec:body.value.focus?body.value:
+            {...docs.spec,sort_by:body.options.sort_by||'none',sort_direction:body.options.sort_direction||'asc',headings_only:!!body.options.headings_only}}:{};
+          return json(200,{schemaVersion:1,markdown,bytes:new TextEncoder().encode(markdown).length,renderedAt:new Date().toISOString(),request:body,...rowList});}
+        throw new Error('offline fixture: '+url);};`;
+    const viewPage=viewHtml.replace('<script>',()=>'<script>'+safe(viewMock)+'<\/script>\n  <script>')
+      .replace(/(src|href)="\/((?:glimpse|glare|view-history|view-pickers|handle-links)\.(?:js|css))"/g,(_,a,f)=>a+'="/transcription-pane/static/'+f+'"');
+    let view=el('glimpse-frame');
+    if(wide){view=frame;frame.style.width='1280px';frame.style.height='900px';}
+    const viewed=new Promise(r=>view.onload=r);view.srcdoc=viewPage;if(!wide)el('view-glimpse').click();await viewed;
+    const gw=view.contentWindow,gd=view.contentDocument,g=id=>gd.getElementById('g-'+id);
+    check('the View page loads the shared renderer and the catalog',await until(()=>gw.GlimpseMd&&gw.opcGlimpseView&&g('dock').querySelectorAll('.g-pleaf').length===catalog.docks.length));
+    const gapi=gw.opcGlimpseView,pick=async(id,i,label)=>{g(id+'-box').open=true;[...g(id).querySelectorAll('.g-pleaf')].find(b=>b.title===catalog[id+'s'][i].name).click();
+      return until(()=>!gapi.state.busy&&gapi.state.held?.label.startsWith(label));};
+    if(pickers){
+      // The chooser open on one picker: the Docks nested as the extension nests them, or the slice groups' sections with
+      // Work, its Conversational section and OpenCode opened (one row per entry, the long names scrolling sideways).
+      g('pick').open=true;g(shot==='glimpse-docks'?'dock-box':'group-box').open=true;
+      const open=label=>[...g('group').querySelectorAll('.g-pexp')].find(b=>b.textContent.endsWith(label)&&b.getAttribute('aria-expanded')==='false')?.click();
+      if(shot==='glimpse-groups'){open('Work');open('Conversational');open('OpenCode');}
+      const rows=[...g(shot==='glimpse-docks'?'dock':'group').querySelectorAll('.g-prow')],list=g(shot==='glimpse-docks'?'dock':'group');
+      check('one unwrapped row per entry, the list the chooser\'s full width, long names scrolling sideways ('+rows.length+' rows)',rows.length>=12&&
+        rows.every(b=>b.getBoundingClientRect().height<40)&&list.scrollWidth>list.clientWidth&&gd.documentElement.scrollWidth<=gd.documentElement.clientWidth+1&&
+        list.getBoundingClientRect().width>=g('pick').getBoundingClientRect().width-24);
+      if(shot==='glimpse-docks')check('nested: a Dock under its parent Dock sits further right',Number(rows[1].dataset.depth)===1&&
+        rows[1].getBoundingClientRect().left===rows[0].getBoundingClientRect().left&&parseFloat(rows[1].style.paddingLeft)>parseFloat(rows[0].style.paddingLeft));
+    }
+    else if(shot==='glimpse-large'){check('a large group rendered',await pick('group',0,'Group'));
+      const box=g('scroll');box.scrollTop=box.scrollHeight;await sleep(30);
+      check('its first bound and Show all ('+g('more-text').textContent+')',!g('more').hidden&&/^Showing 200 of [\d,]+ blocks/.test(g('more-text').textContent));}
+    else {check('a favorite Dock rendered',await pick('dock',1,'Dock'));
+      if(!wide)check('compact by default on the phone, labelled, with Full',!g('compact').hidden&&gapi.state.held.request.options.headings_only===true);
+      if(shot!=='glimpse-compact'&&!wide){g('full').click();check('Full renders the whole Dock',await until(()=>!gapi.state.busy&&gapi.state.held.request.options.headings_only===false&&g('compact').hidden));}
+      check('table, math and raw HTML drawn by the shared renderer, no sideways page',shot==='glimpse-compact'||(g('doc').querySelector('table')&&g('doc').querySelector('.katex')&&
+        gd.documentElement.scrollWidth<=gd.documentElement.clientWidth+1&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1));
+      check('the Dock\u2019s row list sits above the document, painted by the shared renderRowList',!g('rows-box').hidden&&gd.querySelectorAll('#g-rows .glimpse-md-dock-row').length===12);
+      if(shot==='glimpse-rows'){g('sort').value='modified';g('sort').dispatchEvent(new gw.Event('change'));
+        check('by modified, newest first: the dock\u2019s day lines',await until(()=>!gapi.state.busy&&gapi.state.held.spec?.sort_by==='modified'&&gd.querySelector('#g-rows .glimpse-md-dock-daysep')));
+        [...gd.querySelectorAll('#g-rows .glimpse-md-dock-row')].find(r=>r.textContent.includes('Leg 3')).click();
+        check('a tapped row: its focused view, the row selected in the whole list',await until(()=>!gapi.state.busy&&/› ⚖️ RESULT · S · Leg 3/.test(gapi.state.held.label)&&
+          gd.querySelector('#g-rows .glimpse-md-dock-row.selected')?.textContent.includes('Leg 3')));}
+      if(shot==='glimpse-source'){const f=g('find');f.value='Dan';f.dispatchEvent(new gw.Event('input'));
+        check('Source with find: count and current ('+g('count').textContent+')',gapi.state.view==='source'&&/^1 \/ \d+$/.test(g('count').textContent));}
+      // History: a lead seat's socket tapped in Programs (resumed under a later Conductor: two sessions on one socket),
+      // then two handles tapped in its document; the strip, the sheet, or the root's pop-up.
+      if(shot.startsWith('glimpse-history')||shot==='glimpse-root'){
+        const prog={key:'p:Z362II',core:'Z362II',title:'MCI · single server',kind:'full',managerSession:'207',count:40,conductors:32};
+        const ln=(id,role,handle,name,status='')=>({id,key:'s:'+id,role,handle,name,status});
+        const position={handle:'[ap:2IWU76]',kind:'socket',total:2,cards:[
+          {id:'cc-seat-31',active:true,program:prog,manager:'207',chain:[ln('cc-c31','Conductor','[ap:Z362II]-031',''),ln('cc-seat-31','Lead seat','[ap:2IWU76]','RECON · Pre-pass · Waypoint 2 CLEAN wave-end instrument','Claude Code · Opus 5.5')]},
+          {id:'cc-seat-32',active:false,program:prog,manager:'207',chain:[ln('cc-c32','Conductor','[ap:Z362II]-032','resumed'),ln('cc-seat-32','Lead seat','[ap:2IWU76]','RECON · Pre-pass · Waypoint 2 CLEAN wave-end instrument','Claude Code · running now')]}]};
+        await gapi.openHandle('[ap:2IWU76]','node',{from:'programs',active:'cc-seat-31',where:'Programs',position});await until(()=>!gapi.state.busy);
+        await gapi.openFromPage('[ap:BPQUKH]',{node:g('doc')});await until(()=>!gapi.state.busy);
+        await gapi.openFromPage('[ap:XGEX2E]',{node:g('doc')});await until(()=>!gapi.state.busy);
+        g('back').click();await until(()=>!gapi.state.busy);
+        check('the history strip: the root widget and ‹ 2/3 ›',!g('hist').hidden&&!g('hist-nav').hidden&&g('now').textContent.startsWith('2/3'));
+        if(shot==='glimpse-history-sheet'){g('hist-open').click();check('the sheet lists three cards',gd.querySelectorAll('#g-hist-list .g-hcard').length===3);}
+        if(shot==='glimpse-root'){g('root').click();check('the root\u2019s pop-up: two cards, the tapped one first',gd.querySelectorAll('#g-pos-body .g-pos-card').length===2&&
+          gd.querySelector('#g-pos-body .g-pos-card').classList.contains('g-pos-active'));}
+      }}
+    if(glare)check('the View frame follows the page\u2019s glare mode',gd.documentElement.dataset.glare==='on');
+    glimpseFrame=view;
+  }
+  await sleep(200);
+  // Glare mode is universal: every piece of text drawn on the page (and in its Programs frame) is bright, at full opacity.
+  // Reds and greens that carry a meaning (an error, a live state) are allowed down to a lower floor. Without glare,
+  // &sweep=1 only counts what the same rule finds (the before picture).
+  if(glare || new URLSearchParams(location.search).has('sweep')){
+    // rgb()/rgba() in 0–255, color(srgb …) (a color-mix result) in 0–1.
+    const rgba=c=>{const v=c.match(/[\d.]+/g).map(Number),k=c.startsWith('color(')?255:1;return [v[0]*k,v[1]*k,v[2]*k,v[3] ?? 1];};
+    const lum=c=>{const [r,g,b]=rgba(c).slice(0,3).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;});return .2126*r+.7152*g+.0722*b;};
+    const sweep=(doc,win)=>{const out=[];
+      for(const n of doc.querySelectorAll('body *')){
+        // A chess board's pieces and coordinates are drawn on its own light and dark squares, not on the page.
+        // So is the View page's current find match: dark text on its own bright amber.
+        if(!n.getClientRects().length || n.closest('[hidden],button:disabled,.opc-chess-grid,mark.glimpse-dock-src-hit--current') || ![...n.childNodes].some(t=>t.nodeType===3&&t.textContent.trim()))continue;
+        const cs=win.getComputedStyle(n);if(cs.visibility==='hidden')continue;
+        // An opening sheet's own fade-in (the tune sheet) ends at full opacity; any other faded ancestor counts.
+        let o=rgba(cs.color)[3];for(let a=n;a&&a.nodeType===1;a=a.parentElement){const as=win.getComputedStyle(a);if(as.animationName==='none')o*=Number(as.opacity);}
+        const l=lum(cs.color),hue=rgba(cs.color).slice(0,3),tinted=Math.max(...hue)-Math.min(...hue)>60;
+        if(o<0.95 || l<(tinted?0.3:0.55))out.push((n.id?'#'+n.id:n.tagName.toLowerCase()+'.'+[...n.classList].join('.'))+' '+cs.color+(o<0.95?' α'+o.toFixed(2):'')+' «'+n.textContent.trim().slice(0,24)+'»');}
+      return [...new Set(out)];};
+    const dimPage=sweep(d,w),pf=el('programs-frame'),dimFrame=pf?.contentDocument?.body?sweep(pf.contentDocument,pf.contentWindow):[];
+    const gf=glimpseFrame,dimView=gf?.contentDocument?.body?sweep(gf.contentDocument,gf.contentWindow):[];
+    if(!glare)check('without glare: '+dimPage.length+' dim texts on the page, '+dimFrame.length+' in the Programs frame, '+dimView.length+' in the View frame',true);
+    else {check('glare: no dim text on the page'+(dimPage.length?' — '+dimPage.join(' | '):''),!dimPage.length);
+      check('glare: no dim text in the Programs frame'+(dimFrame.length?' — '+dimFrame.join(' | '):''),!dimFrame.length);
+      check('glare: no dim text in the View frame'+(dimView.length?' — '+dimView.join(' | '):''),!dimView.length);}
+  }
+  const report=document.createElement('script');report.type='application/json';report.id='shot-report';report.textContent=JSON.stringify({shot:fullShot,checks});document.body.append(report);
+})();
+</script>

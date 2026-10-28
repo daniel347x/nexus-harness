@@ -1,0 +1,26 @@
+{
+  "provenance": {
+    "cli_version": "2.1.299",
+    "binary_sha256": "2d894a4b1bfaaa9aab72aeff7803e3c73bc2510f279a171f6b8f59f72d17d077",
+    "source": "tmp/hc-manager-quick/research/probe-774d607a/stdout.jsonl",
+    "source_sha256": "da14efbf45761239f864a531a8ce0604327721d2e3589fd4b932bfdd3ba2d3b4",
+    "basis": "Actual pinned CLI with isolated HOME/config/CWD and inert loopback API/MCP; NO Max or Anthropic inference. Fields selected, output path removed. Generated real manager-quick definition; tools omitted, disallowedTools Agent.",
+    "exit": 0,
+    "forced": false,
+    "second_parent_send_seconds": 1.596,
+    "second_parent_result_seconds": 1.641,
+    "child_notification_seconds": 7.462,
+    "child_tools_include": ["Read", "Edit", "Write", "Bash", "Grep", "Glob", "mcp__research__ping"],
+    "child_tools_exclude": ["Agent"]
+  },
+  "events": [
+    {"type":"system","subtype":"background_tasks_changed","tasks":[{"task_id":"ab4e17c94c8afd826","run_id":"0mv8j99vv-30d002d4","task_type":"local_agent","subagent_type":"manager-quick","description":"Inert child research"}]},
+    {"type":"system","subtype":"task_started","task_id":"ab4e17c94c8afd826","run_id":"0mv8j99vv-30d002d4","tool_use_id":"toolu_inert_parent_agent","description":"Inert child research","subagent_type":"manager-quick","is_backgrounded":true,"spawn_depth":1,"task_type":"local_agent","prompt":"CHILD-RESEARCH-MARKER. Call research ping then finish."},
+    {"type":"assistant","parent_tool_use_id":"toolu_inert_parent_agent","agent_id":"ab4e17c94c8afd826","message":{"id":"msg_inert_2","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"toolu_inert_child_ping","name":"mcp__research__ping","input":{}}],"usage":{"input_tokens":12,"output_tokens":2,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}},
+    {"type":"user","parent_tool_use_id":"toolu_inert_parent_agent","agent_id":"ab4e17c94c8afd826","message":{"role":"user","content":[{"tool_use_id":"toolu_inert_child_ping","type":"tool_result","content":[{"type":"text","text":"INERT LOOPBACK MCP OK"}]}]}},
+    {"type":"system","subtype":"task_progress","task_id":"ab4e17c94c8afd826","run_id":"0mv8j99vv-30d002d4","tool_use_id":"toolu_inert_parent_agent","description":"Inert child research","subagent_type":"manager-quick","usage":{"total_tokens":14,"tool_uses":1,"duration_ms":6494},"last_tool_name":"mcp__research__ping"},
+    {"type":"system","subtype":"task_notification","task_id":"ab4e17c94c8afd826","run_id":"0mv8j99vv-30d002d4","tool_use_id":"toolu_inert_parent_agent","status":"completed","summary":"CHILD SYNTHETIC COMPLETED","usage":{"total_tokens":22,"tool_uses":1,"duration_ms":6543}},
+    {"type":"system","subtype":"background_tasks_changed","tasks":[]}
+  ],
+  "metadata": {"agentType":"manager-quick","description":"Inert child research","toolUseId":"toolu_inert_parent_agent","spawnDepth":1,"requestShape":"background","requestNonInteractive":true}
+}

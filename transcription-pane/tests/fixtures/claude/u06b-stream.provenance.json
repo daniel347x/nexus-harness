@@ -1,0 +1,8 @@
+{
+  "kind": "synthetic-policy-fixture",
+  "layout": "Claude Code 2.1.299 stream-json",
+  "source": "Manually constructed inert values following the previously owned headless-thinking probe's event order and documented stream block shapes, not copied production data.",
+  "importantSeam": "Final assistant records are emitted per block before content_block_stop, sharing provider message.id but distinct event UUIDs.",
+  "sanitization": "All identifiers, text, tools, paths and opaque signatures are invented; no account, auth, session or production host bytes are included.",
+  "time": "Tests assign synthetic host-arrival epoch seconds; these are not provider timestamps."
+}

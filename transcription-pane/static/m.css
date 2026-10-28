@@ -1,0 +1,548 @@
+:root { color-scheme: dark; font: 16px/1.45 system-ui, -apple-system, sans-serif; background: #151922; color: #e4e8ef;
+  /* The desktop Claude viewer's theme (sessions.css), copied exactly: conversation turns, tools, thinking, running. */
+  --you-accent: #3fcf7a; --you-bg: rgba(63,207,122,.11); --you-border: rgba(63,207,122,.55); --you-label: #7ee2a6;
+  --final-accent: #ff6b61; --final-bg: rgba(255,107,97,.085); --final-border: rgba(255,107,97,.5); --final-label: #ff9a92;
+  --mid-accent: rgba(230,150,90,.55); --mid-bg: #21181d; --mid-label: #d9a27c;
+  --tool-accent: rgba(120,165,235,.4); --tool-bg: #1d2431; --tool-title: #a9c4ec; --tool-preview: #b9c1cd;
+  --thinking-bg: #1a1e27; --thinking-border: #2f3745; --thinking-header: #868e9c; --thinking-text: #cbd1da;
+  --running-bg: rgba(233,196,121,.16); --running-border: #e9c479; --running-text: #f0d39a;
+  --size-cold: #8f97a4; --size-hot: #ff6b61;
+  /* ⛔ a usage-limit halt (quota-halt.js): Chat's banner and the Manager chip's marker, as on the desktop */
+  --halt-bg: #3a1518; --halt-border: #ff5c5c; --halt-text: #ffc9c9;
+  /* The desktop status bar's context gauge (sessions.css), copied exactly: green until 40%, orange by 58%, red by 78%. */
+  --gauge-green:#3fcf7a; --gauge-orange:#f0a030; --gauge-red:#ff4d4d; --gauge-rest:#3a4352; --gauge-unknown:#5b6372; --gauge-ring:#8392aa;
+  --gauge-green-until:40; --gauge-orange-at:58; --gauge-red-at:78;
+  /* phone surfaces */
+  --line: #394254; --control: #202837; --control-border: #59667d; --dim: #b8c2d4; --faint: #7d8594; --link: #9ac3ff;
+  --live-dot: #4fd98a; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The page's right edge, and the wider one the keyboard shell keeps for its thumb strip (#m-draft reserves the
+     difference at all times, so the text box's text never rewraps when the shell comes or goes). */
+  --m-page-right: max(10px, env(safe-area-inset-right)); --m-shell-right: calc(52px + env(safe-area-inset-right, 0px));
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; -webkit-text-size-adjust: 100%; }
+.m-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+a { color: var(--link); }
+textarea, input, select, button { font: inherit; font-size: 16px; color: inherit; border: 1px solid var(--control-border); border-radius: 6px; background: var(--control); }
+textarea, input, select { width: 100%; min-width: 0; padding: 8px; }
+button { padding: 9px 10px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+[data-error="true"] { color: #ffbdad; }
+
+/* One screen: views, Managers, conversation filling the middle, composer at the bottom.
+   Refine setup and recovery sit below it, one scroll away. */
+#m-page { max-width: 900px; margin: auto; padding: 0 var(--m-page-right) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+#m-app { height: 100vh; height: 100svh; min-height: 460px; display: flex; flex-direction: column; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) 0 max(8px, env(safe-area-inset-bottom)); }
+#m-chat-view, #m-programs, #m-context, #m-glimpse { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+/* Primary views: a switch whose buttons share the row but never shrink below a thumb's width;
+   past three or four they slide sideways instead of squeezing. The ☀ glare switch sits at the row's end. */
+#m-top { display: flex; gap: 6px; }
+#m-views { flex: 1 1 auto; min-width: 0; display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: #1b212c;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; }
+#m-views::-webkit-scrollbar { display: none; }
+#m-views button { flex: 1 0 96px; scroll-snap-align: start; padding: 5px 8px; font-size: 15px; border: 0; border-radius: 7px; background: transparent; color: var(--dim); white-space: nowrap; }
+#m-views button[aria-pressed="true"] { background: #2d3a4f; color: #fff; font-weight: 600; }
+/* A phone (375–430 px): the four tabs shrink to their words, so View is never off the right edge. */
+@media (max-width: 440px) { #m-views button { flex: 1 1 auto; min-width: 0; padding: 5px 4px; } }
+/* Outdoor glare mode (glare.js, glare.css): one tap, on every view; lit, it is the sun itself. */
+#m-glare { flex: 0 0 46px; padding: 0; display: grid; place-items: center; border-color: var(--line); border-radius: 10px; background: #1b212c; color: var(--dim); }
+#m-glare svg { width: 22px; height: 22px; }
+#m-glare[aria-pressed="true"] { border-color: #ffe9a3; background: #ffd75e; color: #2a1d00; }
+.m-bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.m-bar > nav { flex: 1; min-width: 0; }
+.m-caption { flex: 1; min-width: 0; font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-max { flex: 0 0 auto; width: 42px; height: 42px; padding: 0; display: grid; place-items: center; border-radius: 9px; color: var(--dim); }
+.m-max svg { width: 19px; height: 19px; }
+.m-bar .m-max { width: 38px; height: 34px; }
+.m-max[aria-pressed="true"] { color: #fff; border-color: #91baff; background: #283d5b; }
+
+/* Managers: one line of chips; the selected chip is the conversation's title. */
+#m-managers { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 1px; }
+#m-managers::-webkit-scrollbar { display: none; }
+.m-manager { flex: 0 0 auto; max-width: 82%; display: flex; align-items: center; gap: 7px; padding: 5px 12px; font-size: 14px; border-radius: 999px; white-space: nowrap;
+  /* Press and hold opens the model/thinking sheet: no iOS callout, selection or magnifier on the chips. */
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: transform .2s ease-out; }
+.m-manager[data-holding="true"] { transform: scale(.94); border-color: #91baff; transition-duration: .45s; }
+.m-manager .m-name { overflow: hidden; text-overflow: ellipsis; }
+/* The Manager-Session index ('219', '219-a') right after the gauge (m.js markManager): never elided, so on an iPhone
+   the number survives; the name after it is capped and elides instead. A name without a number shows no index. */
+.m-index { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; color: #e8eef8; }
+.m-index::before { content: attr(data-index); }
+.m-index[data-index=""] { display: none; }
+.m-manager[data-index] { gap: 6px; }
+.m-manager[data-index] .m-name { min-width: 0; max-width: 8.5em; opacity: .82; }
+.m-manager[aria-pressed="true"] { border-color: #91baff; background: #283d5b; font-weight: 600; }
+/* A chip's context gauge, where the live dot was: the Context view's pie (.m-gauge below) at dot size. Open: a green
+   ring, the pie's green → orange → red fill showing the share used (a plain green dot while no figure is known).
+   Closed (sleeping, ended, OpenCode): a gray ring, filled gray with the last known share when the list carries one. */
+.m-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--live-dot);
+  --gauge-color:color-mix(in oklch, var(--gauge-red) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-orange-at)) / (var(--gauge-red-at) - var(--gauge-orange-at)), 1) * 100%),
+    color-mix(in oklch, var(--gauge-orange) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-green-until)) / (var(--gauge-orange-at) - var(--gauge-green-until)), 1) * 100%), var(--gauge-green)));
+  background: conic-gradient(var(--gauge-color) calc(var(--gauge-fill, 0) * 1%), var(--gauge-rest) 0); }
+.m-dot[data-open="true"][data-known="false"] { background: var(--live-dot); }
+.m-dot[data-open="false"] { box-shadow: inset 0 0 0 1.5px #8b93a1; background: conic-gradient(#8b93a1 calc(var(--gauge-fill, 0) * 1%), transparent 0); }
+.m-dot[data-open="false"][data-known="false"] { background: transparent; }
+.m-halt-flag { flex: none; font-size: 13px; line-height: 1; }
+.m-halt-flag[hidden] { display: none; }
+.m-manager[data-halted="true"] { border-color: var(--halt-border); }
+#m-halt { margin: 4px 0 2px; padding: 6px 10px; border: 1px solid var(--halt-border); border-radius: 6px; background: var(--halt-bg); color: var(--halt-text); font-size: 14px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-line; }
+#m-halt[hidden] { display: none; }
+/* A session viewed read-only from Programs: its own chip first (role, name, ✕); the Manager underneath stays outlined. */
+.m-viewer { max-width: 90%; gap: 5px; padding: 2px 2px 2px 10px; cursor: default; border: 1px solid #78a5eb; background: #1d2431; font-weight: 600; }
+.m-viewer-role { flex: none; font-size: 12px; font-weight: 650; color: var(--tool-title); }
+.m-viewer-close { flex: none; width: 30px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--dim); font-size: 15px; }
+.m-manager[data-held="true"] { border-style: dashed; border-color: #91baff; }
+/* Quota shading (m.js quotaShade): the top half is the weekly window in crimson, the bottom half the five-hour window in
+   orange-red, each fading in with its 0–1 level and blending across the middle; laid over the chip's own (selected or
+   not) background, so text and gauge stay on top and legible. */
+.m-manager[data-quota] { --quota-week-color: #e0245e; --quota-five-color: #ff6a1f;
+  background-image: linear-gradient(to bottom,
+    color-mix(in srgb, var(--quota-week-color) calc(var(--quota-week, 0) * 60%), transparent) 0 38%,
+    color-mix(in srgb, var(--quota-five-color) calc(var(--quota-five, 0) * 60%), transparent) 62% 100%); }
+/* ＋ New Manager, at the right end of the chip row in the desktop's New Manager green; its form
+   drops down over the conversation, so nothing below it moves. */
+#m-chat > .m-bar { position: relative; }
+/* ⤒ First, just left of ＋: the desktop's ⤒ First (the conversation's opening page). */
+#m-thinking-mode { flex: 0 0 34px; height: 34px; padding: 0; border-radius: 9px; font-size: 18px; line-height: 1; color: var(--dim); }
+#m-thinking-mode[aria-pressed="true"] { color: #fff; border-color: #91baff; background: #283d5b; }
+#m-first { flex: 0 0 auto; width: 38px; height: 34px; padding: 0; border-radius: 9px; font-size: 19px; line-height: 1; color: var(--dim); }
+#m-first[aria-pressed="true"] { color: #fff; border-color: #91baff; background: #283d5b; }
+#m-new { flex: 0 0 auto; width: 38px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 9px;
+  background: #173326; border-color: #3f9e6a; color: #9fe3bb; }
+#m-new svg { width: 19px; height: 19px; }
+#m-new[aria-expanded="true"] { background: #1f4d37; color: #fff; }
+#m-new[data-busy="true"] svg { animation: m-pulse 1.4s ease-in-out infinite; }
+#m-new-form { position: absolute; z-index: 12; top: calc(100% + 6px); right: 0; width: min(420px, 100%); display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px 12px; border: 1px solid var(--control-border); border-radius: 12px; background: #1d2431; box-shadow: 0 8px 28px rgba(0,0,0,.55); }
+.m-new-head { display: flex; align-items: center; gap: 8px; }
+.m-new-head strong { flex: 1; font-size: 16px; }
+#m-new-form label { font-size: 13px; color: var(--dim); }
+#m-new-options summary { padding: 3px 0; font-size: 13.5px; color: var(--dim); cursor: pointer; }
+#m-new-choice { color: var(--faint); }
+.m-new-fields { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+#m-new-start { height: 44px; font-weight: 650; border-color: #3f9e6a; background: #1f4d37; }
+#m-new-status { font-size: 13px; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+#m-new-status:empty { display: none; }
+#m-new-status[data-error="true"] { color: #ffbdad; }
+/* ↳ New sub-session, beside ＋: the same green; its first-message box drops down like New Manager's form. */
+#m-new-sub { flex: 0 0 auto; width: 34px; height: 34px; padding: 0; border-radius: 9px; font-size: 19px; line-height: 1;
+  background: #173326; border-color: #3f9e6a; color: #9fe3bb; }
+#m-new-sub[aria-expanded="true"] { background: #1f4d37; color: #fff; }
+#m-sub-form { position: absolute; z-index: 12; top: calc(100% + 6px); right: 0; width: min(420px, 100%); display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px 12px; border: 1px solid var(--control-border); border-radius: 12px; background: #1d2431; box-shadow: 0 8px 28px rgba(0,0,0,.55); }
+#m-sub-text, #m-first-messages textarea { resize: vertical; font-size: 15px; line-height: 1.35; }
+#m-sub-send { height: 44px; font-weight: 650; border-color: #3f9e6a; background: #1f4d37; }
+#m-sub-status, #m-first-messages .m-new-hint { font-size: 13px; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+#m-sub-status:empty { display: none; }
+/* Runtime/model/thinking: one block that moves into whichever box is open (＋ or ↳), so it carries its own look. */
+.m-choices-slot:empty { display: none; }
+#m-new-choices { display: flex; flex-direction: column; gap: 6px; }
+#m-new-choices label { font-size: 13px; color: var(--dim); }
+#m-sub-status[data-error="true"] { color: #ffbdad; }
+#m-first-messages summary { padding: 3px 0; font-size: 13.5px; color: var(--dim); cursor: pointer; }
+.m-first-actions { display: flex; gap: 6px; }
+.m-lines { display: flex; flex-wrap: wrap; column-gap: 10px; font-size: 13px; line-height: 1.35; color: var(--dim); }
+.m-lines > :empty { display: none; }
+#m-state[data-busy="true"] { color: var(--running-text); }
+#m-state[data-busy="true"]::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--running-border); vertical-align: 1px; animation: m-pulse 1.4s ease-in-out infinite; }
+@keyframes m-pulse { 50% { opacity: .25; } }
+
+/* Conversation */
+#m-chat { position: relative; flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; gap: 5px; }
+.running-tools { flex:none; max-height:25vh; overflow:auto; padding:5px 8px; background:var(--running-bg); border-left:3px solid var(--running-border); font-size:13px; }
+.running-tools[hidden] { display:none; }
+.running-tools-title { font-weight:600; color:var(--running-text); }
+.running-tool { display:grid; grid-template-columns:auto 1fr; gap:2px 8px; padding-top:4px; }
+.running-tool-name,.running-tool-time { color:var(--running-text); }
+.running-tool-time { text-align:right; font-variant-numeric:tabular-nums; }
+.running-tool-preview { grid-column:1/-1; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--dim); max-height:3.9em; overflow:auto; }
+#m-conversation { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 8px 8px 2px; border: 1px solid var(--line); border-radius: 10px; background: #12161e; }
+#m-latest { position: absolute; right: 12px; bottom: 10px; padding: 6px 12px; font-size: 13px; font-weight: 600; border-radius: 999px; background: #283d5b; border-color: #91baff; box-shadow: 0 2px 10px rgba(0,0,0,.45); }
+/* Something below not yet seen (seen-latest.js): the accent "N new ↓", pulsing about 5 s as new material arrives. */
+#m-latest[data-unseen="true"] { background: #8a5200; border-color: #ffc04d; color: #fff; }
+/* A final reply is among the unseen rows: the final-answer bubble's red (--final-accent), not the working orange. */
+#m-latest[data-unseen="final"] { background: #9a2a22; border-color: var(--final-accent); color: #fff; }
+#m-latest[data-pulse="on"] { animation: m-new-pulse 1.25s ease-out 4; }
+#m-latest[data-unseen="final"][data-pulse="on"] { animation: m-final-pulse 1.25s ease-out 4; }
+@keyframes m-new-pulse { 0% { box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 0 rgba(255,192,77,.9); } 100% { box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 14px rgba(255,192,77,0); } }
+@keyframes m-final-pulse { 0% { box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 0 rgba(255,107,97,.9); } 100% { box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 14px rgba(255,107,97,0); } }
+@media (prefers-reduced-motion: reduce) { #m-latest[data-pulse="on"] { animation: none; box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px #ffc04d; }
+  #m-latest[data-unseen="final"][data-pulse="on"] { animation: none; box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px var(--final-accent); } }
+.seen-end { display: block; height: 0; margin: 0; padding: 0; }
+.m-row { min-width: 0; margin: 0 0 8px; overflow-wrap: anywhere; }
+.m-user, .m-final, .m-mid { padding: 5px 10px 7px; border-left: 4px solid; border-radius: 0 8px 8px 0; }
+.m-user { margin-top: 14px; background: var(--you-bg); border-left-color: var(--you-accent); box-shadow: inset 0 0 0 1px var(--you-border); }
+.m-final { background: var(--final-bg); border-left-color: var(--final-accent); box-shadow: inset 0 0 0 1px var(--final-border); }
+.m-mid { background: var(--mid-bg); border-left-width: 3px; border-left-color: var(--mid-accent); }
+.m-tools, .m-thinking-row { margin-bottom: 3px; }
+.m-row:first-child { margin-top: 0; }
+.m-head { display: flex; align-items: center; gap: 8px; min-height: 22px; font-size: 12px; font-weight: 650; letter-spacing: .03em; }
+.m-user .m-role { color: var(--you-label); } .m-final .m-role { color: var(--final-label); } .m-mid .m-role { color: var(--mid-label); }
+.m-time { margin-left: auto; font-weight: 400; letter-spacing: 0; color: var(--faint); white-space: nowrap; }
+.m-copy, .m-speak { padding: 1px 7px; font-size: 12px; line-height: 1.5; border-color: transparent; background: transparent; color: var(--faint); }
+.m-head .m-copy { margin-right: -6px; }
+/* 🔊 Read aloud, just before the copy button: its own class, never .m-copy, which means Copy to code and tests. */
+.m-head .m-speak { margin-right: -10px; padding: 1px 6px; }
+.m-head .m-speak[hidden] { display: none; }
+
+/* Message Markdown: the desktop's prose rules at phone size; tool Markdown blocks share them */
+.m-prose { min-width: 0; margin-top: 2px; font-size: 15.5px; white-space: normal; }
+.m-prose[data-partial="true"] { white-space: pre-wrap; }
+:is(.m-prose, .m-io .inspector-md-rendered) > :first-child { margin-top: 0; } :is(.m-prose, .m-io .inspector-md-rendered) > :last-child { margin-bottom: 0; }
+:is(.m-prose, .m-io .inspector-md-rendered) p { margin: .55em 0; }
+:is(.m-prose, .m-io .inspector-md-rendered) :is(h1, h2, h3, h4, h5, h6) { margin: .9em 0 .35em; line-height: 1.25; }
+:is(.m-prose, .m-io .inspector-md-rendered) h1 { font-size: 1.3em; } :is(.m-prose, .m-io .inspector-md-rendered) h2 { font-size: 1.17em; }
+:is(.m-prose, .m-io .inspector-md-rendered) h3 { font-size: 1.06em; } :is(.m-prose, .m-io .inspector-md-rendered) :is(h4, h5, h6) { font-size: 1em; }
+:is(.m-prose, .m-io .inspector-md-rendered) :is(ul, ol) { padding-left: 1.5em; }
+:is(.m-prose, .m-io .inspector-md-rendered) blockquote { margin: .6em 0; padding: .1em .8em; border-left: 3px solid #8392aa; color: #cad8ee; }
+:is(.m-prose, .m-io .inspector-md-rendered) code { font: .88em/1.45 var(--mono); padding: .1em .3em; border-radius: 3px; background: #0e1219; }
+:is(.m-prose, .m-io .inspector-md-rendered) pre { display: block; max-width: 100%; overflow-x: auto; padding: 9px; border: 1px solid var(--line); border-radius: 5px; background: #0e1219; white-space: pre; }
+:is(.m-prose, .m-io .inspector-md-rendered) pre code { padding: 0; background: transparent; }
+:is(.m-prose, .m-io .inspector-md-rendered) table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: .7em 0; }
+:is(.m-prose, .m-io .inspector-md-rendered) :is(th, td) { padding: 5px 8px; border: 1px solid #627083; }
+:is(.m-prose, .m-io .inspector-md-rendered) th { background: #303a4a; }
+:is(.m-prose, .m-io .inspector-md-rendered) hr { border: 0; border-top: 1px solid #627083; margin: .9em 0; }
+.m-tools > .m-prose { margin: 2px 0 3px; padding: 3px 8px; border-left: 2px solid var(--mid-accent); border-radius: 0 3px 3px 0; background: var(--mid-bg); }
+
+/* Tool calls: the desktop's gentle blue bars, collapsed; tap for input and output */
+.m-tool { margin: 3px 0; border: 1px solid transparent; border-left: 2px solid var(--tool-accent); border-radius: 4px; background: var(--tool-bg); }
+.m-tool > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: baseline; padding: 5px 8px 6px; list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.m-tool > summary::-webkit-details-marker { display: none; }
+.m-tool-line { min-width: 0; font-size: 13px; font-weight: 600; color: var(--tool-title); }
+.m-tool-line::before { content: '›'; display: inline-block; width: 12px; color: var(--faint); transition: transform .15s; }
+.m-tool[open] .m-tool-line::before { transform: rotate(90deg); }
+.m-tool-flag { margin-left: 7px; font-weight: 500; color: var(--running-text); }
+.m-tool.failed .m-tool-flag { color: #ff9a92; }
+.m-tool-sizes { display: flex; gap: 8px; white-space: nowrap; }
+.m-size { font-size: calc(11.5px + var(--tool-size-lift, 0px) * .75); color: color-mix(in srgb, var(--size-cold), var(--size-hot) var(--tool-size-warmth, 0%)); }
+/* The call's total time, left of its sizes, in their size and their cold color. */
+.m-took { font-size: 11.5px; color: var(--size-cold); font-variant-numeric: tabular-nums; }
+.m-tool-preview { grid-column: 1 / -1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 1px;
+  font: 12px/1.4 var(--mono); color: var(--tool-preview); white-space: normal; overflow-wrap: anywhere; }
+.m-tool-preview .m-k { color: #7f8a9c; }
+.m-tool[open] { border-color: var(--line); border-left-color: var(--tool-accent); }
+.m-tool[open] .m-tool-preview { display: none; }
+.m-tool.pending { border-left-color: var(--running-border); }
+/* A call running now: the desktop's yellow row and its ticking elapsed time. */
+.m-tool.running { background: var(--running-bg); border-left-color: var(--running-border); }
+.m-tool.running .m-tool-name, .m-tool.running .m-took { color: var(--running-text); }
+.m-tool.failed { border-color: #ff8080; }
+.m-tool-body { padding: 0 8px 8px; }
+.m-tool-top { display: flex; align-items: center; gap: 6px; min-height: 30px; font-size: 12px; color: var(--dim); }
+/* The status: its state as one emoji in a fixed-width slot (it flips with each read of a live call), then the call's
+   time, which stays put while it flips: nothing around it can reflow. The word is the slot's title. */
+.m-tool-top .m-tool-status { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; }
+.m-tool-mark { flex: none; width: 1.6em; text-align: center; }
+.m-tool-when { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.m-io-head { display: flex; align-items: center; gap: 6px; margin: 8px 0 3px; font-size: 12px; color: var(--dim); }
+.m-io-label { font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: #c5cedb; }
+.m-io-size { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-small { padding: 4px 10px; font-size: 12.5px; border-radius: 6px; }
+.m-small[aria-pressed="true"] { border-color: #91baff; background: #283d5b; }
+/* Readable · Pretty · Raw: the desktop's Pretty JSON / Readable text checkboxes as one joined switch */
+.m-modes { flex: none; display: inline-flex; border: 1px solid var(--control-border); border-radius: 6px; overflow: hidden; }
+.m-modes button { padding: 4px 8px; font-size: 12px; border: 0; border-radius: 0; background: var(--control); color: var(--dim); }
+.m-modes button + button { border-left: 1px solid var(--control-border); }
+.m-modes button[aria-pressed="true"] { background: #283d5b; color: #fff; font-weight: 600; }
+.m-io-caption { margin: 0 0 4px; font-size: 11.5px; line-height: 1.3; color: var(--faint); }
+.m-io-caption:empty { display: none; }
+.m-io { display: block; margin: 0; max-height: 42vh; max-height: 42svh; overflow: auto; overscroll-behavior: contain; padding: 7px 8px; border: 1px solid var(--line); border-radius: 5px;
+  background: #0e1219; font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; -webkit-user-select: text; user-select: text; }
+.m-io[data-missing="true"] { color: var(--faint); font-family: system-ui, sans-serif; }
+/* The desktop inspector's reading blocks (tool-reading.js), phone-sized */
+.m-io .inspector-document { display: block; margin: 5px 0 5px 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 5px; background: #161e2c; white-space: pre-wrap; overflow-wrap: anywhere; }
+.m-io .inspector-document-index { color: var(--faint); font-size: 10.5px; -webkit-user-select: none; user-select: none; }
+.m-io .inspector-md-modes { float: right; display: inline-flex; gap: 3px; margin: -3px -4px 4px 8px; -webkit-user-select: none; user-select: none; }
+.m-io .inspector-md-mode { padding: 3px 8px; font: 11.5px/1.2 system-ui, sans-serif; border-color: transparent; border-radius: 5px; background: transparent; color: var(--dim); }
+.m-io .inspector-md-mode[aria-pressed="true"] { color: #fff; border-color: #4a6ea8; background: #23375a; }
+.m-io .inspector-md-rendered { white-space: normal; font: 13.5px/1.45 system-ui, -apple-system, sans-serif; overflow-wrap: anywhere; }
+.m-io .inspector-md-head { white-space: pre-wrap; font: 11px/1.4 var(--mono); color: var(--dim); padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.m-io .inspector-md-head:empty { display: none; }
+/* Wrap off (one switch for every tool view): lines stay whole and scroll sideways inside
+   their reader; rendered Markdown still flows (its code blocks scroll), Source follows Wrap. */
+.m-nowrap .m-io, .m-nowrap .m-io .inspector-document { white-space: pre; overflow-wrap: normal; word-break: normal; }
+.m-nowrap .m-io .inspector-document { width: max-content; min-width: calc(100% - 8px); }
+.m-nowrap .m-io .inspector-markdown[data-view="rendered"] { white-space: normal; width: auto; min-width: 0; }
+/* The recorded diff (diff-view.js), first in an opened tool: it scrolls inside its own height, never the page sideways.
+   Its Layout choice keeps the page's 16px (iOS zooms into a smaller control) at its natural width. */
+.m-diff { margin: 6px 0 2px; max-height: 70vh; max-height: 70svh; overflow: auto; overscroll-behavior: contain; }
+.m-diff .opc-diff select { width: auto; font-size: 16px; padding: 6px 8px; }
+.m-diff .opc-diff input { padding: 0; }
+.m-diff-note { margin: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 5px; font-size: 12.5px; color: var(--faint); }
+
+/* Thinking: quiet, collapsed */
+.m-thinking { margin: 2px 0 4px; border: 1px solid var(--thinking-border); border-radius: 4px; background: var(--thinking-bg); }
+.m-thinking > summary { padding: 3px 8px; font-size: 12.5px; font-weight: 600; color: var(--thinking-header); cursor: pointer; }
+.m-thinking pre { margin: 0; max-height: 40vh; max-height: 40svh; overflow: auto; padding: 0 8px 8px; font: 13.5px/1.45 system-ui, sans-serif; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--thinking-text); }
+
+/* Composer */
+#m-composer { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+/* Layout-free wrappers outside maximize (the maximized text box gives them a layout); the thumb margin is maximize-only. */
+#m-composer-body, #m-draft-row { display: contents; }
+#m-draft-margin { display: none; }
+/* Its text column is the same with the keyboard shell on or off: outside the shell its right padding holds the room
+   the shell's strip takes (--m-shell-right less --m-page-right), so a tap that opens the keyboard never rewraps the
+   text under the finger, whenever the browser places the caret. The maximized editor has its own margin instead. */
+#m-draft { display: block; height: 96px; min-height: 76px; max-height: 38vh; max-height: 38svh; padding: 8px calc(10px + var(--m-shell-right) - var(--m-page-right)) 8px 10px;
+  line-height: 1.4; resize: none; border-radius: 10px; transition: border-color .25s, box-shadow .25s; }
+body[data-thumb="on"]:not(.m-maximized) #m-draft, #m-composer.m-maximized-panel #m-draft { padding-right: 10px; }
+#m-draft:focus { outline: none; border-color: #91baff; }
+/* Phone, portrait or landscape: three lines, with the full draft scrolling INSIDE. Never key this off visualViewport
+   height: opening an iPad keyboard must not turn its growing editor into a phone editor. Maximize remains unrestricted. */
+@media (max-width: 499px), (max-height: 499px) {
+  #m-composer:not(.m-maximized-panel) #m-draft { height: calc(3 * 1.4em + 18px); min-height: 0; max-height: none;
+    overflow-y: auto; overscroll-behavior-y: contain; }
+}
+/* Refine-done cue: the box sits low on the screen, so a green ring (your colour) says it changed. */
+#m-draft.m-refined { border-color: var(--you-accent); box-shadow: 0 0 0 3px rgba(63,207,122,.3), 0 0 18px rgba(63,207,122,.25); animation: m-refined 1.4s ease-out; }
+@keyframes m-refined { 0% { box-shadow: 0 0 0 7px rgba(63,207,122,.55), 0 0 30px rgba(63,207,122,.6); } }
+.m-compose-footer { position: relative; display: flex; gap: 6px; }
+#m-actions { flex: 1; min-width: 0; display: flex; gap: 6px; }
+#m-actions button { flex: 1 1 0; min-width: 0; height: 42px; padding: 0 3px; font-size: 15px; font-weight: 600; border-radius: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#m-refine, #m-refine-break { border-color: #4a6ea8; background: #23375a; }
+:is(#m-refine, #m-refine-break)[data-busy="true"] { border-color: var(--running-border); background: var(--running-bg); color: var(--running-text); }
+/* After --- only looks unavailable under a selection (a tap then refines the selection, as Refine does): never disabled. */
+#m-refine-break[aria-disabled="true"]:not([data-busy="true"]) { opacity: .45; }
+#m-send { border-color: #3f9e6a; background: #1f4d37; }
+/* ⋯ More: the rarely used actions (Paste, what Refine sends, Re-check settings) in a small menu that
+   opens above the row; it still keeps Refine and Send apart. */
+#m-actions #m-more { flex: 0 0 46px; padding: 0; display: grid; place-items: center; color: var(--dim); }
+#m-more svg { width: 20px; height: 20px; }
+#m-more[aria-expanded="true"] { color: #fff; border-color: #91baff; background: #283d5b; }
+#m-more-menu { position: absolute; z-index: 15; right: 0; bottom: calc(100% + 6px); width: min(290px, 100%); display: flex; flex-direction: column; gap: 2px; padding: 4px;
+  border: 1px solid var(--control-border); border-radius: 12px; background: #1d2431; box-shadow: 0 8px 28px rgba(0,0,0,.55); }
+#m-more-menu button { display: block; width: 100%; padding: 9px 12px; text-align: left; font-size: 16px; font-weight: 600; border: 0; border-radius: 8px; background: transparent; }
+#m-more-menu button:active { background: #283d5b; }
+#m-more-menu small { display: block; margin-top: 1px; font-size: 12.5px; font-weight: 400; color: var(--dim); }
+#m-status, #m-release { font-size: 13.5px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--dim); }
+#m-status:empty, #m-release:empty { display: none; }
+/* Beneath a Refine completed at xhigh or max: the red reminder (refine-core thinkingReminder), gone with its line. */
+#m-status .m-think-warn { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--final-accent); }
+/* A viewed session: the composer is one read-only line; the Manager's draft and buttons wait unchanged. */
+#m-readonly { padding: 9px 12px; border: 1px dashed var(--control-border); border-radius: 10px; font-size: 14px; color: var(--dim); text-align: center; }
+#m-composer[data-readonly="true"] > :not(#m-readonly) { display: none; }
+#m-release p { margin: 0; }
+
+/* Below the fold: setup and recovery */
+#m-extras { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+#m-extras details { border-top: 1px solid var(--line); padding: 8px 0 2px; }
+#m-extras summary { cursor: pointer; color: #c0cee2; }
+/* Refine setup · Last original: two toggles on one row; the open one's panel follows the row. */
+#m-extras-bar { display: flex; gap: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.m-extra-toggle { flex: 1 1 0; min-width: 0; padding: 5px 8px; font-size: 14px; color: #c0cee2; background: transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-extra-toggle::after { content: " ▸"; color: var(--dim); }
+.m-extra-toggle[aria-expanded="true"] { border-color: #91baff; background: #283d5b; color: #fff; }
+.m-extra-toggle[aria-expanded="true"]::after { content: " ▾"; }
+.m-extra-panel { padding: 2px 0; }
+.m-extra-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 4px; font-size: .875rem; color: var(--dim); }
+.m-extra-head button { flex: none; }
+#m-original { display: block; width: 100%; }
+#m-extras p { margin: 7px 0; font-size: .875rem; }
+#m-extras label { display: block; margin-top: 8px; }
+#m-setup-status { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
+#m-extras textarea { resize: vertical; }
+textarea[readonly] { background: #181e2a; }
+
+/* Context: one line per meter — the desktop's gauge, what it measures, the percent and its figures. */
+#m-context { overflow-y: auto; overscroll-behavior: contain; gap: 0; padding: 2px 2px 8px; }
+.m-section { display: flex; align-items: baseline; gap: 8px; margin: 14px 2px 6px; font-size: 12.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: #9aa6b8; }
+.m-section:first-child { margin-top: 4px; }
+.m-plan { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--faint); }
+.m-meters { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px; background: #12161e; }
+.m-meter { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 11px; align-items: center; padding: 9px 12px; }
+.m-meter + .m-meter, .m-meters > .m-note { border-top: 1px solid #262d3a; }
+.m-meter-main { min-width: 0; }
+.m-meter-label { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-meter-sub { display: block; margin-top: 1px; font-size: 12.5px; line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; }
+.m-meter-figures { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.m-meter-percent { display: block; font-size: 17px; font-weight: 700; line-height: 1.2; }
+.m-meter-amount { display: block; font-size: 12.5px; color: var(--dim); }
+.m-meter[data-selected="true"] { box-shadow: inset 3px 0 0 #91baff; }
+.m-meter[data-selected="true"] .m-meter-label { color: #fff; }
+.m-meter[data-flag="stale"] .m-meter-sub { color: var(--running-text); }
+.m-gauge { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 0 0 1px var(--gauge-ring);
+  --gauge-color:color-mix(in oklch, var(--gauge-red) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-orange-at)) / (var(--gauge-red-at) - var(--gauge-orange-at)), 1) * 100%),
+    color-mix(in oklch, var(--gauge-orange) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-green-until)) / (var(--gauge-orange-at) - var(--gauge-green-until)), 1) * 100%), var(--gauge-green)));
+  background: conic-gradient(var(--gauge-color) calc(var(--gauge-fill, 0) * 1%), var(--gauge-rest) 0); }
+.m-gauge[data-known="false"] { background: var(--gauge-unknown); opacity: .55; }
+.m-gauge[data-known="tokens"] { background: repeating-conic-gradient(var(--gauge-unknown) 0 10deg, var(--gauge-rest) 10deg 20deg); }
+.m-dot-state { width: 9px; height: 9px; justify-self: center; border-radius: 50%; background: var(--live-dot); }
+.m-dot-state[data-on="false"] { background: var(--running-border); }
+.m-dot-state[data-on="urgent"] { background: #ff6b4a; box-shadow: 0 0 0 3px rgba(255, 107, 74, .3); }
+.m-meter[data-flag="urgent"] { background: rgba(255, 107, 74, .14); box-shadow: inset 3px 0 0 #ff6b4a; }
+.m-meter[data-flag="urgent"] :is(.m-meter-label, .m-meter-sub, .m-meter-percent) { color: #ffbdad; }
+.m-note { padding: 7px 12px; font-size: 12.5px; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+.m-note[data-flag="warn"] { color: var(--running-text); background: var(--running-bg); }
+.m-note[data-flag="error"] { color: #ffbdad; }
+.m-meters:empty::before { content: 'Nothing to show yet'; padding: 9px 12px; font-size: 13px; color: var(--faint); }
+.m-usage-foot { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 12.5px; color: var(--faint); }
+.m-usage-foot > span { flex: 1; min-width: 0; }
+.m-usage-foot[data-stale="true"] > span { color: var(--running-text); }
+
+/* Programs: the desktop sidebar page, read-only, in a frame of its own */
+#m-programs-frame { flex: 1 1 0; width: 100%; min-height: 0; border: 1px solid var(--line); border-radius: 10px; background: #151820; }
+/* View: the View page (glimpse.html) in a frame of its own; it scrolls its document inside itself */
+#m-glimpse-frame { flex: 1 1 0; width: 100%; min-height: 0; border: 1px solid var(--line); border-radius: 10px; background: #151922; }
+
+/* Maximize: a panel takes the whole visible screen (visualViewport keeps it above the keyboard),
+   reusing its mounted DOM; the same button restores the combined view. */
+body.m-maximized { overflow: hidden; }
+body.m-maximized #m-top, body.m-maximized #m-extras { display: none; }
+body[data-maximized="draft"] #m-chat, body[data-maximized="chat"] #m-composer { display: none; }
+#m-chat.m-maximized-panel, #m-composer.m-maximized-panel, #m-programs.m-maximized-panel, #m-glimpse.m-maximized-panel {
+  position: fixed; z-index: 10; left: 0; right: 0; top: var(--m-viewport-top, 0px); height: var(--m-viewport-height, 100svh);
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  min-height: 0; background: #151922; }
+/* View's image lightbox (m.js opcViewImmersive): its frame edge to edge on black, only the notch and home bar kept clear. */
+#m-glimpse.m-maximized-panel { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: #000; }
+#m-glimpse.m-maximized-panel #m-glimpse-frame { border: 0; border-radius: 0; background: #000; }
+/* View maximized by its own button (m.js opcViewMaximized): the same whole-screen frame on View's own background. */
+body[data-maximized="view"] #m-glimpse.m-maximized-panel, body[data-maximized="view"] #m-glimpse.m-maximized-panel #m-glimpse-frame { background: #151922; }
+body[data-keyboard="true"] #m-composer.m-maximized-panel { padding-bottom: 6px; }
+#m-composer.m-maximized-panel #m-draft { flex: 1 1 0; height: auto; max-height: none; min-height: 0; min-width: 0; }
+/* The maximized text box is its own scroll container: its body fills the screen exactly as before, and a
+   runway below it lets a drag lift the buttons above a bar iOS floats over the page (the iPad's floating
+   keyboard shortcut bar). Beside the editor, a thumb-wide margin outside the textarea, out to the screen
+   edge: a drag there scrolls (a drag inside the textarea only moves the caret); a tap hides the keyboard. */
+body[data-maximized="draft"] #m-composer:not([data-readonly="true"]) { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+body[data-maximized="draft"] #m-composer:not([data-readonly="true"])::after { content: ''; flex: none; height: max(160px, 35%); }
+#m-composer.m-maximized-panel:not([data-readonly="true"]) > #m-composer-body { flex: none; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+#m-composer.m-maximized-panel #m-draft-row { flex: 1 1 0; min-height: 0; display: flex; gap: 6px; }
+#m-composer.m-maximized-panel #m-draft-margin { display: block; flex: none; width: 44px; margin-right: calc(-1 * max(10px, env(safe-area-inset-right)));
+  padding-right: max(10px, env(safe-area-inset-right)); box-sizing: content-box; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  border: 1px solid var(--line); border-right: 0; border-radius: 10px 0 0 10px;
+  background: linear-gradient(var(--faint), var(--faint)) 20px 50% / 4px 56px no-repeat, rgba(145,186,255,.07); }
+#m-composer.m-maximized-panel #m-draft-margin:active { background-color: rgba(145,186,255,.16); }
+#m-composer.m-maximized-panel #m-actions button { height: 38px; font-size: 14px; }
+#m-composer.m-maximized-panel .m-max { height: 38px; }
+
+/* The combined view's keyboard shell and thumb strip (m.js wireThumbStrip). While the text box has the keyboard the
+   document never scrolls: under the iOS keyboard a scrolling document moves the visual viewport against the layout
+   viewport, and anything fixed to the screen then jumps (round 1's strip shook and flipped to the top). Instead #m-page
+   becomes a fixed frame over exactly the visible screen (visualViewport, as the maximized panels are) and #m-scroll
+   scrolls inside it: the views, the chat exactly one screen tall (its conversation scrolling inside), the text box and
+   its buttons, the setup and a runway below it (room to lift the buttons above a bar iOS floats over the page). The
+   strip is an ordinary part of the frame on its right edge, outside everything editable: nothing a drag scrolls can move
+   it, and the content narrows beside it so it covers nothing (all but the text box's text, whose right padding gives
+   up exactly that room, so it never rewraps). One grip that never moves (centred, like the maximized
+   margin's); a drag scrolls the whole view as one, the conversation's history included; a tap hides the keyboard. */
+#m-thumb { display: none; }
+body[data-thumb="on"]:not(.m-maximized) { overflow: hidden; }
+body[data-thumb="on"]:not(.m-maximized) #m-page { position: fixed; left: 0; right: 0; top: var(--m-viewport-top, 0px); height: var(--m-viewport-height, 100svh);
+  padding-top: 0; padding-bottom: 0; padding-right: var(--m-shell-right); }
+body[data-thumb="on"]:not(.m-maximized) #m-scroll { height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+body[data-thumb="on"]:not(.m-maximized) #m-scroll::-webkit-scrollbar { display: none; }
+body[data-thumb="on"]:not(.m-maximized) #m-app { height: auto; min-height: 0; }
+body[data-thumb="on"]:not(.m-maximized) #m-chat { flex: none; height: var(--m-viewport-height, 100svh); min-height: 0; }
+body[data-thumb="on"]:not(.m-maximized) #m-extras { padding-bottom: max(160px, 35svh); }
+body[data-thumb="on"]:not(.m-maximized) #m-thumb { display: block; position: absolute; z-index: 20; top: 0; bottom: 0; right: 0;
+  width: 46px; padding-right: env(safe-area-inset-right, 0px); box-sizing: content-box; cursor: grab; touch-action: none; overscroll-behavior: contain;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  border-left: 1px solid var(--line);
+  background: linear-gradient(var(--faint), var(--faint)) 21px 50% / 4px 56px no-repeat, rgba(145,186,255,.07); }
+body[data-thumb="on"]:not(.m-maximized) #m-thumb[data-pressed="true"] { background-color: rgba(145,186,255,.16); }
+/* ⋯ → Strip diagnostics: the recorded log, below the setup. */
+#m-strip-log-text { font: 11px/1.35 var(--mono); white-space: pre; overflow-wrap: normal; }
+
+/* What Refine sends (⋯ menu): the shared refine-view.js body as a full-screen sheet over every
+   view; the chat history fills it, an empty draft side is one line, Close returns. */
+body.m-sheet-open { overflow: hidden; }
+#m-refine-sheet { position: fixed; z-index: 40; left: 0; right: 0; top: var(--m-viewport-top, 0px); height: var(--m-viewport-height, 100svh);
+  display: flex; flex-direction: column; gap: 8px; background: #151922;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+#m-rv-title { flex: none; margin: 0; font-size: 17px; font-weight: 650; white-space: nowrap; }
+#m-rv-close { flex: none; padding: 7px 14px; font-size: 15px; }
+#m-rv-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+#m-rv-body .rv-switch { flex: none; display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: #1b212c; }
+#m-rv-body .rv-switch button { flex: 1; padding: 6px 8px; font-size: 15px; border: 0; border-radius: 7px; background: transparent; color: var(--dim); }
+#m-rv-body .rv-switch button[aria-checked="true"] { background: #2d3a4f; color: #fff; font-weight: 600; }
+.rv-context, .rv-prompt { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.rv-prompt { gap: 4px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.rv-pane { min-height: 0; display: flex; flex-direction: column; gap: 3px; }
+.rv-history { flex: 1 1 auto; }
+.rv-draft { flex: 0 0 auto; }
+.rv-cap { flex: none; display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 12.5px; color: var(--dim); }
+.rv-cap strong { flex: none; font-size: 12px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: #9aa6b8; }
+.rv-detail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-whole { display: block; font-size: 13px; line-height: 1.35; color: var(--faint); }
+.rv-text { margin: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 8px 9px; border: 1px solid var(--line); border-radius: 8px;
+  background: #0e1219; font: 12.5px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; -webkit-user-select: text; user-select: text; }
+.rv-history .rv-text { flex: 1 1 auto; }
+.rv-draft .rv-text { max-height: 22vh; max-height: 22svh; }
+.rv-prompt .rv-text { flex: none; overflow: visible; }
+.rv-prompt .rv-text + .rv-cap { margin-top: 10px; }
+.rv-note { font: 14px/1.45 system-ui, -apple-system, sans-serif; color: var(--dim); }
+
+/* Press and hold a Manager chip: its model and thinking in a bottom sheet, within thumb reach.
+   Thinking is the big segmented row; the model sits folded below it; one Apply. */
+body.m-tune-open { overflow: hidden; }
+#m-tune { position: fixed; z-index: 30; left: 0; right: 0; top: var(--m-viewport-top, 0px); height: var(--m-viewport-height, 100svh);
+  display: flex; flex-direction: column; justify-content: flex-end; }
+#m-tune-backdrop { position: absolute; inset: 0; background: rgba(5,8,14,.62); }
+#m-tune-panel { position: relative; width: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;
+  padding: 14px max(14px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  border: 1px solid var(--control-border); border-bottom: 0; border-radius: 16px 16px 0 0; background: #1d2431; box-shadow: 0 -10px 30px rgba(0,0,0,.5);
+  animation: m-tune-in .18s ease-out; }
+@keyframes m-tune-in { from { transform: translateY(28px); opacity: .4; } }
+.m-tune-head { display: flex; align-items: flex-start; gap: 10px; }
+.m-tune-head > div { flex: 1; min-width: 0; }
+#m-tune-title { margin: 0; font-size: 17px; font-weight: 650; }
+#m-tune-for { display: block; font-size: 13px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#m-tune-close { flex: none; padding: 7px 14px; font-size: 15px; }
+#m-tune-now { font-size: 14px; color: var(--dim); }
+#m-tune-now[data-state="applied"] { color: #9fe3bb; }
+#m-tune-now[data-state="applied"]::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--live-dot); vertical-align: 1px; }
+#m-tune-now[data-state="unverified"] { color: var(--running-text); }
+.m-tune-label { margin-bottom: -4px; font-size: 12.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: #9aa6b8; }
+.m-tune-choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 12px; background: #151a24; }
+.m-tune-choices button { position: relative; height: 48px; padding: 0 2px; border: 0; border-radius: 9px; background: transparent; color: var(--dim);
+  font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-tune-choices button[aria-checked="true"] { background: #2d4a73; color: #fff; box-shadow: inset 0 0 0 1px #91baff; }
+/* The value the host verified as applied now: a small green dot under it. */
+.m-tune-choices button[data-current="true"]::after { content: ''; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--live-dot); }
+#m-tune-models { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 6px; }
+#m-tune-models button { height: 44px; }
+#m-tune-model-box summary { padding: 4px 0; font-size: 14px; color: var(--dim); cursor: pointer; }
+#m-tune-model-name { color: #c5cedb; }
+.m-tune-hint { margin: 6px 2px 0; font-size: 12.5px; color: var(--faint); }
+#m-tune-apply { height: 50px; font-size: 16.5px; font-weight: 650; border-color: #3f9e6a; background: #1f4d37; border-radius: 12px; }
+#m-tune-note, #m-tune-status { font-size: 13.5px; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+#m-tune-note:empty, #m-tune-status:empty { display: none; }
+#m-tune-status[data-error="true"] { color: #ffbdad; }
+/* A turn View's conversation-turn root jumps back to (phoneShowTurn): a short flash on the row. */
+@keyframes m-turn-flash { 0%, 40% { box-shadow: inset 0 0 0 2px #9ac3ff; background: rgba(154,195,255,.16); } 100% { box-shadow: inset 0 0 0 0 transparent; background: transparent; } }
+.m-row.m-flash { animation: m-turn-flash 1.2s ease-out 2; border-radius: 10px; }
+
+/* Claude viewing and switching: the green active ring is independent of the blue viewed selection. */
+.m-account { display: flex; flex-direction: column; gap: 9px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #12161e; }
+.m-account-now { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.m-account-now > :is(.m-account-label, .m-account-identity) { font-size: 12.5px; color: var(--dim); }
+.m-account-now > strong { font-size: 16px; }
+.m-account-identity { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-account-identity:empty { display: none; }
+.m-account-buttons { display: flex; gap: 8px; }
+.m-account-buttons button { flex: 1 1 0; min-height: 42px; font-size: 15px; font-weight: 600; }
+.m-account-buttons button[aria-pressed="true"] { background: #24354c; color: #e3eeff; }
+.m-account-buttons button[data-active="true"] { outline: 2px solid #5fd06f; outline-offset: 2px; border-color: #5fd06f; }
+.m-account-status { font-size: 12.5px; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+.m-account-status:empty { display: none; }
+.m-account[data-phase="active"] .m-account-status { color: #b8f3c1; }
+.m-account:is([data-phase="refused"], [data-phase="failed"], [data-phase="unknown"]) .m-account-status { color: #ffbdad; }
+.m-account:is([data-phase="waiting"], [data-phase="switching"]) .m-account-status { color: var(--running-text); }
+
+/* New Manager runtime and the OpenCode Manager model/thinking sheet */
+.m-new-hint { margin: 4px 2px 0; font-size: 12.5px; line-height: 1.35; color: var(--faint); overflow-wrap: anywhere; }
+.m-new-hint:empty { display: none; }
+.m-check { display: flex; align-items: center; gap: 8px; }
+.m-check input { width: auto; }
+#m-tune-oc { display: flex; flex-direction: column; gap: 8px; }
+#m-tune-oc[hidden] { display: none; }
+#m-tune-oc-model { width: 100%; min-height: 44px; font-size: 16px; }
+#m-tune-oc-variants { grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); }
+#m-tune-oc-variants-empty { margin: 0 2px; }
+#m-tune-oc-variants-empty:empty { display: none; }
+#m-extras label.m-check { display: flex; align-items: center; gap: 8px; }

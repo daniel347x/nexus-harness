@@ -1,0 +1,7 @@
+{
+  "provenance": "Scrubbed excerpt of ~/.claude/projects/-home-daniel347x/5bdcffcf-77f0-4ab9-8154-e78644bb3c5b.jsonl: toolUseResult structuredPatch shape and starts retained; path/content shortened. create shape verified in 4edff197-c2b9-4701-8898-aac33e051136.jsonl. Host tool_use_result uses this same payload (synthetic host envelope). MultiEdit aggregate not observed.",
+  "toolName": "Edit",
+  "input": {"file_path": "/fixture/code.py", "old_string": "old", "new_string": "new 雪"},
+  "toolUseResult": {"filePath": "/fixture/code.py", "oldString": "old", "newString": "new 雪", "originalFile": null, "structuredPatch": [{"oldStart": 124, "oldLines": 7, "newStart": 124, "newLines": 7, "lines": [" before one", " before two", " before three", "-old", "+new 雪", " after one", " after two", " after three"]}], "userModified": false, "replaceAll": false},
+  "create": {"type": "create", "filePath": "/fixture/new.txt", "content": "ALLOWED\n", "structuredPatch": [], "originalFile": null, "userModified": false}
+}

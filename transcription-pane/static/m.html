@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151922">
+  <title>Managers</title>
+  <link rel="manifest" href="/m.webmanifest">
+  <link rel="stylesheet" href="/m.css">
+  <link rel="stylesheet" href="/account-switch.css">
+  <link rel="stylesheet" href="/status-toast.css">
+  <link rel="stylesheet" href="/teams-break.css">
+  <link rel="stylesheet" href="/diff-view.css">
+  <link rel="stylesheet" href="/read-aloud.css">
+  <link rel="stylesheet" href="/glare.css">
+  <script src="/glare.js"></script>
+</head>
+<body>
+  <main id="m-page">
+    <!-- The page's content: a plain block, except while the text box has the keyboard, when it is the scroller
+         inside the keyboard shell (m.css; m.js wireThumbStrip). -->
+    <div id="m-scroll">
+      <div id="m-app">
+        <header id="m-top">
+          <h1 class="m-sr">Managers</h1>
+          <div id="m-views" role="group" aria-label="Phone views">
+            <button id="m-view-chat" type="button" aria-pressed="true">Chat</button>
+            <button id="m-view-programs" type="button" aria-pressed="false">Programs</button>
+            <button id="m-view-context" type="button" aria-pressed="false">Context</button>
+            <button id="m-view-glimpse" type="button" aria-pressed="false" title="View: a NEXUS Dock, slice group or node, rendered as the Workflowy extension's dock renders it">View</button>
+          </div>
+          <button id="m-glare" type="button" data-glare-toggle aria-pressed="false" aria-label="Outdoor glare mode" title="Outdoor glare mode: bright white text and larger small print everywhere, for reading in the sun. Stays on until you tap it again."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.3" fill="currentColor"/><path d="M12 2.4v2.7M12 18.9v2.7M2.4 12h2.7M18.9 12h2.7M5.2 5.2l1.9 1.9M16.9 16.9l1.9 1.9M5.2 18.8l1.9-1.9M16.9 7.1l1.9-1.9" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg></button>
+        </header>
+        <div id="m-chat-view">
+          <section id="m-chat" aria-labelledby="m-title">
+            <h2 id="m-title" class="m-sr">Choose a Manager</h2>
+            <div class="m-bar">
+              <nav aria-label="Managers"><div id="m-managers"></div></nav>
+              <button id="m-thinking-mode" type="button" aria-pressed="true" aria-label="Thinking: current round (ON). Tap for keep open (OFF)." title="Thinking: current round (ON). Opens this round and folds earlier rounds. Tap for keep open (OFF).">🧠</button>
+              <button id="m-first" type="button" aria-pressed="false" aria-label="First message" title="⤒ First: show this conversation's very first message and the ones after it (one page; ↓ Latest returns to the newest)">⤒</button>
+              <button id="m-new" type="button" aria-expanded="false" aria-controls="m-new-form" aria-label="New Manager" title="New Manager: start a fresh, named Manager conversation and select it; its default first message goes out as soon as it is ready. The current Manager keeps running."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+              <button id="m-new-sub" type="button" aria-expanded="false" aria-controls="m-sub-form" aria-label="New sub-session" title="New sub-session of the newest Manager-Session (the next letter): its first message, with room for the reason, then Send starts it">↳</button>
+              <button id="m-chat-max" type="button" class="m-max" aria-pressed="false" aria-label="Maximize chat" title="Maximize chat"></button>
+              <form id="m-new-form" aria-label="New Manager" hidden>
+                <div class="m-new-head"><strong>New Manager</strong><button id="m-new-close" type="button" class="m-small">Close</button></div>
+                <!-- Runtime, model and thinking: one set of controls, shown in whichever box is open (＋ New Manager or ↳). -->
+                <div id="m-new-choices-slot" class="m-choices-slot"><div id="m-new-choices">
+                <label for="m-new-runtime">Runtime</label>
+                <select id="m-new-runtime" title="Claude: the native Claude Code Manager. OpenCode: a first-class Manager on any real catalog model and its thinking levels."><option value="claude">Claude</option><option value="opencode">OpenCode</option></select>
+                <details id="m-new-options">
+                  <summary>Model and thinking · <span id="m-new-choice">claude-opus-5-5 · high</span></summary>
+                  <div class="m-new-fields" id="m-new-claude-fields">
+                    <label for="m-new-model">Model</label>
+                    <input id="m-new-model" type="text" list="m-new-models" value="claude-opus-5-5" maxlength="128" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" title="Any Claude model the host accepts: claude-‹family›-N (e.g. claude-opus-5-5, or a newer release) or a family alias (opus, fable). Paid-context/provider routes are refused by the host.">
+                    <datalist id="m-new-models"><option value="claude-opus-5-5">Opus 5.5</option><option value="claude-fable-5-1">Fable 5.1</option><option value="claude-sonnet-5-5">Sonnet 5.5</option><option value="claude-haiku-5-5">Haiku 5.5</option></datalist>
+                    <label for="m-new-effort">Thinking</label>
+                    <select id="m-new-effort"><option value="high">high</option><option value="xhigh" selected>xhigh</option><option value="max">max</option><option value="medium">medium</option><option value="low">low</option></select>
+                  </div>
+                  <div class="m-new-fields" id="m-new-oc-fields" hidden>
+                    <label for="m-new-agent">Manager persona</label>
+                    <select id="m-new-agent" title="The installed primary Manager persona this conversation runs as"><option value="manager">manager</option><option value="manager-gpt">manager-gpt</option></select>
+                    <label for="m-new-oc-model">Model (this workspace's real catalog)</label>
+                    <select id="m-new-oc-model"><option value="">Reading the catalog…</option></select>
+                    <label for="m-new-oc-variant">Thinking</label>
+                    <select id="m-new-oc-variant"><option value="">model default</option></select>
+                    <div id="m-new-mcp" class="m-new-hint"></div>
+                  </div>
+                </details>
+                </div></div>
+                <label for="m-new-name">Name</label>
+                <input id="m-new-name" type="text" maxlength="80" autocapitalize="none" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Manager-Session-NNN">
+                <label class="m-check"><input id="m-new-opening" type="checkbox" checked> Send its first message when it is ready</label>
+                <details id="m-first-messages">
+                  <summary>Default first messages</summary>
+                  <div class="m-new-fields">
+                    <label for="m-first-manager">New Manager</label>
+                    <textarea id="m-first-manager" rows="5" spellcheck="false"></textarea>
+                    <label for="m-first-sub">New sub-session</label>
+                    <textarea id="m-first-sub" rows="5" spellcheck="false"></textarea>
+                    <div class="m-new-hint">{N} is the Manager-Session number, {letter} the sub-session letter, {name} the whole name. One saved copy for the phone and the desktop; an empty box saves as the built-in default.</div>
+                    <div class="m-first-actions"><button id="m-first-save" type="button">Save</button><button id="m-first-restore" type="button">Restore defaults</button></div>
+                  </div>
+                </details>
+                <button id="m-new-start" type="submit">Start</button>
+                <div id="m-new-status" role="status"></div>
+              </form>
+              <form id="m-sub-form" aria-label="New sub-session" hidden>
+                <div class="m-new-head"><strong id="m-sub-title">New sub-session</strong><button id="m-sub-close" type="button" class="m-small">Close</button></div>
+                <textarea id="m-sub-text" rows="8" spellcheck="true" aria-label="The sub-session's first message: add the reason at the end"></textarea>
+                <div id="m-sub-choices-slot" class="m-choices-slot"></div>
+                <button id="m-sub-send" type="submit" title="Start this sub-session on the runtime, model and thinking chosen here (the same choices as ＋ New Manager) and send this text as its first message">Send</button>
+                <div id="m-sub-status" role="status"></div>
+              </form>
+            </div>
+            <div class="m-lines"><span id="m-list-status" role="status">Loading Managers…</span><span id="m-state" role="status"></span><span id="m-read-status" role="status"></span></div>
+            <div id="m-halt" role="status" hidden></div>
+            <div id="m-running-tools" class="running-tools" aria-label="Current running tools" hidden></div>
+            <div id="m-conversation" tabindex="0" aria-label="Recent messages"><div id="m-messages"></div></div>
+            <button id="m-latest" type="button" hidden>↓ Latest</button>
+          </section>
+          <section id="m-composer" aria-label="Message">
+            <div id="m-readonly" role="status" hidden>Read-only · Send goes to Managers</div>
+            <div id="m-composer-body">
+              <div id="m-draft-row">
+                <textarea id="m-draft" rows="3" placeholder="Dictate, type or paste" aria-label="Your message" spellcheck="true" data-teams-break></textarea>
+                <div id="m-draft-margin" aria-hidden="true" title="Tap: hide the keyboard · drag: scroll"></div>
+              </div>
+              <div class="m-compose-footer">
+                <div id="m-actions">
+                  <button id="m-refine" type="button">Refine</button>
+                  <button id="m-refine-break" type="button" aria-disabled="false" title="Refine only the text after the last --- line">After ---</button>
+                  <button id="m-more" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="m-more-menu" aria-label="More: Interrupt, Paste, what Refine sends, Re-check settings" title="More: Interrupt · Paste · what Refine sends · Re-check settings"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/></svg></button>
+                  <button id="m-send" type="button">Send</button>
+                </div>
+                <button id="m-draft-max" type="button" class="m-max" aria-pressed="false" aria-label="Maximize text box" title="Maximize text box"></button>
+                <div id="m-more-menu" role="menu" aria-label="More actions" hidden>
+                  <button id="m-interrupt" type="button" role="menuitem" disabled>Interrupt<small id="m-interrupt-caption">Stop the Manager's current turn now</small></button>
+                  <button id="m-paste" type="button" role="menuitem" title="Paste: the clipboard, selected so Refine cleans just that passage">Paste<small>The clipboard, selected for Refine</small></button>
+                  <button id="m-refine-view" type="button" role="menuitem">What Refine sends<small>Its context and the full prompt</small></button>
+                  <button id="m-recheck" type="button" role="menuitem" title="Re-check settings: read the Manager's applied model and thinking">Re-check settings<small>Read the applied model and thinking</small></button>
+                  <button id="m-teams" type="button" role="menuitem" data-teams-break-for="m-draft" title="Teams message break: speaker and date at the cursor (Ctrl+M with a keyboard)">Teams message break<small>Speaker and date at the cursor</small></button>
+                  <button id="m-strip-log" type="button" role="menuitem" title="Strip diagnostics: record what the thumb strip and the screen do, then copy it for the Manager">Strip diagnostics<small>Record the thumb strip for the Manager</small></button>
+                  <button id="m-status-history" type="button" role="menuitem">Status messages<small>Full Send, Refine and other notes from this page</small></button>
+                </div>
+              </div>
+              <div id="m-status" role="status" aria-live="polite"></div>
+              <div id="m-release"></div>
+            </div>
+          </section>
+        </div>
+        <section id="m-programs" aria-label="Programs and sessions" hidden>
+          <div class="m-bar"><span class="m-caption">Programs and sessions · live, read-only</span>
+            <button id="m-programs-max" type="button" class="m-max" aria-pressed="false" aria-label="Maximize programs" title="Maximize programs"></button></div>
+          <iframe id="m-programs-frame" title="Programs and sessions (the desktop sidebar, read-only)"></iframe>
+        </section>
+        <!-- View: the whole /glimpse.html page in a same-origin frame (loaded on the first tap; a page container, not a sandbox). -->
+        <section id="m-glimpse" aria-label="View: NEXUS documents" hidden>
+          <iframe id="m-glimpse-frame" title="View: NEXUS documents (the extension's own renderer)" allow="fullscreen"></iframe>
+        </section>
+        <section id="m-context" aria-label="Context and allotments" hidden>
+          <h2 class="m-section">Manager context</h2>
+          <div id="m-context-managers" class="m-meters"></div>
+          <h2 class="m-section">Claude Max</h2>
+          <div id="m-account" class="m-account" data-oc-accounts role="group" aria-label="Claude account">
+            <div class="m-account-now"><span class="m-account-label">Active login</span>
+              <strong data-account-current>—</strong>
+              <span class="m-account-identity" data-account-identity></span></div>
+            <div class="m-account-buttons">
+              <button type="button" data-account="personal" title="View Personal quota only">Personal</button>
+              <button type="button" data-account="work" title="View Work quota only">Work</button>
+            </div>
+            <strong data-account-viewing></strong>
+            <div id="m-claude" data-account-quotas></div>
+            <div class="account-quota-foot"><span data-account-quota-status></span><button type="button" class="m-small" data-account-refresh>Refresh quota</button></div>
+            <div class="account-actions"><button type="button" data-account-switch disabled>Switch</button><button type="button" data-account-cancel hidden>Cancel switch</button></div>
+            <div class="account-hint">Account names only view quota. Switch restarts the Claude host when running work is quiet, then resumes the Manager.</div>
+            <div class="m-account-status" data-account-status role="status"></div>
+            <strong>Banked resets</strong>
+            <div id="m-banked" class="m-meters"></div>
+            <div class="m-usage-foot"><span id="m-usage-status" role="status"></span>
+              <button id="m-usage-refresh" type="button" class="m-small" title="Read the allotments again now">Refresh</button></div>
+          </div>
+          <h2 class="m-section">ChatGPT</h2>
+          <div id="m-chatgpt-account" class="m-account" data-chatgpt-accounts role="group" aria-label="GPT account">
+            <div class="m-account-now"><span class="m-account-label">Active OpenCode login</span><strong data-gpt-current>—</strong></div>
+            <div class="gpt-account-buttons" data-gpt-accounts></div>
+            <strong data-gpt-viewing></strong><span id="m-chatgpt-plan" class="m-plan" data-gpt-plan></span>
+            <div id="m-chatgpt" data-gpt-quotas></div>
+            <div class="account-quota-foot"><span data-gpt-quota-status></span><button type="button" class="m-small" data-gpt-refresh>Refresh quota / active</button></div>
+            <div class="account-actions"><button type="button" data-gpt-switch disabled>Switch</button></div>
+            <div data-gpt-banked></div>
+            <div class="account-hint">Names only view quota. Switch selects this saved login for new OpenCode requests. No restart or Claude interruption. An in-flight request and its retries keep the old login.</div>
+            <details class="gpt-help" data-gpt-enrollment><summary>Enroll another saved ChatGPT login</summary><p>In WSL run <code>opencode auth login openai --method chatgpt-token-sharing</code>, approve the intended subscription, then inspect <code>opencode auth list --format json</code>. Keep the first login saved; enrollment can select the new one. Refresh here afterwards.</p><p>Optional quota setup needs one file-backed Codex home per login and <code>chatgpt-accounts.json</code>; see the app README, “ChatGPT accounts”. Native Switch needs no quota mapping.</p></details>
+            <div class="m-account-status" data-gpt-status role="status"></div>
+          </div>
+          <h2 class="m-section">OpenCode Managers</h2>
+          <div id="m-context-opencode" class="m-meters"></div>
+        </section>
+      </div>
+      <section id="m-extras" aria-label="Refine setup and recovery">
+        <!-- One row of two toggles; the open one's panel shows below the row, one at a time. -->
+        <div id="m-extras-bar">
+          <button id="m-setup-toggle" type="button" class="m-extra-toggle" aria-expanded="false" aria-controls="m-setup">Refine setup</button>
+          <button id="m-original-toggle" type="button" class="m-extra-toggle" aria-expanded="false" aria-controls="m-original-panel">Last original</button>
+        </div>
+        <div id="m-setup" class="m-extra-panel" hidden>
+          <p id="m-last-refine" hidden></p>
+          <p>Only Refine needs a key, saved in this browser. Reading and Send already work. Paste your PC settings below to bring your key, model and dictionary here.</p>
+          <label for="m-provider">Provider</label>
+          <select id="m-provider"><option value="anthropic">Anthropic</option><option value="openrouter">OpenRouter</option><option value="deepinfra">DeepInfra</option></select>
+          <label for="m-key">API key</label><input id="m-key" type="password" autocomplete="off">
+          <label for="m-model">Refine model</label><input id="m-model" type="text" autocapitalize="none" spellcheck="false">
+          <label for="m-thinking">Thinking</label><select id="m-thinking"><option>low</option><option selected>medium</option><option>high</option><option>xhigh</option><option>max</option></select>
+          <label class="m-check" for="m-no-context"><input id="m-no-context" type="checkbox"> Refine without conversation context</label>
+          <p class="m-new-hint">On: Refine sends only the passage and your dictionary; What Refine sends still shows the full prompt, with no history.</p>
+          <label for="m-dictionary">Dictionary (JSON array of spellings)</label><textarea id="m-dictionary" rows="3" spellcheck="false"></textarea>
+          <label for="m-import">Import settings JSON (contains your API key)</label><textarea id="m-import" rows="3" autocapitalize="none" spellcheck="false" placeholder="Paste the PC export; leaving this field imports it"></textarea>
+          <!-- 🔊 Read Aloud settings (read-aloud.js settingsPanel mounts here; read only when opened). -->
+          <div id="m-read-aloud-settings" data-read-aloud-settings></div>
+          <div id="m-setup-status" role="status"></div>
+        </div>
+        <div id="m-original-panel" class="m-extra-panel" hidden>
+          <div class="m-extra-head"><span>The full original before Refine, to recover</span>
+            <button id="m-original-copy" type="button" class="m-small" title="Copy the whole last original">Copy</button></div>
+          <textarea id="m-original" rows="5" readonly aria-label="Full last original"></textarea>
+        </div>
+        <div id="m-unreadable"></div>
+        <!-- ⋯ → Strip diagnostics: the recorded log, also here to select and copy by hand. -->
+        <details id="m-strip-log-box" hidden><summary>Strip diagnostics</summary><textarea id="m-strip-log-text" rows="8" readonly spellcheck="false" aria-label="Thumb strip diagnostics"></textarea></details>
+      </section>
+    </div>
+    <!-- The combined view's thumb strip while the text box has the keyboard, a fixed part of the keyboard shell: a tap hides
+         the keyboard, a drag scrolls the whole view (the conversation's history included) as one. -->
+    <div id="m-thumb" aria-hidden="true" title="Tap: hide the keyboard · drag: scroll through the conversation and back to the text box"></div>
+    <section id="m-refine-sheet" role="dialog" aria-modal="true" aria-labelledby="m-rv-title" hidden>
+      <div class="m-bar"><h2 id="m-rv-title">What Refine sends</h2><span id="m-rv-for" class="m-caption"></span>
+        <button id="m-rv-close" type="button" class="m-small">Close</button></div>
+      <div id="m-rv-body"></div>
+    </section>
+    <!-- Press and hold a Manager chip: its model and thinking (the desktop's lists and Apply controls). -->
+    <section id="m-tune" role="dialog" aria-modal="true" aria-labelledby="m-tune-title" hidden>
+      <div id="m-tune-backdrop"></div>
+      <div id="m-tune-panel">
+        <div class="m-tune-head"><div><h2 id="m-tune-title">Model and thinking</h2><span id="m-tune-for"></span></div>
+          <button id="m-tune-close" type="button" class="m-small">Close</button></div>
+        <div id="m-tune-now" role="status"></div>
+        <div class="m-tune-label" id="m-tune-effort-label">Thinking</div>
+        <div id="m-tune-efforts" class="m-tune-choices" role="radiogroup" aria-label="Thinking level"><button type="button" role="radio" data-value="low">low</button><button type="button" role="radio" data-value="medium">medium</button><button type="button" role="radio" data-value="high">high</button><button type="button" role="radio" data-value="xhigh">xhigh</button><button type="button" role="radio" data-value="max">max</button></div>
+        <div id="m-tune-oc" hidden>
+          <label class="m-tune-label" for="m-tune-oc-model">Model · this workspace's real catalog</label>
+          <select id="m-tune-oc-model" aria-label="Model"></select>
+          <div class="m-tune-label">Thinking</div>
+          <div id="m-tune-oc-variants" class="m-tune-choices" role="radiogroup" aria-label="Thinking variant"></div>
+          <p id="m-tune-oc-variants-empty" class="m-tune-hint"></p>
+        </div>
+        <details id="m-tune-model-box">
+          <summary>Model · <span id="m-tune-model-name"></span></summary>
+          <div id="m-tune-models" class="m-tune-choices" role="radiogroup" aria-label="Model"><button type="button" role="radio" data-value="claude-haiku-5-5">Haiku 5.5</button><button type="button" role="radio" data-value="claude-sonnet-5-5">Sonnet 5.5</button><button type="button" role="radio" data-value="claude-opus-5-5">Opus 5.5</button><button type="button" role="radio" data-value="claude-fable-5-1">Fable 5.1</button></div>
+          <p class="m-tune-hint">Switching model can cost this Manager its prompt cache.</p>
+        </details>
+        <button id="m-tune-apply" type="button">Nothing to apply</button>
+        <div id="m-tune-note" role="status"></div>
+        <div id="m-tune-status" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+  <script src="/vendor/marked.umd.js"></script>
+  <script src="/vendor/purify.min.js"></script>
+  <script src="/message-markdown.js"></script>
+  <script src="/tool-record-text.js"></script>
+  <script src="/tool-preview-core.js"></script>
+  <script src="/tool-reading.js"></script>
+  <script src="/vendor/highlight.min.js"></script>
+  <script src="/diff-view.js"></script>
+  <script src="/refine-defaults.js"></script>
+  <script src="/refine-core.js"></script>
+  <script src="/read-aloud.js"></script>
+  <script src="/refine-view.js"></script>
+  <script src="/seen-latest.js"></script>
+  <script src="/quota-halt.js"></script>
+  <script src="/manager-order.js"></script>
+  <script src="/status-toast.js"></script>
+  <script src="/opencode-manager.js"></script>
+  <script src="/m.js"></script>
+  <script src="/account-switch.js"></script>
+  <script src="/chatgpt-accounts.js"></script>
+  <script src="/teams-break.js"></script>
+  <script src="/handle-links.js"></script>
+</body>
+</html>

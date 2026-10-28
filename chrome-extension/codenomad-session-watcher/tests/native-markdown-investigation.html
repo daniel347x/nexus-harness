@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CodeNomad 0.20.1 native renderer investigation (not an extension module)</title>
+<div id="root"><span id="sentinel">Fixture application — must not be bootstrapped again</span></div>
+<pre id="results">Investigating…</pre>
+<script>
+// Diagnostic only. Serve this fixture and the installed assets on an ISOLATED test origin.
+// Never open on the live CodeNomad origin. Block all application API traffic.
+window.applicationReads = [];
+const originalFetch = window.fetch.bind(window);
+window.fetch = (resource, options) => {
+  const url = new URL(typeof resource === 'string' ? resource : resource.url, location.href);
+  if (url.origin === location.origin && url.pathname.startsWith('/assets/')) return originalFetch(resource, options);
+  window.applicationReads.push(url.pathname);
+  return Promise.reject(new Error('Fixture blocks application API traffic'));
+};
+window.EventSource = class {
+  static CONNECTING = 0; static OPEN = 1; static CLOSED = 2;
+  constructor(url) { window.applicationReads.push(new URL(url, location.href).pathname); this.readyState = 2; }
+  addEventListener() {} removeEventListener() {} close() {}
+};
+window.addEventListener('unhandledrejection', event => event.preventDefault());
+</script>
+<script type="module">
+const results = [];
+function check(name, ok) { results.push({ name, ok: Boolean(ok) }); }
+try {
+  const renderer = await import('/assets/markdown-B3IPZgpj.js');
+  const tail = 'EXACT-CLOSING-PARAGRAPH — no doctrine or program behaviour has been changed.';
+  const outline = Array.from({ length: 150 }, (_, i) => `## Heading ${i}\n\nA substantial outline paragraph with **bold** prose and [a link](https://example.com).\n\n- first\n- second\n`).join('\n');
+  const content = outline + '\n| Column | Value |\n| --- | --- |\n| row | preserved |\n\n```text\ncode with blank\n\nline\n```\n\n' + tail;
+  check('fixture exceeds ordinary 10,000-character cap', content.length > 10000);
+  for (const role of ['user', 'assistant']) {
+    const html = await renderer.renderMarkdown(content, { suppressHighlight: true, escapeRawHtml: true, literalRawHtml: role === 'user' });
+    // Parse in an inert template; do NOT insert untrusted renderer output into the document.
+    const template = document.createElement('template'); template.innerHTML = html;
+    check(`${role}: exact tail retained by native renderer`, template.content.textContent.includes(tail));
+    check(`${role}: complete outline headings retained`, template.content.querySelectorAll('h2').length === 150);
+    check(`${role}: tables/lists/code preserved`, template.content.querySelector('table') && template.content.querySelector('ul') && template.content.querySelector('pre code').textContent === 'code with blank\n\nline');
+  }
+  const unsafe = document.createElement('template');
+  unsafe.innerHTML = await renderer.renderMarkdown('<script>window.bad=1</scr' + 'ipt>\n\n<img src="x" onerror="window.bad=1">\n\n[unsafe](javascript:alert%281%29)', { suppressHighlight: true, escapeRawHtml: true });
+  check('assistant raw-HTML scripts/events removed', !unsafe.content.querySelector('script, [onerror]'));
+  check('native renderer is NOT a whole-output sanitizer: Markdown javascript URL remains', unsafe.content.querySelector('a')?.getAttribute('href')?.startsWith('javascript:'));
+  const literal = document.createElement('template');
+  literal.innerHTML = await renderer.renderMarkdown('<b>literal user source</b>', { suppressHighlight: true, escapeRawHtml: true, literalRawHtml: true });
+  check('user HTML remains literal source', !literal.content.querySelector('b') && literal.content.textContent.includes('<b>'));
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  check('standalone import triggers application bootstrap API reads', window.applicationReads.length > 0);
+} catch (error) {
+  results.push({ name: 'renderer import/render', ok: false, error: String(error) });
+}
+document.querySelector('#results').textContent = JSON.stringify({ results, applicationReads: window.applicationReads }, null, 2);
+document.body.dataset.testPassed = String(results.length === 11 && results.every(result => result.ok));
+</script>

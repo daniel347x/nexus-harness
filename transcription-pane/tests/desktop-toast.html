@@ -1,0 +1,61 @@
+<!doctype html><meta charset="utf-8"><title>The desktop editor's status toast — actual index.html markup, real-time CDP</title>
+<style>html,body{margin:0;background:#0b0d12}iframe{display:block;width:1400px;height:1000px;border:0}pre{position:fixed;left:-9999px;top:0;white-space:pre-wrap}</style>
+<iframe id="pane" title="Actual desktop editor markup"></iframe><pre id="results">running…</pre>
+<script>
+// The desktop editor's status line used to hold a row in the header; it is now the shared zero-layout toast, with the
+// header's Status button opening the page-local log. This mounts the ACTUAL index.html and status-toast.js/.css (no app.js
+// is needed to own the status node: its text/class authority is the same, and app.js's subjects/resolveStatus are covered
+// by status-toast.test.cjs). Runs through the real-time CDP driver (run_tap_browser.cjs) so the 3 s/error timing is real.
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait',n=400)=>{for(let i=0;i<n;i++){try{if(fn())return;}catch(_){}await sleep(25);}throw new Error(what+' did not settle');};
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,toastJs]=await Promise.all(['index.html','status-toast.js'].map(read));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const mock=`window.desktopToastFixture={errors:[]};addEventListener('error',e=>desktopToastFixture.errors.push(String(e.message||e.target?.src||'resource error')));addEventListener('unhandledrejection',e=>desktopToastFixture.errors.push('rejection: '+String(e.reason?.message||e.reason)));`;
+    const frame=document.getElementById('pane');
+    frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/  <script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>[mock,toastJs].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);await sleep(200);
+    const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id),rect=n=>n.getBoundingClientRect();
+    const statusNode=el('status'),toast=d.querySelector('.pane-toast'),log=d.querySelector('.pane-status-log'),history=el('status-history');
+    await until(()=>toast&&log&&statusNode&&toast.contains(statusNode),'the status-toast module');
+    const overlaps=(a,b)=>!(a.right<=b.left+.5||a.left>=b.right-.5||a.bottom<=b.top+.5||a.top>=b.bottom-.5);
+    const geo=()=>['transcript','refine-btn','send-btn','pane-layout'].map(id=>{const r=rect(el(id));
+      return [Math.round(r.top),Math.round(r.height),Math.round(r.left),Math.round(r.right)].join(',');}).join('|');
+    const setStatus=async(text,kind)=>{statusNode.textContent=text;statusNode.className='status '+kind;await sleep(120);};
+    check('actual index.html: the status owner is moved out of the header into the shared fixed toast, with its Status button',!!toast&&toast.contains(statusNode)&&
+      w.getComputedStyle(toast).position==='fixed'&&!d.querySelector('header').contains(statusNode)&&!!history);
+    const before=geo();
+    const success='Delivered · exact replay acknowledgement; the full original is retained.';
+    await setStatus(success,'ok');
+    const tr=rect(el('transcript')),sb=rect(el('send-btn')),tb=rect(toast);
+    check('a desktop success note shows as a toast over the page, never over the dictation or its actions, and moves no editor geometry',
+      toast.dataset.visible==='true'&&toast.dataset.error==='false'&&statusNode.textContent===success&&
+      tb.top>=0&&tb.bottom<=w.innerHeight&&!overlaps(tb,tr)&&!overlaps(tb,sb)&&geo()===before);
+    await sleep(3250);
+    check('a desktop success/progress note fades after about three seconds; the transcript and actions stayed exactly put and the full text is kept',
+      toast.dataset.visible==='false'&&statusNode.textContent===success&&geo()===before);
+    const failure='Send refused: the host is holding settings; the full original is retained.';
+    await setStatus(failure,'err');
+    check('a desktop .err failure is visibly an error and stays a toast, taking no layout',toast.dataset.visible==='true'&&toast.dataset.error==='true'&&
+      w.getComputedStyle(toast).borderTopColor==='rgb(255, 129, 120)'&&geo()===before);
+    await sleep(3250);
+    check('the .err stays after three seconds (only success/progress fades) and the editor geometry is untouched',
+      toast.dataset.visible==='true'&&toast.dataset.error==='true'&&statusNode.textContent===failure&&geo()===before);
+    history.click();await sleep(80);
+    const entries=[...log.querySelectorAll('.pane-status-entry')].map(n=>n.textContent);
+    check('the header Status button opens the page-local log with the full success and error notes ['+entries.length+' notes]',
+      !log.hidden&&entries.some(n=>n.includes(success))&&entries.some(n=>n.includes('Error · '+failure))&&geo()===before);
+    log.querySelector('header button').click();statusNode.textContent='';statusNode.className='status';
+    check('the same status node, its text and its class authority survived every toast (app.js subjects/resolveStatus are its own)',el('status')===statusNode&&
+      toast.contains(statusNode)&&statusNode.className==='status'&&statusNode.textContent==='');
+    check('no transport was attempted and the actual page had no uncaught errors'+(w.desktopToastFixture.errors.length?' ['+w.desktopToastFixture.errors.join('; ')+']':''),
+      (w.performance?.getEntriesByType('resource')||[]).filter(e=>e.name.includes('/api/')).length===0&&w.desktopToastFixture.errors.length===0);
+  }catch(e){checks.push({name:e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

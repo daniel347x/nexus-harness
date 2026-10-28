@@ -1,0 +1,113 @@
+<!doctype html><meta charset="utf-8"><title>Actual Claude message Markdown — inert transport</title>
+<style>body{margin:0}iframe{width:1000px;height:900px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="viewer" title="Actual Claude viewer"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],timings={},check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try {
+    const base=new URL('../static/',location.href),read=async path=>(await fetch(new URL(path,base))).text();
+    const [html,css,js,marked,purify,renderer,fixture,shared,core]=await Promise.all([
+      'sessions.html','sessions.css','sessions.js','vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js',
+      '../tests/fixtures/message-markdown.md','../../chrome-extension/codenomad-session-watcher/tool-record-text.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-preview-core.js'].map(read));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const mock=`
+      window.fixture={requests:[],errors:[],source:${JSON.stringify(fixture)},parses:0};
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      fixture.session={sessionRef:'host',uuid:'native',source:'host',role:'manager',executionId:'cc-native',generation:1,title:'Markdown',scopes:[{scopeRef:'main',label:'main'}]};
+      fixture.event=(n,text=fixture.source,fields={})=>({recordRef:'r'+n,uuid:'uuid'+n,kind:'assistant',status:'stored',text,calls:[],...fields});
+      fixture.page=(events,extra={})=>env({sessionRef:'host',scopeRef:'main',fileEpoch:'epoch',leafRef:'leaf',targetRef:'target',status:'complete',change:'snapshot',events,hasMore:false,deltaCursor:'delta',branches:[],...extra});
+      fixture.data=fixture.page([]);
+      window.fetch=async url=>{if(String(url).startsWith('/api/opencode/'))return new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status:'unavailable',error:'offline fixture',sessions:[]})); // its own channel
+      fixture.requests.push(url);let data;
+        if(url.startsWith('/api/claude/sessions'))data=env({sessions:[fixture.session],hasMore:false,status:'complete'});
+        else if(url==='/api/pins')data={schemaVersion:1,pins:{}};
+        else if(url.startsWith('/api/claude/events'))data=fixture.queue?.length?fixture.queue.shift():fixture.data;
+        else if(url==='/api/tool-selection')data=env({epoch:'mail',revision:1,selection:null});
+        else throw Error('No live IO: '+url);return new Response(JSON.stringify(data));};
+      window.BroadcastChannel=class{postMessage(){throw Error('No target relay');}};
+    `;
+    const count=`const ActualMarked=marked.Marked;globalThis.marked={...marked,Marked:class extends ActualMarked{constructor(...args){super(...args);const parse=this.parse;this.parse=(...a)=>{fixture.parses++;return parse(...a);};fixture.parser=this;}}};`;
+    const frame=document.getElementById('viewer');
+    frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/<link[^>]+>/,'<style>'+css+'</style>')
+      .replace(/<script src="[^"]+"><\/script>/g,'').replace('</body>',()=>
+        [mock,shared,core,marked,purify,count,renderer,js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;')]
+          .map(s=>'<script>'+safe(s)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);await sleep(60);
+    const w=frame.contentWindow,d=w.document,f=w.fixture,api=f.api;
+    check('all production assets loaded and initialized without errors',f.errors.length===0&&w.DOMPurify.isSupported&&!!w.opcMessageMarkdown);
+    await api.browse(f.session);
+    api.reconcile([f.event(1),f.event(2,fixture,{kind:'user'})],'delta','epoch');
+    for(const n of [1,2]){
+      const body=api.state.rows.get('r'+n).prose;
+      check((n===1?'assistant':'user')+' headings, bold, italic and inline code',body.querySelector('h1')?.textContent==='Manager reply'&&body.querySelector('strong')?.textContent==='Ready'&&!!body.querySelector('em')&&!!body.querySelector('p code'));
+      check((n===1?'assistant':'user')+' table with cells and Unicode',body.querySelectorAll('tbody tr').length===2&&body.querySelector('table').textContent.includes('🌈 café'));
+      check((n===1?'assistant':'user')+' nested and ordered lists, blockquote and fenced code',!!body.querySelector('ul ul')&&body.querySelectorAll('ol li').length===2&&!!body.querySelector('blockquote')&&body.querySelector('pre code')?.textContent.includes('<img src=x'));
+      check((n===1?'assistant':'user')+' malicious HTML is literal text, never active DOM',!body.querySelector('img,script,svg,iframe,input,style')&&body.textContent.includes('<script>window.bad=1<\/script>')&&!w.bad);
+      const link=body.querySelector('a[href]');check('safe new-tab link isolates opener',link?.getAttribute('href')==='https://example.com/path?q=1'&&link.target==='_blank'&&link.rel==='noopener noreferrer');
+      check('whole rendered message retains its final tail',body.textContent.includes('LAST-MARKDOWN-TAIL'));
+    }
+    api.reconcile([f.event(3,'**still arriving**',{partial:true})],'delta','epoch');const row=api.state.rows.get('r3'),prose=row.prose;
+    check('streaming text is exact and not parsed',prose.textContent==='**still arriving**'&&!prose.querySelector('strong'));
+    const range=d.createRange();range.selectNodeContents(prose);w.getSelection().addRange(range);
+    api.reconcile([f.event(3,fixture,{partial:false})],'delta','epoch');
+    check('selected streaming text defers final repaint',row.deferred&&w.getSelection().toString()==='**still arriving**'&&prose.textContent==='**still arriving**');
+    w.getSelection().removeAllRanges();await sleep(30);
+    check('release renders final Markdown in same prose node',row.prose===prose&&!row.deferred&&!!prose.querySelector('table'));
+    const table=prose.querySelector('table'),parses=f.parses;
+    api.reconcile([f.event(3,fixture,{partial:false,status:'future-cosmetic'})],'delta','epoch');
+    check('metadata-only replacement never parses or replaces Markdown DOM',parses>0&&f.parses===parses&&prose.querySelector('table')===table);
+    const thinking='**Thinking stays raw** <img src=x onerror="window.bad=1">';
+    api.reconcile([f.event(3,fixture,{thinking:[{blockIndex:0,text:thinking,availability:'stored',streaming:true}]})],'delta','epoch');
+    check('thinking remains literal safe text and disclosure unchanged',row.thinking[0].body.textContent===thinking&&!row.thinking[0].body.querySelector('strong,img'));
+    api.reconcile([f.event(4,fixture,{kind:'unsupported'}),f.event(5,fixture,{kind:'result',receipt:{subtype:'success'}})],'delta','epoch');
+    check('non-prose and native result never enter Markdown renderer',api.state.rows.get('r4').prose.textContent===fixture&&!api.state.rows.get('r4').prose.querySelector('table')&&!api.state.rows.get('r5').node.querySelector('.event-prose'));
+    const attacks='[js](javascript:alert%281%29) [entity](jav&#x61;script:alert%281%29) [data](data:text/html,bad) [file](file:///etc/passwd) [vb](vbscript:bad) [ok](https://example.com) [mail](mailto:test@example.com) [relative](/safe)';
+    api.reconcile([f.event(6,attacks)],'delta','epoch');const links=[...api.state.rows.get('r6').prose.querySelectorAll('a[href]')];
+    check('dangerous and entity-obfuscated link protocols disabled',links.length===3&&links.every(a=>['http:','https:','mailto:'].includes(new URL(a.href).protocol)&&a.rel==='noopener noreferrer'));
+    // Defense in depth: even a parser returning raw hostile markup must be sanitized.
+    const realParse=f.parser.parse;
+    f.parser.parse=()=>'<p onclick="bad()">ok</p><img src=x onerror="bad()"><svg onload="bad()"></svg><script>bad()</scr'+'ipt><a href="javascript:bad()">bad</a>';
+    const hostile=d.createElement('div');w.opcMessageMarkdown.render(hostile,'hostile synthetic parser',true);
+    check('real DOMPurify removes active tags/attributes and unsafe href before insertion',!hostile.querySelector('img,svg,script,[onclick],[onerror],a[href]')&&hostile.textContent.includes('ok'));
+    f.parser.parse=realParse;
+    // Game boards: a ```fen block becomes a static board; anything unreadable stays code.
+    const fen='rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
+    api.reconcile([f.event(7,'Board:\n\n```fen\n'+fen+'\ne7e5\n```\n\nAfter.')],'delta','epoch');
+    const boardBody=api.state.rows.get('r7').prose,board=boardBody.querySelector('figure.opc-chess'),cells=board?.querySelectorAll('.opc-chess-grid > span')||[];
+    check('fen block renders a board in place of its code block, with prose around it',!!board&&!boardBody.querySelector('pre')&&boardBody.textContent.includes('Board:')&&boardBody.textContent.includes('After.'));
+    check('board has 64 squares, 32 pieces, a8 light, White pieces on rank 1, last move lit',cells.length===64&&board.querySelectorAll('b.pw').length===16&&board.querySelectorAll('b.pb').length===16&&
+      cells[0].classList.contains('lt')&&cells[56].textContent.startsWith('♜')&&cells[56].querySelector('b.pw')&&cells[60].querySelector('b.pw')?.textContent==='♚︎'&&
+      cells[12].classList.contains('last')&&cells[28].classList.contains('last')&&board.querySelectorAll('.last').length===2&&board.querySelector('figcaption')?.textContent==='Black to move · last move e7–e5');
+    check('board styles live once in the head, never inside the message',[...d.head.querySelectorAll('style')].filter(s=>s.textContent.includes('.opc-chess-grid')).length===1&&!boardBody.querySelector('style'));
+    const square=cells[0].getBoundingClientRect();
+    check('board squares are square and fit the message width',square.width>10&&Math.abs(square.width-square.height)<1.5&&board.getBoundingClientRect().width<=boardBody.getBoundingClientRect().width+0.5);
+    const bad=['```fen\nrnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP\n```','```fen\nrnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w\n```','```fen\n<img src=x onerror="window.bad=1">/8/8/8/8/8/8/8\n```','```fen\n8/8/8/8/8/8/8/8 w\nnot-a-move\n```','```fen\n8/8/8/8/8/8/8/8 x\n```'];
+    api.reconcile(bad.map((text,i)=>f.event(800+i,text)),'delta','epoch');
+    check('unreadable fen blocks stay plain code blocks, hostile text inert',bad.every((text,i)=>{const p=api.state.rows.get('r'+(800+i)).prose;return !p.querySelector('figure')&&p.querySelector('pre code.language-fen')?.textContent===text.slice(7,-4)+'\n';})&&!api.state.rows.get('r802').prose.querySelector('img')&&!w.bad);
+    api.reconcile([f.event(810,'```text\n'+fen+'\n```\n\n`'+fen+'`')],'delta','epoch');
+    check('only a fen fence triggers a board: other fences and inline FEN stay text',!api.state.rows.get('r810').prose.querySelector('figure')&&!!api.state.rows.get('r810').prose.querySelector('pre code'));
+    for(const width of [420,1000]){frame.style.width=width+'px';await sleep(30);check(width+'px table and code overflow stays inside viewer',d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&getComputedStyle(prose.querySelector('pre')).overflowX==='auto'&&getComputedStyle(table).overflowX==='auto');}
+    // Real viewer's automatic cold-tail drain, with many resident messages and a
+    // final table/code reply replacing a streaming prefix on its last page.
+    const before=performance.now();
+    f.queue=Array.from({length:5},(_,i)=>f.page(Array.from({length:40},(_,j)=>f.event(100+i*40+j)),{status:'indexing',hasMore:true,nextCursor:'scan'+i,indexingContinuation:'scan'+i}));
+    f.queue.push(f.page([f.event(400,'# partial',{partial:true})],{status:'indexing',hasMore:true,nextCursor:'final-scan',indexingContinuation:'final-scan'}));
+    f.queue.push(f.page([f.event(401,fixture,{kind:'result',receipt:{subtype:'success'}})],{eventUpdates:[f.event(400)],change:'append'}));
+    await api.browse(f.session);await api.poll();timings.coldMarkdownMs=Math.round(performance.now()-before);
+    check('cold history automatically drains to complete rendered final table and tail',f.queue.length===0&&api.state.indexingContinuation===null&&!!api.state.rows.get('r400').prose.querySelector('table')&&api.state.rows.get('r400').prose.textContent.includes('LAST-MARKDOWN-TAIL'));
+    check('cold long session stays bounded and finishes within two seconds',api.state.rows.size===200&&timings.coldMarkdownMs<2000);
+    const parseCount=f.parses,node=api.state.rows.get('r400').prose.firstChild;
+    for(let i=0;i<100;i++)api.reconcile([f.event(400,fixture,{status:'metadata-'+i})],'delta','epoch');
+    check('100 unchanged-body observations perform zero parses and keep mounted nodes',f.parses===parseCount&&api.state.rows.get('r400').prose.firstChild===node);
+    const big='# Large reply\n\n'+('Long plain Unicode 🌈 café line.\n'.repeat(8000))+'\n\n'+fixture;
+    const t=performance.now();api.reconcile([f.event(500,big)],'delta','epoch');timings.largeMessageMs=Math.round(performance.now()-t);
+    check('large >200K final body renders table/code and full tail without a crop',big.length>200000&&api.state.rows.get('r500').prose.textContent.includes('LAST-MARKDOWN-TAIL')&&!!api.state.rows.get('r500').prose.querySelector('table'));
+    check('no additional tool/body/send/control requests or script errors',f.errors.length===0&&f.requests.every(u=>u.startsWith('/api/claude/sessions')||u.startsWith('/api/claude/events')||u==='/api/tool-selection'||u==='/api/pins')&&!w.bad);
+  } catch(e){checks.push({name:e.stack||e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks,timings},null,2);
+  document.body.dataset.testPassed=String(checks.every(x=>x.passed));
+})();
+</script>

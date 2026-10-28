@@ -1,0 +1,162 @@
+{
+  "content": "Invented system-development records; not live execution evidence.",
+  "sourceCommit": "ad19360e47892079c51c063a5e314b26620f32ea",
+  "sourceTree": "6638fd8e2c288f8ffe6be2bcdb378637d3cb9a0a",
+  "shots": {
+    "desktop-hero": {
+      "shot": "desktop-hero",
+      "width": 3200,
+      "height": 2000,
+      "cssWidth": 1600,
+      "cssHeight": 1000,
+      "scale": 2,
+      "source": "index.html",
+      "diagnostics": [
+        {
+          "page": "/",
+          "unknown": [],
+          "errors": []
+        },
+        {
+          "page": "/sessions",
+          "unknown": [],
+          "errors": []
+        }
+      ],
+      "sha256": "6ed986da28ecdd782a468ac0377bbf52fd668851816b4a15091537b044595767"
+    },
+    "program-view": {
+      "shot": "program-view",
+      "width": 3200,
+      "height": 2000,
+      "cssWidth": 1600,
+      "cssHeight": 1000,
+      "scale": 2,
+      "source": "index.html",
+      "diagnostics": [
+        {
+          "page": "/",
+          "unknown": [],
+          "errors": []
+        },
+        {
+          "page": "/sessions",
+          "unknown": [],
+          "errors": []
+        },
+        {
+          "page": "/glimpse.html",
+          "unknown": [],
+          "errors": []
+        }
+      ],
+      "sha256": "65aa9e7fb105d055424c08b33286d559979946a0fb9b9a6ca683f27a2027c7fa"
+    },
+    "phone-programs": {
+      "shot": "phone-programs",
+      "width": 1170,
+      "height": 2532,
+      "cssWidth": 390,
+      "cssHeight": 844,
+      "scale": 3,
+      "source": "m.html",
+      "diagnostics": [
+        {
+          "page": "/m",
+          "unknown": [],
+          "errors": []
+        },
+        {
+          "page": "/m-programs.html",
+          "unknown": [],
+          "errors": []
+        }
+      ],
+      "sha256": "a1a4f29bc5b73e510246f055fc9578ebf58e5e2a89fa98b10a1e687a7c54a7d6"
+    },
+    "phone-chat": {
+      "shot": "phone-chat",
+      "width": 1170,
+      "height": 2532,
+      "cssWidth": 390,
+      "cssHeight": 844,
+      "scale": 3,
+      "source": "m.html",
+      "diagnostics": [
+        {
+          "page": "/m",
+          "unknown": [],
+          "errors": []
+        }
+      ],
+      "sha256": "d3de66ecaf9f6febd4e64bd0e83d40b81e4c907f787947004ad197ecfe2bb060"
+    }
+  },
+  "servedSourceSha256": {
+    "chrome-extension/codenomad-session-watcher/tool-preview-core.js": "3da0f39001b887d2f6ab37ae0612483a5491c3bbed5dc567271781c3648db45b",
+    "chrome-extension/codenomad-session-watcher/tool-record-text.js": "253fcbc02d8d9bf59d116e0cf560851672d20c3552e647ac86dba9e8f6a415c2",
+    "docs/readme/fixture.js": "ea168b7a90989facad1e5414507575be7fc42f39a66e1afbbd7061482e71bff5",
+    "nexus/glimpse-lightbox.css": "c4ef7e3330dbc24c775269f123410e0812bd6959d448e9774a7f3b75a1f50d8d",
+    "nexus/glimpse-lightbox.js": "8ad758ff28f8566ed6b3585a8146c53132e3e3f68e978484a4c879c27ed483e3",
+    "nexus/glimpse-md-render.css": "f8fc693bc967fe13291fe9481b7a8eef879dd0cc2fcf4de4820a7fcf5a3c9dd4",
+    "nexus/glimpse-md-render.js": "94ca84914486c8834d5ed979bd87feabf205b363b1a6a8ef87fe5ff6ce2e92c0",
+    "nexus/katex-overrides.css": "e10de025462bef6fc5c42b4a37f69fc5dd4a82c9d97270c1266da767542bf9f7",
+    "nexus/katex/katex.min.css": "180c2d77d434d7da51d6625c50a964d4fd6fdbdb9bc8796a0a016c30c49931fb",
+    "nexus/katex/katex.min.js": "2ec5916941ef4383e0314eaabcc712301b06001d9fb68e08d751d2bae5a27a1a",
+    "nexus/marked-katex-init.js": "958163845f43a3ca5dce3bf4ce1f730c2d7de7a4f67c690a495b3d497ca148b6",
+    "nexus/marked.min.js": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c",
+    "nexus/photoswipe/photoswipe.css": "b0eaaae0b9de064d25e2f18517b9011a526d9b2142376e1c0febd096cebab9f3",
+    "nexus/photoswipe/photoswipe.umd.min.js": "ba86fd2dadb31acd8e488540fedb5037c598bf86c63a2a804d5025271af6a323",
+    "transcription-pane/static/account-switch.css": "976c31be889a2303780e89336aab4fcf843dfa81992689cd0a096277baab7d6d",
+    "transcription-pane/static/account-switch.js": "afea2f2ed1bab97ac7c0b9026caaff82025236bb53b8a3c63740d4fa8decd29b",
+    "transcription-pane/static/app.js": "ba167fafdad0ad4cd3067d88a1240e4593eb7a940f74cd1763681c525072209f",
+    "transcription-pane/static/chatgpt-accounts.js": "70dd0c1f72a86221d2edf6f1192802dddb4151bd6fc337e07af9c646ec882e6f",
+    "transcription-pane/static/diff-view.css": "1229a1d7c739512604632b08b8b0a1029999f3a91ffaff9a5c7a062d05dde42a",
+    "transcription-pane/static/diff-view.js": "ebe55bf6020a9f4b74fb2ae3dffbbe1c0742ebd7537b225573c385e00c6157a4",
+    "transcription-pane/static/glare.css": "b5e123ace7585b640b3962bd3617b1710475458fd91664ac1d2b3cc7d64d45a8",
+    "transcription-pane/static/glare.js": "863a73b356c94581465154c9b116f6265af433191c4e251160d227faf3ca6f7c",
+    "transcription-pane/static/glimpse.css": "f6063ab7feb595daa9ccad3702f216d9950dd72db31f9a65e071c7b2aff30e3e",
+    "transcription-pane/static/glimpse.html": "f81e1b2494985980a2dd7c76a3e5bee0166ec8ba151d65d0fb0ebfbb0fe6e74c",
+    "transcription-pane/static/glimpse.js": "92e29324812a835d75317f84d2f0097408f42befe33846f4e78d6dacd5b9421f",
+    "transcription-pane/static/handle-links.js": "a27d63ebbd8a123c19c1bf5360d01786e27dce4c4804f4ee0714967993398382",
+    "transcription-pane/static/index.html": "4ada05cfb47258c1904254c24ed35cf48c561c6eadde7ece99fb1c5215c5c690",
+    "transcription-pane/static/m-programs.css": "505849aaf82c66e8f52084dca89ab081791b655d3a6b78c8bc8272d5f09e43c9",
+    "transcription-pane/static/m-programs.html": "dca8c28fdc1da864048b246502e256da92a9e3b8d9162f270ca620927dbb2e8b",
+    "transcription-pane/static/m.css": "62399236244d37ad3a0787c3960bb2d65ce87dbc4584e97476541dd2da3a7c53",
+    "transcription-pane/static/m.html": "8306529d816053ecf8d9c04fb4a5e7f5190f9e15212784b9d20ec6f99266410a",
+    "transcription-pane/static/m.js": "dda50668cae7ba8a166cda29fd2f80c8423b59892fd7600ca14dd8f597f55d69",
+    "transcription-pane/static/m.webmanifest": "f89d345d1768678fe5b92d60dd4e2162bbaac7e6a9371b2db965e667a2f8c0bb",
+    "transcription-pane/static/manager-order.js": "3b026e4970b1b45c8d5b9b3e04bc2362c81fa5d866aecd1eb7f600b29437e72b",
+    "transcription-pane/static/message-markdown.js": "0bc1cafdefab6d2134084ec857ce202284c414e219f46b82829b5c671ee76439",
+    "transcription-pane/static/opencode-manager.js": "74b9c64d61a4c2cdacf01bb785a30a4fbf8b9fc2d92e4cc583ef8eafd027a53b",
+    "transcription-pane/static/quota-halt.js": "cd9496bb595cd420d0f6f4d5404a68d6485adbda063144684eeeff37cee60fcd",
+    "transcription-pane/static/read-aloud.css": "4978d0d9fb9d74a031acef7a8082f61c32ed06d33fb86bac896a796cb45fbef6",
+    "transcription-pane/static/read-aloud.js": "7f50f332400a007842c7ba0b0d37d30548ce713ff43ecb3b85facaace6c7406d",
+    "transcription-pane/static/refine-core.js": "60e41066cad8074360ce9a322eb1e6118305633acb8bbb60d1bc04b59bcdbd88",
+    "transcription-pane/static/refine-defaults.js": "60e155833fc89a9a2b3569f6542c0941a684056a7da5be601d0e0496b88bf50d",
+    "transcription-pane/static/refine-view.js": "2ab2c5b783cb1e95f03b8f308dac85a36854d5a13d5a47940302d8b72e6365f0",
+    "transcription-pane/static/seen-latest.js": "2137358c1b28b96850ee68b6d7d9e9e40acf335d40bf0782b477d8206d953cac",
+    "transcription-pane/static/sessions-quota.js": "a688fe02b166cb8e2570ea51cddd846dff0bd68ee5c9a763c74b48b111954418",
+    "transcription-pane/static/sessions.css": "fde3abb5174b65c957bcf48aff3ddcc787b93aae8e3afc4b303abb9669559d05",
+    "transcription-pane/static/sessions.html": "2710231b2e3d4499f1efc8d2316a6633f4b51034099b4bc8e2b628f8aaf2a28f",
+    "transcription-pane/static/sessions.js": "5a5d1b0634f33f48f0667a46aca5a5354973fa3dae75207a37744d5fb9844160",
+    "transcription-pane/static/status-toast.css": "af295d8a9ebcb77b776901bece3520a6df14898cd226638ddbda44b2872e0b7e",
+    "transcription-pane/static/status-toast.js": "95ec4dff81e51e44f570cd35d296cb04ce64d2b9d5c8074d97929e337ff7a056",
+    "transcription-pane/static/style.css": "8f9b6c4ef3af34521acab51e17b825186db51699977a9ecec43e4b4216e99768",
+    "transcription-pane/static/teams-break.css": "5d8e278b42bcadadfeee4185ba1db7b17ed2997252c2ac9eb44b78602377afd7",
+    "transcription-pane/static/teams-break.js": "e6ebddb7a142e8a946ddd92fc9581cd67b87eee13d4c79045ff152a9478b7e06",
+    "transcription-pane/static/tool-inspector.js": "61bc60c5912cb0931e47020a6cf248c7d40a6232d2dd9941792a882894b58d89",
+    "transcription-pane/static/tool-reading.js": "fbb87a10e02c0a408aa8829fd491aa7362d977dbe0ae46b95cd8753c51eec058",
+    "transcription-pane/static/vendor/highlight.min.js": "c4a399dd6f488bc97a3546e3476747b3e714c99c57b9473154c6fb8d259b9381",
+    "transcription-pane/static/vendor/marked.umd.js": "b82b9334406d8bdd16b6236c08de1cb65b2a859873ca9503d9cc0b292ca3c12a",
+    "transcription-pane/static/vendor/purify.min.js": "cd37898f9782adf54820c413191b5691803f0f137c799d6edcfd38523b4c2c31",
+    "transcription-pane/static/view-history.js": "b22d084d52a83ba7f2c6a97da944f101710856957efe92dcf7744b92f855f696",
+    "transcription-pane/static/view-pickers.js": "870815ff6119e7bcc8f48306504abd17342f550519247f9df8bdbcbf1e0f65ed"
+  },
+  "captureCodeSha256": {
+    "capture.sh": "0b8f213405f3b3c440e1331acf95fb29d4b4e62e42d5f8a872dd26b4a187aa64",
+    "capture.py": "e91404bec72dd8209a9ef3eb09025fbf34288a2eaa8f0f00a8e5016a210a4010",
+    "capture.cjs": "f53822f5ec6d6ea987c461fe47d42aa9fb583ea2de6aafaba977cd4ccdad655e",
+    "fixture.js": "ea168b7a90989facad1e5414507575be7fc42f39a66e1afbbd7061482e71bff5"
+  }
+}

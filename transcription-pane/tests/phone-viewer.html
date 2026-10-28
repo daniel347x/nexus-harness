@@ -1,0 +1,353 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone page — non-Manager sessions read-only from Programs (Read ›)</title>
+<style>iframe{width:390px;height:1000px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<800;i++){try{if(fn())return;}catch(_){}await sleep(5);}throw new Error(what+' did not settle');};
+  let api,d,pd;
+  const uuid8=n=>n+n+n+n+n+n+n+n+'-'+n+n+n+n+'-4'+n+n+n+'-8'+n+n+n+'-'+n.repeat(12);
+  try {
+    const base=new URL('../static/',location.href),shared=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const read=async(name,from=base)=>(await fetch(new URL(name,from))).text();
+    const [html,css,marked,purify,markdown,defaults,core,app,reading,refineView,previews,records,progHtml,sessionsCss,progCss,sessionsJs,seenLatest,highlighter,diffView,diffCss,handleLinks]=await Promise.all([
+      read('m.html'),read('m.css'),read('vendor/marked.umd.js'),read('vendor/purify.min.js'),read('message-markdown.js'),read('refine-defaults.js'),read('refine-core.js'),
+      read('m.js'),read('tool-reading.js'),read('refine-view.js'),read('tool-preview-core.js',shared),read('tool-record-text.js',shared),
+      read('m-programs.html'),read('sessions.css'),read('m-programs.css'),read('sessions.js'),read('seen-latest.js'),read('vendor/highlight.min.js'),read('diff-view.js'),read('diff-view.css'),read('handle-links.js')]);
+    const quotaHalt=await read('quota-halt.js'); // both pages load it before their own script
+    const managerOrder=await read('manager-order.js');
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const inline=(page,styles,scripts)=>page.replace(/<link[^>]+>/g,'').replace('</head>',()=>styles.map(s=>'<style>'+s+'</style>').join('')+'</head>')
+      .replace(/ *<script src="[^"]+"><\/script>\n?/g,'').replace('</body>',()=>scripts.map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    const fx=window.viewerFixture={requests:[],programRequests:[],viewLoads:[],posts:[],errors:[],stale:new Set(),mismatch:false,writes:[],
+      // A1's normalized diffs as the two tool-record routes serve them: a Claude Write creation and an OpenCode multi-file patch.
+      claudeDiff:{files:[{path:'/repo/docs/viewer.md',status:'added',additions:2,deletions:0,hunks:[{oldStart:0,oldLines:0,newStart:1,newLines:2,lines:['+# Viewer','+Read-only, from Programs.']}]}],
+        source:'claude-structured-patch',complete:true},
+      ocDiff:{files:[{path:'/fixture/code.py',status:'modified',additions:2,deletions:2,hunks:[{oldStart:124,oldLines:3,newStart:124,newLines:3,lines:[' before','-old','+new 雪',' after']},
+        {oldStart:900,oldLines:1,newStart:900,newLines:1,lines:['-tail','\\ No newline at end of file','+TAIL','\\ No newline at end of file']}]},
+        {path:'/fixture/new.txt',status:'added',additions:1,deletions:0,hunks:[{oldStart:0,oldLines:0,newStart:1,newLines:1,lines:['+hello']}]},
+        {path:'/fixture/deleted.txt',status:'deleted',additions:0,deletions:1,hunks:[{oldStart:1,oldLines:1,newStart:0,newLines:0,lines:['-goodbye']}]}],source:'opencode-unified-patch',complete:true}};
+    // One inert transport for both frames: the phone page (/m) and its Programs sidebar (/m-programs.html).
+    const transport=`
+      const fx=window.top.viewerFixture,inPrograms=document.body.classList.contains('phone-programs');
+      addEventListener('error',e=>fx.errors.push((inPrograms?'programs: ':'m: ')+e.message));
+      addEventListener('unhandledrejection',e=>fx.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+        getItem:k=>store.get(k)??null,setItem:(k,v)=>{fx.writes.push(k);store.set(k,String(v));},removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=>'',writeText:async()=>{}}});
+      const uuid=n=>n+n+n+n+n+n+n+n+'-'+n+n+n+n+'-4'+n+n+n+'-8'+n+n+n+'-'+n.repeat(12),now=1792400000;
+      const host=(n,extra)=>({source:'host',uuid:uuid(n),executionId:'cc-'+uuid(n),generation:1,sessionRef:'session-'+n,scopes:[{label:'main',scopeRef:'main-'+n}],
+        createdAt:now+Number('0x'+n),lifecycle:'live',capabilities:{},liveState:{},targetRef:'target-'+n,...extra});
+       const A=host('a',{role:'Manager',displayRole:'manager',title:'Manager-Session-196 · phone viewer',capabilities:{nativeInput:true,controls:true,reconnect:true}});
+       const B=host('b',{role:'Manager',displayRole:'manager',title:'Manager-Session-196-b',lifecycle:'sleeping',capabilities:{reconnect:true}});
+       const D=host('d',{role:'Manager',displayRole:'manager',title:'Manager-Session-196-a',capabilities:{nativeInput:true,controls:true,reconnect:true}});
+      const C=host('c',{role:'conductor',displayRole:'conductor',title:'[ap:VIEW01]-001 · ⚡ Phone viewer',liveState:{primary_turn_open:true},
+        lineage:{program:'VIEW01',kind:'conductor',conductorN:1,quickProgram:true,managerSession:'196',title:'[ap:VIEW01]-001 · ⚡ Phone viewer'}});
+      const W=host('e',{role:'worker',displayRole:'quick-worker',title:'[ap:VIEW01]-001 ▸ ⚡ quick worker · the Read chips',capabilities:{subagents:true},
+        lineage:{program:'VIEW01',kind:'seat',quick:true,conductorN:1,parentSeat:'cc-'+uuid('c'),title:'[ap:VIEW01]-001 ▸ ⚡ quick worker · the Read chips'}});
+      const S={source:'host',role:'subagent',uuid:uuid('f'),sessionRef:'session-f',parentUuid:uuid('e'),agentId:'agent-7',agentType:'researcher',
+        description:'Read the sidebar renderer',scopes:[{label:'main',scopeRef:'main-f'}],title:'Session f',createdAt:now+30,lifecycle:'live'};
+      const O={id:'ses_viewoc0001',program:null,kind:'worker',quick:true,title:'[ap:FREE02]-001 ▸ ⚡ quick worker · an OpenCode worker',busy:true,
+        agent:'build',model:'openrouter/deepseek/flash',cost:0.03,createdAt:now+40,updatedAt:now+50,idleAt:null};
+      fx.rows={A,C,W,S,O};
+      const env=x=>({schemaVersion:1,backend:'claude',...x}),ocv=x=>({schemaVersion:1,backend:'opencode',...x});
+      const ev=(seq,kind,text,extra={})=>({seq,kind,text,uuid:'u-'+seq,recordRef:'r-'+seq,scope:'main',calls:[],thinking:[],partial:false,time:now+seq,...extra});
+      const call=(id,name,callRef,status='stored')=>({block:1,id,name,callRef,status,inputBytes:16,outputBytes:12,previewData:{schemaVersion:1,status:'available',
+        value:{kind:'object',entries:[['command',{kind:'string',characters:2,jsonCharacters:4,head:'ls',tail:'ls'}]]}}});
+      const pages={
+        'session-a':[ev(1,'user','Manager question'),ev(2,'assistant','MANAGER_ANSWER')],
+        'session-c':[ev(1,'user','Start unit one.'),ev(2,'assistant','Dispatching the worker.',{calls:[call('t1','Bash','call-conductor')]}),ev(3,'assistant','CONDUCTOR_ANSWER **done**')],
+        'session-f':[ev(1,'user','SUBAGENT_PROMPT'),ev(2,'assistant','SUBAGENT_ANSWER')]};
+      const first={'session-c':[ev(0,'user','CONDUCTOR_FIRST_PROMPT'),ev(1,'user','Start unit one.')]};
+       const exec={'session-a':A,'session-b':B,'session-d':D,'session-c':C,'session-c2':C,'session-e':W};
+      const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+      window.fetch=async(url,options={})=>{
+        url=String(url);(inPrograms?fx.programRequests:fx.requests).push([url,options.method||'GET']);
+        const u=new URL(url,'http://phone.fixture/'),q=Object.fromEntries(u.searchParams);
+        if(options.method==='POST'){fx.posts.push([u.pathname,JSON.parse(options.body)]);}
+        if(u.pathname==='/api/claude/sessions'){
+           if(q.role==='Manager')return json(env({sessions:fx.family?[B,D,A]:[A],hasMore:false,status:'complete'}));
+          // The unfiltered list: Programs' inventory, and the phone's resync scan (fresh handles after a restart).
+          // fx.conductorHalt: the host's quota_halt on the Conductor (a usage-limit halt), else none.
+          const Cnow=fx.conductorHalt!==undefined?{...C,liveState:{...C.liveState,quota_halt:fx.conductorHalt}}:C;
+           const fresh=fx.reissued?[A,{...Cnow,sessionRef:'session-c2',scopes:[{label:'main',scopeRef:'main-c2'}]},W]:[A,Cnow,W];
+           if(fx.family)fresh.push(D); // closed -b is outside Programs' week, but the picker already read it
+          return json(env(q.cursor?{sessions:fresh.slice(2),hasMore:false,status:'complete'}:{sessions:fresh.slice(0,2),hasMore:true,nextCursor:'page-2',status:'complete',listWindowDays:7,diagnostics:[]}));
+        }
+        if(u.pathname==='/api/pins')return json({schemaVersion:1,pins:{}});
+        if(u.pathname==='/api/claude/subagents')return json(env({sessionRef:q.sessionRef,sessions:q.sessionRef==='session-e'?[S]:[],hasMore:false,status:'complete'}));
+        if(u.pathname==='/api/claude/events'){
+          const key=q.sessionRef;
+          if(fx.stale.has(key)){fx.stale.delete(key);return json(env({status:'stale',error:'host handle expired; reselect'}),409);}
+          const t=exec[key],events=q.fromSeq==='0'?first[key.replace('2','')]||[]:q.cursor?[]:pages[key.replace('c2','c')]||[];
+          const who=t?{source:'host',role:t.role==='Manager'?'Manager':'conductor',executionId:fx.mismatch&&t===C?'cc-someone-else':t.executionId,generation:1,
+            liveState:t===C?{native_session_state:'running',primary_turn_open:true,...(fx.conductorHalt!==undefined?{quota_halt:fx.conductorHalt}:{})}:{native_session_state:'idle',primary_turn_open:false}}:{};
+          return json(env({sessionRef:key,scopeRef:q.scopeRef,fileEpoch:'epoch-'+key,events,eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete',...who}));
+        }
+        if(u.pathname==='/api/claude/tool-record')return json(env({callRef:q.callRef,fileEpoch:q.fileEpoch,input:'{"command":"ls"}',output:'CLAUDE_TOOL_OUTPUT',
+          inputAvailability:'stored',outputAvailability:'stored',status:'stored',live:true,terminal:true,diff:fx.claudeDiff}));
+         if(u.pathname==='/api/claude/state'){const who=[A,B,D].find(r=>r.executionId===q.executionId)||A;return json(env({targetRef:q.targetRef,executionId:q.executionId,generation:1,uuid:who.uuid,source:'host',role:'Manager',
+           capabilities:who.capabilities,lifecycle:who.lifecycle,liveState:{native_session_state:'idle',primary_turn_open:false}}));}
+        if(u.pathname==='/api/claude/send'){const b=fx.posts.at(-1)[1];
+          return json(env({targetRef:b.targetRef,executionId:b.executionId,generation:b.generation,uuid:A.uuid,source:'host',role:'Manager',
+            receipt:{execution_id:b.executionId,generation:b.generation,message_uuid:b.messageUuid,original:b.original,submitted:b.submitted,durable:true,acknowledged:true,status:'acknowledged'}}));}
+        if(u.pathname==='/api/opencode/programs')return json(ocv({status:'complete',error:null,sessions:[O]}));
+        if(u.pathname==='/api/opencode/activity')return json(ocv({status:'complete',observedAt:Date.now()/1000,active:fx.ocIdle?[]:[O.id],sessions:[{id:O.id,toolStatus:'complete',runningCalls:fx.runningCalls || []}]}));
+        if(u.pathname==='/api/opencode/turns')return json(ocv({status:'complete',id:q.id,firstAt:now,lastAt:now+50}));
+        if(u.pathname==='/api/opencode/glance')return json(ocv({status:'complete',id:q.id,busy:true,agent:'build',model:O.model,messages:[{role:'assistant',time:now,chars:4,text:'busy'}]}));
+        if(u.pathname==='/api/opencode/events'){
+          if(fx.stale.has(q.id)){fx.stale.delete(q.id);return json(ocv({status:'stale-epoch',error:'OpenCode index discarded/rebuilt'}),409);}
+          return json(ocv({source:'opencode',sessionRef:q.id,scopeRef:'main',fileEpoch:'oc_epoch',busy:fx.ocIdle?false:true,observedAt:Date.now()/1000,runningCalls:fx.runningCalls || [],hasMore:false,status:'complete',deltaCursor:'oc-delta',eventUpdates:[],
+            events:q.cursor?[]:[ev(0,'user','OPENCODE_PROMPT'),ev(1,'assistant','',{calls:[call('prt_1','shell','occall_1')]}),
+              ev(2,'assistant','OpenCode · unknown part · future\\n**OC_META_NOT_BOLD**',{isMeta:true}),ev(3,'assistant','OPENCODE_ANSWER **bold**')]}));
+        }
+        if(u.pathname==='/api/opencode/tool-record')return json(ocv({callRef:q.callRef,fileEpoch:q.fileEpoch,input:'{"command":"ls"}',output:'OC_TOOL_OUTPUT 雪',
+          inputBytes:16,outputBytes:17,inputAvailability:'stored',outputAvailability:'stored',status:'stored',live:true,terminal:true,diff:fx.ocDiff}));
+        throw new Error('No real transport permitted: '+url);
+      };`;
+    const frame=document.getElementById('phone');
+     frame.srcdoc=inline(html,[css,diffCss],[transport,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,quotaHalt,managerOrder,app+'\nwindow.top.viewerFixture.api=phoneManager;',handleLinks]);
+    await new Promise(r=>frame.onload=r);
+    const w=frame.contentWindow;d=w.document;api=fx.api;
+    // The View tab's frame is recorded, not loaded (glimpse-view.html covers the page itself).
+    Object.defineProperty(d.getElementById('m-glimpse-frame'),'src',{configurable:true,set(value){fx.viewLoads.push(String(value));this.setAttribute('src','about:blank');}});
+    // Count the shared reader's lifetimes: every bar a chat switch removes must stop its reader.
+    const realDiffView=w.opcDiffView,diffStats={mounts:0,destroys:0};
+    w.opcDiffView=Object.freeze({...realDiffView,mount:(...args)=>{const r=realDiffView.mount(...args);diffStats.mounts++;return {...r,destroy:()=>{diffStats.destroys++;r.destroy();}};}});
+    const lines=(tool,sel)=>[...tool.querySelectorAll('.m-diff '+sel)].map(n=>n.textContent);
+    const el=id=>d.getElementById('m-'+id),box=el('draft'),text=()=>el('messages').textContent,reqs=path=>fx.requests.filter(([u])=>u.startsWith(path));
+    await until(()=>el('managers').children.length===1&&!api.state.listBusy,'Manager list');
+    await api.selectManager('cc-'+'a'.repeat(8)+'-aaaa-4aaa-8aaa-'+'a'.repeat(12));
+    await until(()=>text().includes('MANAGER_ANSWER'),'Manager conversation');
+    box.value='My unsent draft for the Manager 雪';box.dispatchEvent(new w.Event('input',{bubbles:true}));
+    const selected=api.state.selected,revision=api.state.selectionRevision,draftRevision=api.state.draftRevision;
+    // Programs: the actual sidebar page in the phone's own frame, so its chips post to the actual listener.
+    const programs=el('programs-frame');
+     programs.srcdoc=inline(progHtml,[sessionsCss,progCss],[transport,records,previews,quotaHalt,managerOrder,sessionsJs.replace('const history=createClaudeHistory();','const history=createClaudeHistory();window.top.viewerFixture.programs=history;'),handleLinks]);
+    el('view-programs').click();
+     const item=t=>[...pd.querySelectorAll('#sessions-list .session-item, #sessions-pinned .session-item')].find(n=>n.querySelector('.role-word')?.textContent===t);
+    await until(()=>(pd=programs.contentDocument)&&item('Conductor:')&&item('Quick worker:')&&pd.querySelector('.oc-item'),'Programs list');
+    const conductorRow=item('Conductor:'),chip=conductorRow.querySelector(':scope > .session-read'),copy=conductorRow.querySelector('.session-actions > .session-copy');
+    const pw=programs.contentWindow,name=conductorRow.querySelector('.name-text').getBoundingClientRect(),chipBox=chip.getBoundingClientRect();
+    check('Programs: every Claude row has a small Read › chip beside ⧉, clear of the name; OpenCode rows have none on the row',
+      chip?.textContent==='Read ›'&&chip.getAttribute('role')==='button'&&chipBox.right<=copy.getBoundingClientRect().left+1&&name.right<=chipBox.left+1&&
+      !!item('Manager:').querySelector('.session-read')&&!pd.querySelector('.oc-item .session-read')&&pd.documentElement.scrollWidth<=pd.documentElement.clientWidth+1);
+    const before=fx.programRequests.length;
+    chip.click();
+    await until(()=>api.state.viewing&&text().includes('CONDUCTOR_ANSWER'),'Conductor view');
+    const viewer=el('managers').querySelector('.m-viewer'),held=el('managers').querySelector('[data-execution-id]');
+    check('Read › on a Conductor opens Chat on its conversation, read-only, with its own chip (role, name, ✕) first in the strip',
+      api.state.view==='chat'&&!el('chat-view').hidden&&viewer===el('managers').firstElementChild&&viewer.textContent.startsWith('Conductor')&&
+      viewer.textContent.includes('⚡ Phone viewer')&&!!viewer.querySelector('.m-viewer-close')&&held.getAttribute('aria-pressed')==='false'&&held.dataset.held==='true'&&
+      el('state').textContent==='Read-only · Conductor: ⚡ Phone viewer · Working'&&fx.programRequests.length===before);
+    const roles=[...el('messages').querySelectorAll('.m-role')].filter(n=>!n.closest('.m-head').hidden).map(n=>n.textContent).join('|');
+    check('its turns carry the desktop colours and name the Conductor; its tool is a bar ['+roles+']',roles==='You|Conductor'&&
+      !!el('messages').querySelector('.m-final strong')&&!!el('messages').querySelector('.m-tool')&&!text().includes('MANAGER_ANSWER'));
+    check('the Conductor is read by its handle and checked by its host execution; the Manager is not observed meanwhile',
+      reqs('/api/claude/events?sessionRef=session-c&scopeRef=main-c').length>=1&&!reqs('/api/claude/state').some(([u])=>u.includes('cc-ccc')));
+    check('the composer is one read-only line; the Manager’s draft, selection and revisions are untouched',!el('readonly').hidden&&
+      el('readonly').textContent==='Read-only · Send goes to Managers'&&!box.getClientRects().length&&!el('send').getClientRects().length&&!el('paste').getClientRects().length&&
+      box.value==='My unsent draft for the Manager 雪'&&api.state.selected===selected&&api.state.selectionRevision===revision&&api.state.draftRevision===draftRevision);
+    await api.send();await api.refine();await api.recheck();
+    check('Send, Refine and Re-check do nothing for a viewed session',fx.posts.length===0&&!reqs('/api/claude/context').length&&box.value==='My unsent draft for the Manager 雪');
+    const tool=el('messages').querySelector('.m-tool');tool.querySelector('summary').click();
+    await until(()=>tool.querySelectorAll('pre.m-io')[1]?.textContent==='CLAUDE_TOOL_OUTPUT','Conductor tool');
+    check('its tool opens through the Claude tool-record by callRef and fileEpoch',reqs('/api/claude/tool-record?callRef=call-conductor&fileEpoch=epoch-session-c').length===1);
+    await until(()=>tool.querySelector('.m-diff .opc-diff-row'),'Claude diff');
+    check('a viewed session\'s Claude Write shows its recorded creation first: added, new lines 1–2, no old numbers, inline at 390 px',
+      lines(tool,'.opc-diff-status').join()==='added'&&lines(tool,'.opc-diff-add .opc-diff-new').join()==='1,2'&&lines(tool,'.opc-diff-old').every(t=>t==='')&&
+      tool.querySelector('.m-diff .opc-diff').dataset.layout==='inline'&&diffStats.mounts===1);
+    el('first').click();await until(()=>text().includes('CONDUCTOR_FIRST_PROMPT'),'viewer First');
+    check('⤒ First reads the viewed conversation’s opening page; ↓ Latest returns to its newest',reqs('/api/claude/events?sessionRef=session-c&scopeRef=main-c&fromSeq=0').length===1&&
+      (el('latest').click(),true));
+    await until(()=>text().includes('CONDUCTOR_ANSWER')&&!text().includes('CONDUCTOR_FIRST_PROMPT'),'viewer Latest');
+    // A pane restart re-issues handles: the same Conductor is found again by its execution in the unfiltered list.
+    fx.reissued=true;fx.stale.add('session-c');
+    await until(()=>reqs('/api/claude/events?sessionRef=session-c2').length>0&&text().includes('CONDUCTOR_ANSWER'),'viewer resync');
+    check('a void handle is found again by its host execution in one unfiltered list scan, never a Manager or another session',
+      reqs('/api/claude/sessions?cursor=page-2').length>=1&&api.state.viewing.sessionRef==='session-c2'&&api.state.viewing.label==='Conductor');
+    fx.mismatch=true;const shownBefore=text();api.state.viewing.chat.delta=null;await api.readChat();
+    check('a page answering for another execution is refused, never shown',el('read-status').textContent.includes('identity mismatch')&&text()===shownBefore);
+    fx.mismatch=false;
+    // ---- usage-limit halt (host quota_halt) on the viewed Conductor: Chat's ⛔ banner with its Conductor advice, and
+    // the ⛔ on its Programs row; both gone once the halt clears.
+    const hm=t=>{const at=new Date(t*1000);return String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');};
+    const haltAt=Date.now()/1000+1800;fx.conductorHalt={status:'halted',generation:1,halt_id:'h1',rate_limit_type:'five_hour',resets_at:haltAt};
+    api.state.viewing.chat.delta=null;await api.readChat();await fx.programs.list();
+    const conductorLine=new RegExp('^⛔ Halted: Max usage limit reached \\(five-hour\\), resets (?:[A-Z][a-z]{2} )?'+hm(haltAt)+'\\. Nothing resumes by itself; its Conductor \\(or the Manager\\) resumes it\\.$');
+    check('usage-limit halt: the viewed Conductor\'s Chat shows the ⛔ banner with its Conductor advice, within the phone width',
+      conductorLine.test(el('halt').textContent)&&!el('halt').hidden&&el('halt').checkVisibility()&&el('halt').getBoundingClientRect().right<=w.innerWidth+1);
+    const haltFlag=()=>item('Conductor:')?.querySelector('.halt-flag');
+    check('usage-limit halt: its Programs row carries ⛔ after its name, the whole line on its hover; the worker\'s row stays plain',
+      haltFlag()?.textContent==='⛔'&&conductorLine.test(haltFlag().title)&&!item('Quick worker:').querySelector('.halt-flag')&&pd.documentElement.scrollWidth<=pd.documentElement.clientWidth+1);
+    fx.conductorHalt=null;api.state.viewing.chat.delta=null;await api.readChat();await fx.programs.list();
+    check('usage-limit halt: cleared, Chat\'s banner and the row\'s ⛔ go',el('halt').hidden&&el('halt').textContent===''&&!haltFlag());
+    delete fx.conductorHalt;
+    // A native subagent of the worker: expand it under its row, then its own Read ›.
+    el('view-programs').click();item('Quick worker:').querySelector('.session-open').click();
+    await until(()=>pd.querySelector('.sidebar-child .session-read'),'subagent chip');
+    pd.querySelector('.sidebar-child .session-read').click();
+    await until(()=>text().includes('SUBAGENT_ANSWER'),'subagent view');
+    check('Read › on a native subagent views it by its transcript handle; its prompt reads Prompt',api.state.viewing.label==='Subagent'&&!api.state.viewing.executionId&&
+      [...el('messages').querySelectorAll('.m-role')].map(n=>n.textContent).join('|')==='Prompt|Subagent'&&el('managers').querySelectorAll('.m-viewer').length===1&&
+      el('state').textContent==='Read-only · Subagent: Read the sidebar renderer · activity unknown');
+    check('switching chats stopped the Conductor tool\'s diff reader',diffStats.mounts===1&&diffStats.destroys===1&&!tool.isConnected);
+    // OpenCode: the 💬 glance's Read conversation ›.
+    el('view-programs').click();pd.querySelector('.oc-item .session-open').click();
+    await until(()=>pd.querySelector('.oc-glance .glance-read'),'OpenCode glance');
+    check('an OpenCode row keeps two controls: its Read conversation › sits inside the glance',pd.querySelector('.glance-read').textContent==='Read conversation ›'&&
+      !pd.querySelector('.oc-item > .session-read'));
+    pd.querySelector('.glance-read').click();
+    await until(()=>text().includes('OPENCODE_ANSWER'),'OpenCode view');
+    const meta=[...el('messages').querySelectorAll('.m-prose')].find(n=>n.textContent.includes('OC_META_NOT_BOLD'));
+    check('the OpenCode conversation reads by its ses_ id; Markdown answers, meta rows as plain text; its state says Working',
+      reqs('/api/opencode/events?id=ses_viewoc0001').length>=1&&!!el('messages').querySelector('.m-final strong')&&meta&&!meta.querySelector('strong')&&
+      api.state.viewing.label==='Quick worker'&&el('state').textContent==='Read-only · Quick worker: an OpenCode worker · Working');
+    const ocTool=el('messages').querySelector('.m-tool');ocTool.querySelector('summary').click();
+    await until(()=>ocTool.querySelectorAll('pre.m-io')[1]?.textContent==='OC_TOOL_OUTPUT 雪','OpenCode tool');
+    check('its tool body comes from the OpenCode tool-record route by id, callRef and fileEpoch',
+      reqs('/api/opencode/tool-record?id=ses_viewoc0001&callRef=occall_1&fileEpoch=oc_epoch').length===1&&ocTool.querySelector('.m-tool-status').dataset.state==='stored'&&ocTool.querySelector('.m-tool-mark').textContent==='✅');
+    await until(()=>ocTool.querySelectorAll('.m-diff .opc-diff-file').length===3,'OpenCode diff');
+    check('an OpenCode patch shows every file it recorded: paths, statuses, true starts 124 and 900, no number on the no-newline marker',
+      lines(ocTool,'.opc-diff-path').join('|')==='/fixture/code.py|/fixture/new.txt|/fixture/deleted.txt'&&lines(ocTool,'.opc-diff-status').join()==='modified,added,deleted'&&
+      lines(ocTool,'.opc-diff-hunk').join('|')==='@@ −124,3 +124,3 @@|@@ −900,1 +900,1 @@|@@ −0,0 +1,1 @@|@@ −1,1 +0,0 @@'&&
+      lines(ocTool,'.opc-diff-del .opc-diff-old').join()==='125,900,1'&&lines(ocTool,'.opc-diff-add .opc-diff-new').join()==='125,900,1'&&
+      lines(ocTool,'.opc-diff-marker').length===2&&[...ocTool.querySelectorAll('.m-diff .opc-diff-marker')].every(n=>!n.querySelector('.opc-diff-number')));
+    const ocCopy=[...ocTool.querySelectorAll('.m-io-head button')].filter(b=>b.textContent==='Copy');
+    check('its Input and Output stay below with their sizes and Copy',ocTool.querySelector('.m-diff').compareDocumentPosition(ocTool.querySelector('.m-io-head'))&w.Node.DOCUMENT_POSITION_FOLLOWING&&
+      ocCopy.length===2&&ocTool.querySelectorAll('.m-io-size')[1].textContent!==''&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    // To View and back: the session being read, its open tool and its mounted Diff reader are exactly as they were.
+    const openDiff=ocTool.querySelector('.m-diff .opc-diff'),lifetimes=[diffStats.mounts,diffStats.destroys].join('|');
+    d.getElementById('m-view-glimpse').click();
+    check('View opens its own frame (loaded once) over the viewed session',api.state.view==='glimpse'&&fx.viewLoads.join()==='/glimpse.html'&&
+      !d.getElementById('m-glimpse').hidden&&d.getElementById('m-chat-view').hidden);
+    d.getElementById('m-view-chat').click();await until(()=>!api.state.pollBusy,'back to Chat');
+    check('back in Chat: the same read-only session, its open tool and its Diff reader, never remounted',api.state.view==='chat'&&!!api.state.viewing&&
+      !d.getElementById('m-readonly').hidden&&ocTool.isConnected&&ocTool.open&&ocTool.querySelector('.m-diff .opc-diff')===openDiff&&
+      [diffStats.mounts,diffStats.destroys].join('|')===lifetimes&&fx.viewLoads.length===1);
+    fx.ocDiff={files:[{path:'/fixture/notes.md',status:'modified',additions:2,deletions:0,hunks:[{oldStart:0,oldLines:0,newStart:1,newLines:2,lines:['+# Notes','+kept']}]}],
+      source:'recorded-new-content',complete:false,reason:'new content; previous content not recorded'};
+    [...ocTool.querySelectorAll('.m-tool-top button')].find(b=>b.textContent==='Refresh').click();
+    await until(()=>ocTool.querySelector('.m-diff .opc-diff-reason')?.textContent==='new content; previous content not recorded','OpenCode write');
+    check('an OpenCode write over a file says its previous content was not recorded, beside the new content',!ocTool.querySelector('.m-diff .opc-diff-reason').hidden&&
+      lines(ocTool,'.opc-diff-add .opc-diff-new').join()==='1,2'&&diffStats.mounts===2);
+    fx.runningCalls=[{callRef:'run-a',id:'a',name:'shell',status:'pending-or-missing',time:Date.now()/1000-12,resultTime:null},
+      {callRef:'run-b',id:'b',name:'shell',status:'pending-or-missing',time:Date.now()/1000-3,resultTime:null}];
+    await api.readChat();
+    check('phone current-tool strip shows both outstanding calls independently of the last completed history row',
+      !el('running-tools').hidden&&el('running-tools').querySelectorAll('.running-tool').length===2&&el('running-tools').textContent.includes('so far'));
+    const liveStripRow=el('running-tools').querySelector('.running-tool');fx.runningCalls.pop();await api.readChat();
+    check('a last-sibling completion leaves the earlier in-flight call mounted',el('running-tools').querySelectorAll('.running-tool').length===1&&el('running-tools').querySelector('.running-tool')===liveStripRow);
+    api.state.viewing.chat.readError='history index unavailable';api.state.viewing.busyAt=Date.now()-20000;api.state.ocActivityNext=0;
+    const beforeFast=reqs('/api/opencode/events').length;await api.openCodeActivity();
+    check('phone fast activity shows the running call while history is unavailable, without another history read',
+      !el('running-tools').hidden&&el('running-tools').querySelectorAll('.running-tool').length===1&&reqs('/api/opencode/events').length===beforeFast&&el('state').textContent.endsWith('Working'));
+    api.state.viewing.activity=null;
+    fx.ocIdle=true;fx.runningCalls=[];await api.readChat();check('phone current-tool strip clears on idle',el('running-tools').hidden);fx.ocIdle=false;
+    fx.stale.add('ses_viewoc0001');const ocReads=reqs('/api/opencode/events').length;api.state.viewing.chat.delta=null;await api.readChat();
+    await until(()=>reqs('/api/opencode/events').length>ocReads+1&&text().includes('OPENCODE_ANSWER'),'OpenCode resync');
+    check('a rebuilt OpenCode index rereads the same ses_ tail, with no session list read',api.state.viewing.sessionRef==='ses_viewoc0001'&&
+      reqs('/api/claude/sessions?cursor').length===1);
+    // Only the Programs frame may open a session.
+    const foreign={type:'open-session',schemaVersion:1,session:{backend:'opencode',id:'ses_foreign0001',title:'foreign'}};
+    w.postMessage(foreign,'*');await sleep(30);
+    check('a message from anywhere but the Programs frame opens nothing',api.state.viewing.sessionRef==='ses_viewoc0001'&&!reqs('/api/opencode/events?id=ses_foreign').length);
+    // Leaving: the held Manager chip brings the Manager back as it was.
+    held.click();await until(()=>!api.state.viewing&&text().includes('MANAGER_ANSWER'),'back to the Manager');
+    check('tapping the Manager chip leaves the viewer: the same Manager, selection and draft, its composer back',!el('managers').querySelector('.m-viewer')&&
+      held.getAttribute('aria-pressed')==='true'&&held.dataset.held==='false'&&api.state.selected===selected&&api.state.selectionRevision===revision&&
+      box.value==='My unsent draft for the Manager 雪'&&el('readonly').hidden&&w.getComputedStyle(box).display!=='none'&&el('state').textContent.startsWith('Live'));
+    check('leaving the viewer stopped every diff reader it had',diffStats.destroys===diffStats.mounts&&diffStats.mounts===2);
+    await api.send();
+    check('Send then goes to the Manager once, exactly as before',fx.posts.length===1&&fx.posts[0][0]==='/api/claude/send'&&fx.posts[0][1].executionId===selected&&
+      fx.posts[0][1].original==='My unsent draft for the Manager 雪'&&box.value==='');
+    el('view-programs').click();item('Conductor:').querySelector(':scope > .session-read').click();
+    await until(()=>api.state.viewing&&text().includes('CONDUCTOR_ANSWER'),'second view');
+    el('managers').querySelector('.m-viewer-close').click();await until(()=>!api.state.viewing&&text().includes('MANAGER_ANSWER'),'✕');
+    check('✕ also returns to the Manager',api.state.selected===selected&&api.state.selectionRevision===revision);
+    el('view-programs').click();item('Manager:').querySelector(':scope > .session-read').click();await sleep(30);
+    check('Read › on a listed Manager opens it as itself (its chip and composer), never as a viewer',!api.state.viewing&&api.state.view==='chat'&&api.state.selected===selected);
+    // Clickable handles (handle-links.js in both frames): a handle opens in the View tab as Node, from Chat and from Programs.
+    const para=d.createElement('p');para.textContent='Socket: [ap:TAPME1] for this run';el('messages').append(para);para.scrollIntoView({block:'center'});
+    await sleep(120);
+    const hr=d.createRange(),tn=para.firstChild;hr.setStart(tn,8);hr.setEnd(tn,19);const hb=hr.getBoundingClientRect(),hx=hb.left+hb.width/2,hy=hb.top+hb.height/2;
+    const tap=(type,extra={})=>d.elementFromPoint(hx,hy).dispatchEvent(new w.PointerEvent(type,{bubbles:true,cancelable:true,clientX:hx,clientY:hy,pointerId:7,isPrimary:true,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,...extra}));
+    check('Chat: the handle is decorated (opc-handle highlight) and a tap on it hits it',w.opcHandleLinks.handleAt(hx,hy)?.handle==='[ap:TAPME1]'&&
+      (await until(()=>[...w.CSS.highlights.get('opc-handle')].some(r=>r.startContainer===tn),'decorated'),true));
+    const loadsBefore=fx.viewLoads.length,frameG=el('glimpse-frame'),opened=[];
+    tap('pointerdown');tap('pointerup');
+    await sleep(60);  // the recorded frame's about:blank has settled
+    frameG.contentWindow.opcGlimpseView={openHandle:h=>{opened.push(h);return Promise.resolve(true);}};
+    const waiting=opened.length;frameG.dispatchEvent(new w.Event('load'));
+    check('Chat: a tap on a handle opens the View tab (the Manager kept); a View page still loading is asked to render it once loaded, no second load',
+      api.state.view==='glimpse'&&!el('glimpse').hidden&&el('chat-view').hidden&&waiting===0&&opened.join()==='[ap:TAPME1]'&&fx.viewLoads.length===loadsBefore&&
+      api.state.selected===selected&&!api.state.viewing);
+    el('view-programs').click();
+    pw.opcHandleLinks.openInView('9e210387');
+    check('Programs: a handle opens through the page around the frame: View shown, the loaded View page renders it',
+      opened.join()==='[ap:TAPME1],9e210387'&&api.state.view==='glimpse');
+    frameG.removeAttribute('src');api.openInView('[ap:FIRST1]');
+    check('a View never opened before starts at /glimpse.html?handle=…&from=outside&where=Chat (its first load reads it as a fresh root)',fx.viewLoads.at(-1)==='/glimpse.html?handle=%5Bap%3AFIRST1%5D&from=outside&where=Chat'&&opened.length===2);
+    // View's root widget asks the page around: where a socket sits (the Programs frame's own tree) and "show it in Programs".
+    fx.rows.W.socket='[ap:SOCKW1]';
+    pw.document.getElementById('sessions-refresh').click();
+    await until(()=>pw.opcSidebar.position('[ap:SOCKW1]'),'socket listed');
+    const where=await w.opcProgramPosition('[ap:SOCKW1]','cc-'+uuid8('e'));
+    check('opcProgramPosition answers from the Programs frame\'s tree: the worker\'s card, active, under its Conductor',where?.kind==='socket'&&where.cards[0].active&&
+      where.cards[0].chain.map(l=>l.role).join('>')==='Conductor>Quick worker'&&where.cards[0].chain[0].handle==='[ap:VIEW01]-001');
+    el('view-glimpse').click();
+    const shown=await w.opcRevealSession('s:cc-'+uuid8('e'));
+    check('opcRevealSession brings Programs up and shows that row there (opened, in view, flashed)',api.state.view==='programs'&&shown===true&&
+      !!pd.querySelector('.session-item.reveal-flash')?.textContent.includes('the Read chips'));
+    // A handle in a conversation turn: the turn travels with it (View roots its history there); Show in conversation returns to it.
+    el('view-chat').click();await sleep(30);
+    const answer=[...el('messages').querySelectorAll('article.m-row')].find(a=>a.textContent.includes('MANAGER_ANSWER'));
+    const span=d.createElement('span');span.textContent=' see [ap:TURNM1] here';answer.querySelector('.m-prose').append(span);answer.scrollIntoView({block:'center'});await sleep(120);
+    const origins=[];frameG.contentWindow.opcGlimpseView={openHandle:(h,how,origin)=>{opened.push(h);origins.push(origin);return Promise.resolve(true);}};
+    const tr=d.createRange();tr.setStart(span.firstChild,5);tr.setEnd(span.firstChild,16);const tb=tr.getBoundingClientRect(),tx=tb.left+tb.width/2,ty=tb.top+tb.height/2,tt=d.elementFromPoint(tx,ty);
+    for(const type of ['pointerdown','pointerup'])tt.dispatchEvent(new w.PointerEvent(type,{bubbles:true,cancelable:true,clientX:tx,clientY:ty,pointerId:8,isPrimary:true,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1}));
+    tt.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true}));
+    const turn=origins.at(-1)?.turn;
+    check('a handle tapped in a Manager\'s message carries its turn: the Manager, the row\'s position and UUID, assistant',opened.at(-1)==='[ap:TURNM1]'&&turn?.session.kind==='manager'&&
+      turn.session.executionId===selected&&turn.seq===2&&turn.uuid==='u-2'&&turn.kind==='assistant'&&api.state.view==='glimpse');
+    el('conversation').scrollTop=0;
+    const back=await w.opcShowTurn(turn);
+    check('Show in conversation: Chat again, that turn in view and flashed',back===true&&api.state.view==='chat'&&answer.classList.contains('m-flash')&&
+      answer.getBoundingClientRect().bottom>el('conversation').getBoundingClientRect().top&&answer.getBoundingClientRect().top<el('conversation').getBoundingClientRect().bottom);
+    const cTurn={session:{kind:'viewer',title:'⚡ Phone viewer',label:'Conductor',descriptor:{backend:'claude',sessionRef:'session-c',scopeRef:'main-c',executionId:'cc-'+uuid8('c'),
+      uuid:uuid8('c'),source:'host',title:'⚡ Phone viewer',label:'Conductor'}},seq:1,uuid:'u-1',role:'user',kind:'user'};
+    const readsBefore=reqs('/api/claude/events?sessionRef=session-c').length;
+    const back2=await w.opcShowTurn(cTurn);
+    check('a turn of another session: it opens read-only, the page around the turn is read from its position (one held page), the turn flashed',back2===true&&
+      api.state.viewing?.label==='Conductor'&&reqs('/api/claude/events?sessionRef=session-c').slice(readsBefore).some(([u])=>/fromSeq=0/.test(u))&&
+      !!el('messages').querySelector('article.m-row.m-flash')?.textContent.includes('Start unit one.')&&el('read-status').textContent.startsWith('First messages'));
+    el('managers').querySelector('.m-viewer-close').click();await until(()=>!api.state.viewing,'back to the Manager after the turn');
+     el('view-chat').click();
+     // Actual chip taps, not a direct sidebar state assignment: the phone's own last-good Manager list supplies
+     // a closed sibling that the Programs week did not include, without a second inventory request there.
+     fx.family=true;await until(()=>!api.state.listBusy,'previous picker read');await api.loadManagers();
+     await until(()=>el('managers').querySelector('[data-execution-id="cc-'+uuid8('d')+'"]'),'sub-session chip listed');
+     const beforeFamily=fx.programRequests.length,draftBeforeFamily=box.value;
+     el('managers').querySelector('[data-execution-id="cc-'+uuid8('d')+'"]').click();
+     await until(()=>api.state.selected==='cc-'+uuid8('d'),'sub-session chip selected');
+     const familyNames=()=>[...pd.querySelectorAll('#sessions-pinned .session-item > .session-open .name-text')].map(n=>n.textContent).join('|');
+     await until(()=>familyNames()==='Manager-Session-196 · phone viewer|Manager-Session-196-a|Manager-Session-196-b','whole selected family');
+     check('a phone sub-session chip keeps its primary and every sibling together at the top, letter order including closed/out-of-window -b',
+       familyNames()==='Manager-Session-196 · phone viewer|Manager-Session-196-a|Manager-Session-196-b'&&
+       fx.programRequests.length===beforeFamily&&box.value===draftBeforeFamily&&api.state.selected==='cc-'+uuid8('d'));
+     el('managers').querySelector('[data-execution-id="cc-'+uuid8('b')+'"]').click();
+     await until(()=>api.state.selected==='cc-'+uuid8('b'),'closed sub-session selected');
+     check('clicking the closed phone sub-session preserves that same primary-first family order and the unsent draft',
+       familyNames()==='Manager-Session-196 · phone viewer|Manager-Session-196-a|Manager-Session-196-b'&&box.value===draftBeforeFamily);
+     check('only phone and sidebar reads were made, all GET but the one Send; no inspector, context, control or /oc/ route; no errors ['+fx.errors.join('; ')+']',
+      fx.errors.length===0&&[...fx.requests,...fx.programRequests].every(([u,m])=>m==='GET'||u==='/api/claude/send')&&
+      ![...fx.requests,...fx.programRequests].some(([u])=>/\/oc\/|inspect|tool-selection|\/api\/tool-record|context|control|reconnect|focus/.test(u))&&
+      fx.writes.every(k=>k.startsWith('pane_m_v1:')||k==='pane_lineage_open'||k==='pane_sidebar_sections'));
+   } catch(e) { checks.push({name:e.message,passed:false,stack:e.stack}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks,
+    status:d?.getElementById('m-read-status')?.textContent,state:d?.getElementById('m-state')?.textContent,errors:window.viewerFixture?.errors},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

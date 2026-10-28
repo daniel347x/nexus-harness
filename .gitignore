@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Env & secrets
+.env
+.env.*
+*.local
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp
+
+# Session-027 diagnostic: holds a live daemon bearer token in source. Move it to a runtime read
+# (from ~/.config/opencode/opencode.json or the broker token file) BEFORE ever tracking it.
+scripts/replay_saved_request.py
+
+# Local Manager state: the current Manager-Session number, a fallback label for oc_steer/oc_seal (never authority).
+scripts/.oc_config.json
+
+# warm-cache base packages + registry (local state, rebuilt from manifests)
+packages/
+
+# Scratch goes in __repos/oc-scratch/opencode-companion/, never inside a repository.
+# Delete your own scratch when done; keep only receipts a record cites. Browser runners delete their Chrome profiles.
+# Old scratch exclusions remain as a fallback; never committed (mirrors .nexusignore).
+steer_*.md
+tmp/
+tmp_*
+scratch/
+scratch_*
+*.tmp
+*.bak
+*.orig

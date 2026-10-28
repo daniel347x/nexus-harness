@@ -1,0 +1,236 @@
+:root {
+  --bg: #15171c; --panel: #1d2027; --line: #2c313b; --text: #e6e8ec; --dim: #8a919e;
+  --green: #4cd964; --amber: #ffb347; --red: #ff6b6b; --blue: #4da3ff;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; padding: 10px 12px; background: var(--bg); color: var(--text);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex; flex-direction: column; gap: 6px;
+}
+header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.title { font-weight: 700; font-size: 15px; }
+.dim { color: var(--dim); }
+.small { font-size: 12px; }
+.status { margin-left: auto; font-size: 12px; color: var(--dim); text-align: right; }
+.status.ok { color: var(--green); } .status.err { color: var(--red); } .status.info { color: var(--blue); }
+/* Beneath a Refine completed at xhigh or max: the red reminder of that costly thinking level (app.js remindThinking). */
+.status .think-warn { display: block; margin-top: 1px; color: var(--red); font-weight: 600; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.label { color: var(--dim); min-width: 52px; font-size: 12px; }
+.spacer { flex: 1; }
+.pill { padding: 2px 10px; border-radius: 12px; border: 2px solid var(--line); font-weight: 600; max-width: 60%;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill-live { border-color: var(--green); color: var(--green); }
+.pill-manual { border-color: var(--amber); color: var(--amber); }
+.pill-none, .pill-stale { border-color: var(--red); color: var(--red); }
+select, input, button, textarea { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+select, input { padding: 2px 6px; }
+#target-select { max-width: 40%; }
+#target-row .pill { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#backend-select, #target-select { min-width: 0; }
+#backend-status { overflow-wrap: anywhere; }
+textarea { padding: 8px 10px; resize: vertical; width: 100%; }
+#transcript { flex: 1; min-height: 220px; font-size: 15px; line-height: 1.5; }
+#work-area { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 400px; gap: 6px; }
+#dictation-area { display: flex; flex-direction: column; flex: 1; min-height: 120px; gap: 6px; }
+#dictation-area #transcript { min-height: 102px; resize: none; } /* 100px reading space plus borders */
+#tool-inspector { flex: 0 0 var(--inspector-height, 55%); min-height: 240px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; overflow: hidden; }
+#inspector-outer-divider[hidden] { display: none; }
+/* OpenCode mode: the inspector joins the dictation column once a call is held. Claude mode
+   gives it its own column, visible from page load (round 9a). */
+body:not(.claude-mode) #tool-inspector:not(.held) { display: none; }
+/* One thin row: tool name and call time; it expands to the source details and refresh. */
+.inspector-head { flex-shrink: 0; flex-wrap: nowrap; gap: 6px; line-height: 1.3; }
+#inspector-details { flex: 1; min-width: 0; border: 0; padding: 0; }
+#inspector-details > summary { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#inspector-details[open] > summary { white-space: normal; }
+#inspector-time { font-variant-numeric: tabular-nums; }
+#inspector-origin { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 3.5em; overflow: auto; margin: 2px 0; }
+#inspector-note { color: var(--blue); max-height: 3em; overflow: auto; flex-shrink: 0; }
+#inspector-note.error { color: var(--red); }
+/* Read status is detail, shown with the expander; an error is always shown. */
+#tool-inspector:not(:has(#inspector-details[open])) #inspector-note:not(.error) { display: none; }
+#inspector-note:empty { display: none; }
+#inspector-artifact { flex: 0 0 auto; min-width: 0; max-height: 35%; overflow: auto; }
+#inspector-artifact-text { max-height: 14em; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+/* The held call's recorded diff (diff-view.js) above Input/Output: its own share of the panel, scrolling inside it. */
+#inspector-diff { flex: 0 1 auto; min-width: 0; min-height: 0; max-height: 55%; overflow: auto; overscroll-behavior: contain; }
+#inspector-diff:not(:has(.opc-diff)) { color: var(--dim); font-size: 12px; }
+#inspector-content { display: flex; flex-direction: column; flex: 1; min-height: 96px; gap: 4px; }
+.inspector-region { display: flex; flex-direction: column; min-width: 0; min-height: 40px; overflow: hidden; gap: 3px; }
+#inspector-input-region { flex: 0 0 var(--inspector-input-height, 45%); }
+.inspector-output-region { flex: 1; }
+.inspector-pretty { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+.inspector-pretty input { margin: 0; accent-color: var(--blue); }
+.inspector-pretty input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.inspector-pretty:has(input:disabled) { opacity: .55; cursor: default; }
+.inspector-caption { flex-wrap: wrap; flex-shrink: 0; }
+.inspector-caption > strong { font-size: 15px; overflow-wrap: anywhere; }
+.inspector-size { color: color-mix(in srgb, #ff8080 var(--tool-size-warmth, 0%), #a6adb9); font-size: calc(15px + var(--tool-size-lift, 0px)); font-variant-numeric: tabular-nums; }
+.inspector-document { display: block; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; margin: 4px 0 4px 12px; background: color-mix(in srgb, var(--blue) 6%, var(--panel)); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4; }
+.inspector-document-index { color: var(--dim); font-size: 10px; user-select: none; }
+/* Markdown reading blocks: display only, sanitized by message-markdown.js; Source shows the exact text. */
+.inspector-md-modes { float: right; display: inline-flex; gap: 2px; margin: -4px -6px 2px 8px; user-select: none; }
+.inspector-md-mode { font: 10px/1.2 system-ui, sans-serif; padding: 1px 6px; border-radius: 3px; color: var(--dim); background: transparent; cursor: pointer; }
+.inspector-md-mode[aria-pressed=true] { color: var(--text); background: color-mix(in srgb, var(--blue) 22%, var(--panel)); border-color: var(--blue); }
+.inspector-md-mode:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.inspector-md-rendered { white-space: normal; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; overflow-wrap: anywhere; }
+.inspector-md-rendered[hidden], .inspector-md-source[hidden] { display: none; }
+.inspector-md-head { white-space: pre-wrap; font: 11px/1.4 ui-monospace, Consolas, monospace; color: var(--dim); padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.inspector-md-head:empty { display: none; }
+.inspector-md-rendered > :first-child { margin-top: 0; } .inspector-md-rendered > :last-child { margin-bottom: 0; }
+.inspector-md-rendered p { margin: 0.5em 0; }
+.inspector-md-rendered h1, .inspector-md-rendered h2, .inspector-md-rendered h3, .inspector-md-rendered h4, .inspector-md-rendered h5, .inspector-md-rendered h6 { margin: 0.9em 0 0.35em; line-height: 1.25; }
+.inspector-md-rendered h1 { font-size: 1.35em; } .inspector-md-rendered h2 { font-size: 1.2em; } .inspector-md-rendered h3 { font-size: 1.08em; } .inspector-md-rendered h4, .inspector-md-rendered h5, .inspector-md-rendered h6 { font-size: 1em; }
+.inspector-md-rendered ul, .inspector-md-rendered ol { padding-left: 1.6em; margin: 0.4em 0; }
+.inspector-md-rendered blockquote { margin: 0.6em 0; padding: 0.1em 0.8em; border-left: 3px solid var(--line); color: var(--dim); }
+.inspector-md-rendered code { font: 0.92em/1.4 ui-monospace, Consolas, monospace; background: var(--bg); padding: 0.05em 0.3em; border-radius: 3px; }
+.inspector-md-rendered pre { white-space: pre; overflow: auto; max-width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+.inspector-md-rendered pre code { padding: 0; background: transparent; }
+.inspector-md-rendered table { display: block; overflow: auto; max-width: 100%; border-collapse: collapse; margin: 0.6em 0; }
+.inspector-md-rendered th, .inspector-md-rendered td { border: 1px solid var(--line); padding: 3px 8px; }
+.inspector-md-rendered hr { border: 0; border-top: 1px solid var(--line); margin: 0.8em 0; }
+.inspector-md-rendered a { color: var(--blue); }
+.inspector-region pre { flex: 1; min-width: 0; min-height: 0; margin: 0; padding: 5px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.4 ui-monospace, Consolas, monospace; background: var(--panel); user-select: text; }
+.inspector-region pre.inspector-nowrap { white-space: pre; overflow-wrap: normal; word-break: normal; }
+.inspector-nowrap .inspector-document { white-space: pre; overflow-wrap: normal; word-break: normal; width: max-content; min-width: calc(100% - 12px); }
+/* Rendered Markdown always flows its prose; its code blocks scroll. Source follows Word wrap. */
+.inspector-nowrap .inspector-markdown[data-view=rendered] { white-space: normal; width: auto; min-width: 0; }
+/* At narrow split-view widths, wrap the options instead of squeezing readers away.
+   The existing page may scroll vertically; long documents never widen it. */
+@media (max-width: 640px) { #tool-inspector { min-height: 450px; } }
+@media (forced-colors: active) { .inspector-size { color: CanvasText; } }
+.inspector-divider { height: 8px; flex: 0 0 8px; cursor: row-resize; touch-action: none; border-block: 1px solid var(--line); background: var(--panel); }
+.inspector-divider:focus-visible { outline: 2px solid var(--blue); }
+textarea.code { font: 12px/1.4 ui-monospace, Consolas, monospace; }
+button { cursor: pointer; padding: 4px 10px; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.mini { padding: 1px 8px; font-size: 12px; }
+.btn { font-weight: 600; padding: 6px 16px; }
+/* Under the editor: compact, one line each (Dan uses the shortcuts); cost wraps to its own line. */
+.row.buttons { gap: 5px; }
+.row.buttons .btn { font-size: 12px; padding: 2px 8px; white-space: nowrap; }
+#cost-info { margin-left: auto; white-space: nowrap; }
+.btn-refine { border-color: #6a5acd; }
+.btn-send { border-color: var(--green); }
+.btn-quiet { color: var(--dim); }
+.btn-interrupt { border-color: var(--amber); }
+.btn-interrupt.busy { background: rgba(230,180,40,.18); }
+.btn-cancel { border-color: var(--amber); font-variant-numeric: tabular-nums; }
+details { border-top: 1px solid var(--line); padding-top: 6px; }
+summary { cursor: pointer; color: var(--dim); font-size: 13px; }
+h4 { margin: 10px 0 4px; font-size: 13px; }
+.snippet { background: var(--panel); padding: 3px 6px; border-radius: 4px; font-size: 11px; max-width: 80%; overflow-x: auto; white-space: nowrap; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; width: 90vw; max-height: 85vh; }
+dialog pre { white-space: pre-wrap; font: 12px/1.4 ui-monospace, Consolas, monospace; max-height: 72vh; overflow: auto; }
+/* Refine-context View (refine-view.js): Context | Full prompt; the chat history takes the room,
+   the draft before/after the selection stay one line when empty. */
+#ctx-dialog[open] { display: flex; flex-direction: column; gap: 6px; }
+#ctx-body { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.rv > [hidden] { display: none; }
+.rv-switch { flex: none; align-self: flex-start; display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.rv-switch button { border: 0; border-radius: 0; background: transparent; color: var(--dim); padding: 2px 12px; font-size: 12px; }
+.rv-switch button + button { border-left: 1px solid var(--line); }
+.rv-switch button[aria-checked="true"] { background: color-mix(in srgb, var(--blue) 22%, var(--panel)); color: var(--text); font-weight: 600; }
+.rv-context, .rv-prompt { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.rv-prompt { overflow: auto; }
+.rv-pane { display: flex; flex-direction: column; min-height: 0; gap: 2px; }
+.rv-history { flex: 0 1 auto; }
+.rv-draft { flex: 0 0 auto; }
+.rv-cap { flex: none; display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--dim); }
+.rv-cap strong { color: var(--text); font-weight: 600; }
+.rv-text { margin: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); overflow-wrap: anywhere; }
+.rv-history .rv-text { flex: 0 1 auto; min-height: 0; }
+.rv-draft .rv-text { max-height: 18vh; }
+.rv-prompt .rv-text { max-height: none; overflow: visible; flex: none; }
+.rv-note { color: var(--dim); font-style: italic; }
+/* Native context choice stays readable at split-view widths; does not resize the held inspector. */
+#native-context-choice { padding: 4px 12px; overflow-wrap: anywhere; }
+#native-context-choice label { display: inline-flex; align-items: center; gap: 5px; }
+#native-context-choice[hidden] { display: none; }
+
+/* OpenCode retains the original flex surface. Claude embeds the ONE sessions
+   component at the same origin; hiding it never remounts editor or inspector. */
+#pane-layout, #pane-editor, #editor-main { display: contents; }
+#claude-viewer[hidden] { display: none; }
+#tool-divider, #tool-column, #main-divider, #claude-fold { display: none; }
+/* Claude mode: [transcription column | tool column] | conversation, with two draggable
+   dividers (positions remembered in this browser). The tool column is always present. */
+body.claude-mode { --claude-small: 11.5px; }
+body.claude-mode #pane-layout { display: grid; grid-template-columns: var(--main-split, 40%) 8px minmax(0, 1fr); gap: 0 4px; flex: 1; min-height: 0; }
+body.claude-mode #pane-editor { display: flex; flex-direction: row; min-width: 0; min-height: 0; }
+body.claude-mode #editor-main { display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 0; min-height: 0; }
+body.claude-mode #tool-column { display: flex; flex-direction: column; flex: 0 0 var(--tool-split, 45%); min-width: 0; min-height: 0; }
+body.claude-mode #tool-column > #tool-inspector { flex: 1 1 auto; min-height: 0; }
+body.claude-mode #tool-divider { display: block; flex: 0 0 8px; margin: 0 3px; }
+body.claude-mode #work-area > #inspector-outer-divider { display: none; }
+body.claude-mode #main-divider { display: block; }
+.column-divider { width: 8px; cursor: col-resize; touch-action: none; border-inline: 1px solid var(--line); background: var(--panel); }
+.column-divider:hover, .column-divider.dragging { background: color-mix(in srgb, var(--blue) 25%, var(--panel)); }
+.column-divider:focus-visible { outline: 2px solid var(--blue); }
+/* An iframe swallows pointer moves: while a divider drags, the conversation ignores them. */
+body.column-dragging #claude-sessions-frame { pointer-events: none; }
+body.column-dragging { cursor: col-resize; user-select: none; }
+body.claude-mode #claude-viewer { display: flex; min-width: 0; min-height: 600px; }
+#claude-sessions-frame { display: block; width: 100%; height: 100%; min-height: 600px; border: 0; background: var(--bg); }
+/* Fold: in Claude mode only the controls Dan uses stay visible (backend, session, the
+   model/thinking pill, Manager model/thinking/Apply, the context line); everything else
+   above the edit area sits behind "details", collapsed by default. */
+body.claude-mode #claude-fold { display: inline-block; }
+body.claude-mode.fold-closed .fold { display: none !important; }
+body.claude-mode #target-row, body.claude-mode #ctx-row, body.claude-mode .claude-choices { font-size: var(--claude-small); gap: 6px; }
+body.claude-mode #target-row .label, body.claude-mode #ctx-row .label { font-size: var(--claude-small); min-width: 0; }
+body.claude-mode #target-row .pill { padding: 1px 8px; border-width: 1px; }
+/* Round 9a: the session badge sits on the backend row, two points smaller, one line
+   (full text on hover); the OpenCode session dropdown has no role in Claude mode. */
+body.claude-mode #target-row { flex-wrap: nowrap; }
+body.claude-mode #target-row #target-pill { font-size: calc(var(--claude-small) - 2px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; }
+body.claude-mode #target-select { display: none; }
+body.claude-mode #backend-select { flex-shrink: 0; }
+body.claude-mode .claude-choices button.mini, body.claude-mode #ctx-row button.mini { font-size: 11px; padding: 0 6px; }
+@media (max-width: 800px) {
+  body.claude-mode #pane-layout { grid-template-columns: minmax(0, 1fr); flex: 0 0 auto; } /* stacked: the page scrolls */
+  body.claude-mode #main-divider { display: none; }
+  body.claude-mode #pane-editor { flex-direction: column; }
+  body.claude-mode #editor-main { flex: 0 0 auto; } /* the always-present tool column stacks below, never over it */
+  body.claude-mode #tool-divider { display: none; }
+  body.claude-mode #tool-column { flex: 0 0 auto; min-height: 450px; }
+  body.claude-mode #claude-viewer { border-top: 1px solid var(--line); height: 80vh; }
+}
+/* OpenCode mode's View: a sheet over the whole pane (index.html #view-sheet), with Close; Claude mode's View is a
+   pane in the conversation column (sessions.css .desktop-view). */
+#view-sheet { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; background: var(--bg); }
+#view-sheet[hidden] { display: none; }
+.view-sheet-head { flex: none; display: flex; align-items: baseline; gap: 10px; }
+#view-sheet #desktop-view-frame { flex: 1; min-height: 0; width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+#claude-effective { display:inline-block; margin:4px 0 8px; padding:6px 10px; border:1px solid #8392aa; border-radius:6px; background:#252d3b; color:#e1e5eb; font-size:15px; font-weight:650; overflow-wrap:anywhere; }
+#claude-effective[data-state="pending"] { border-color:#d7b77a; }
+#claude-effective[data-state="unverified"] { border-color:#e6a23c; color:#f3c27a; }
+#claude-incidents { margin:2px 0 6px; font-size:13px; }
+#claude-incidents .incident { display:flex; gap:6px; align-items:baseline; padding:2px 0; overflow-wrap:anywhere; }
+#claude-incidents .incident-text { flex:1; color:#f3c27a; }
+body.claude-mode #claude-effective { margin:1px 0 3px; padding:2px 8px; font-size:12.5px; }
+#claude-manager-observation { margin-bottom:6px; font-size:14px; overflow-wrap:anywhere; }
+#opencode-manager-panel { padding: 2px 12px; overflow-wrap: anywhere; min-width: 0; }
+#opencode-manager-panel[hidden] { display: none; }
+#opencode-manager-panel .row { flex-wrap: wrap; }
+#opencode-manager-panel label { min-width: 0; max-width: 100%; }
+#opencode-model { max-width: 100%; min-width: 0; }
+#opencode-context, #opencode-observation { color: var(--dim); margin: 3px 0; }
+#opencode-receipts { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 12em; overflow: auto; }
+
+/* Claude account switch (account-switch.js): who is signed in, and the two fixed labels beside the pane status. */
+.account-switch { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; font-size: 12px; min-width: 0; max-width: 100%; position: relative; }
+.account-switch .account-label { color: var(--dim); }
+.account-switch .pill { max-width: 10em; padding: 1px 9px; }
+.account-switch .account-identity { max-width: 16em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-switch .account-status { max-width: 26em; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-switch .account-status:empty { display: none; }
+.account-switch .account-identity:empty { display: none; }
+.account-switch button[data-account][aria-pressed="true"] { background: #24354c; color: #e3eeff; }
+.account-switch button[data-account][data-active="true"] { outline: 2px solid var(--green); outline-offset: 2px; border-color: var(--green); }
+.account-switch[data-phase="active"] .account-status { color: var(--green); }
+.account-switch:is([data-phase="refused"], [data-phase="failed"], [data-phase="unknown"]) .account-status { color: var(--amber); }
+.account-switch:is([data-phase="waiting"], [data-phase="switching"]) .account-status { color: var(--blue); }

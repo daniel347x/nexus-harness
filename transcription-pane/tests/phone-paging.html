@@ -1,0 +1,150 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone page: paging a long conversation both ways — inert positional reader</title>
+<style>iframe{width:390px;height:844px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+// Dan's limbo: a long conversation's middle was out of reach (the tail and ⤒ First's one page, nothing between).
+// The actual /m page against a reader that pages by position like the real ones: the newest ≤100 rows with no
+// position, ≤100 rows from fromSeq (fewer when a page is byte-bounded), deltas after the newest.
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<400;i++){if(fn())return;await sleep(5);}throw new Error(what+' did not settle');};
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,css,marked,purify,markdown,defaults,core,app,reading,refineView,previews,records,seenLatest,highlighter,diffView]=await Promise.all([
+      'm.html','m.css','vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js','refine-defaults.js','refine-core.js','m.js','tool-reading.js','refine-view.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-preview-core.js','../../chrome-extension/codenomad-session-watcher/tool-record-text.js','seen-latest.js',
+      'vendor/highlight.min.js','diff-view.js'].map(read));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const uuid='33333333-3333-4333-8333-333333333333';
+    const A={source:'host',role:'Manager',uuid,executionId:'cc-'+uuid,generation:1,targetRef:'target-'+uuid,sessionRef:'session-'+uuid,
+      scopes:[{label:'main',scopeRef:'main-'+uuid}],title:'Long Manager',createdAt:'2026-10-20T10:00:00Z',lifecycle:'live',capabilities:{nativeInput:true,controls:true,reconnect:true}};
+    // Row n: Dan's message every tenth, a tool call at 4, its result (shows nothing) at 5, otherwise Manager prose.
+    const rowAt=n=>n%10===0?{seq:n,kind:'user',text:'ROW '+n+' from Dan. '+'Words to give the row its height. '.repeat(3)}:
+      n%10===5?{seq:n,kind:'user',text:''}:
+      n%10===4?{seq:n,kind:'assistant',text:'',calls:[{block:1,id:'id-'+n,name:'Bash',callRef:'call-'+n,inputBytes:10,outputBytes:10,status:'stored',previewData:null}]}:
+      {seq:n,kind:'assistant',text:'ROW '+n+' from the Manager. '+'More words for its height. '.repeat(4)};
+    const event=n=>({uuid:'event-'+n,recordRef:'record-'+n,scope:'main',calls:[],partial:false,time:1760000000+n,...rowAt(n)});
+    window.phoneFixture={total:450,limit:100,requests:[],errors:[],
+      page(from,count){const end=Math.min(this.total,from+Math.min(count,this.limit));
+        return {events:Array.from({length:Math.max(0,end-from)},(_,i)=>event(from+i)),end};}};
+    const mock=`
+      const fixture=parent.phoneFixture;
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const viewport=new EventTarget();viewport.height=innerHeight;viewport.offsetTop=0;
+      Object.defineProperty(window,'visualViewport',{configurable:true,value:viewport});
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,getItem:k=>store.get(k)??null,
+        setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      window.fetch=async(url)=>{
+        url=String(url);fixture.requests.push(url);
+        const q=Object.fromEntries(new URL(url,parent.location.href).searchParams),A=fixture.A;
+        const who={source:'host',role:'Manager',executionId:A.executionId,generation:A.generation,targetRef:A.targetRef,uuid:A.uuid};
+        let data;
+        if(url.startsWith('/api/claude/sessions'))data=env({sessions:[A],hasMore:false,status:'complete'});
+        else if(url.startsWith('/api/claude/state'))data=env({...who,capabilities:A.capabilities,lifecycle:'live',liveState:{native_session_state:'idle',primary_turn_open:false}});
+        else if(url.startsWith('/api/claude/events')){
+          if(q.sessionRef!==A.sessionRef||q.scopeRef!==A.scopes[0].scopeRef)throw new Error('wrong conversation');
+          // No position: the newest page. fromSeq: from that row. A cursor (forward or delta): on from its position.
+          const at=q.cursor?Number(q.cursor.split(':')[1]):q.fromSeq!==undefined?Number(q.fromSeq):Math.max(0,fixture.total-100);
+          const {events,end}=fixture.page(at,q.cursor||q.fromSeq!==undefined?100:fixture.total-at),more=end<fixture.total;
+          data=env({...who,sessionRef:A.sessionRef,scopeRef:A.scopes[0].scopeRef,fileEpoch:'epoch',events,eventUpdates:[],status:'complete',hasMore:more,rowsAhead:more,
+            nextCursor:more?'forward:'+end:null,deltaCursor:'delta:'+end});
+        }else throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    phoneFixture.A=A;
+    const frame=document.getElementById('phone');
+    frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+'</style></head>')
+      .replace(/  <script src="[^"]+"><\/script>/g,'').replace('</body>',()=>[mock,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,app+'\nfixture.api=phoneManager;'].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);
+    const w=frame.contentWindow,d=w.document,api=phoneFixture.api,el=id=>d.getElementById('m-'+id),conv=el('conversation');
+    const chat=()=>api.state.chat,settled=()=>chat()&&!chat().busy&&!chat().paging;
+    const resident=()=>[...chat().rows.values()].map(r=>r.event.seq).sort((a,b)=>a-b);
+    const reads=()=>phoneFixture.requests.filter(u=>u.startsWith('/api/claude/events'));
+    const visible=(from,to)=>Array.from({length:to-from+1},(_,i)=>from+i).filter(n=>n%10!==5);  // every row that shows anything
+    const same=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+    // Dan's own scroll: a touch on the conversation, then the scroller moving.
+    const touchTo=async top=>{conv.dispatchEvent(new w.Event('touchstart'));conv.scrollTop=top;conv.dispatchEvent(new w.Event('scroll'));
+      await sleep(20);await until(settled,'paging');await sleep(20);};
+    // The row at the top of the conversation and where it sits.
+    const topRow=()=>{const c=conv.getBoundingClientRect().top;const n=[...el('messages').children].find(n=>n.getBoundingClientRect().bottom>c);
+      return n&&{text:n.querySelector('.m-prose')?.textContent.slice(0,12)||n.textContent.slice(0,40),y:Math.round(n.getBoundingClientRect().top-c)};};
+    await until(()=>api&&el('managers').children.length===1,'Managers');
+    el('managers').children[0].click();
+    await until(()=>chat()?.loaded&&settled()&&el('messages').children.length>0,'cold tail').catch(e=>{
+      throw new Error(e.message+' ['+el('read-status').textContent+'; '+phoneFixture.errors.join('; ')+'; '+reads().slice(0,3).join(' | ')+']');});
+    check('cold: the newest page, rows 350–449, following at the end',same(resident(),visible(350,449))&&api.state.follow&&chat().top===350&&
+      conv.scrollHeight-conv.clientHeight-conv.scrollTop<2);
+
+    // The page's own scroll writes never page: a scroll to the top with no touch reads nothing.
+    let before=reads().length;conv.scrollTop=0;conv.dispatchEvent(new w.Event('scroll'));await sleep(40);await until(settled);
+    check('a scroll Dan did not make (no touch, wheel or key) loads nothing',reads().slice(before).every(u=>!u.includes('fromSeq'))&&chat().top===350);
+    conv.scrollTop=conv.scrollHeight;conv.dispatchEvent(new w.Event('scroll'));await sleep(20);
+
+    // Scrolling up past the oldest loaded row: the batch above, by position, placed above with the reading position kept.
+    await touchTo(700);const mark=topRow();before=reads().length;
+    check('scrolled up but still well below the oldest row: nothing read yet',chat().top===350&&!reads().slice(before).some(u=>u.includes('fromSeq')));
+    await touchTo(400);
+    const afterMark=[...el('messages').children].find(n=>(n.querySelector('.m-prose')?.textContent.slice(0,12)||n.textContent.slice(0,40))===mark.text);
+    record('scrolling near the top reads the 100 rows above by position (fromSeq 250)',reads().slice(before).some(u=>/fromSeq=250\b/.test(u)));
+    check('the rows above arrive, one contiguous window 250–449, and the view stays put: the row that was on top moved only by the 300 px scrolled ['+
+      JSON.stringify({mark,now:afterMark&&Math.round(afterMark.getBoundingClientRect().top-conv.getBoundingClientRect().top),top:chat().top,keep:chat().keep})+']',
+      same(resident(),visible(250,449))&&chat().top===250&&chat().keep===250&&afterMark&&Math.abs(afterMark.getBoundingClientRect().top-conv.getBoundingClientRect().top-(mark.y+300))<=2&&
+      !api.state.follow);
+
+    // Pushing against the top again and again reaches the very first message; there it stops reading.
+    for(let i=0;i<8&&chat().top>0;i++)await touchTo(0);
+    check('pushing on to the top reaches the conversation’s very first message: every row 0–449 on screen, no gap',
+      same(resident(),visible(0,449))&&chat().top===0&&el('messages').firstElementChild.textContent.includes('ROW 0 from Dan'));
+    before=reads().length;await touchTo(0);
+    check('at the first message there is nothing above: no further read',!reads().slice(before).some(u=>u.includes('fromSeq')));
+
+    // A live row arriving while Dan reads up here: kept below, new to him, nothing above it trimmed.
+    phoneFixture.total=451;await until(()=>resident().at(-1)===450&&settled(),'live row');
+    check('a new row from the live tail while reading at the top is appended, the earlier pages kept, the badge says new',
+      resident()[0]===0&&/new/.test(el('latest').textContent)&&!el('latest').hidden&&conv.scrollTop<50);
+
+    // ↓ Latest: back at the newest; the earlier pages may go again (the 80-turn window), and scrolling up reloads them.
+    el('latest').click();await until(()=>resident()[0]>300&&settled(),'trim after Latest');
+    check('↓ Latest follows the newest again and lets the earlier pages go: the window is the newest 80 turns again',
+      api.state.follow&&chat().keep===null&&resident()[0]>300&&resident().at(-1)===450&&chat().top===resident()[0]);
+    const trimmedTop=chat().top;await touchTo(0);
+    check('scrolling up after that reloads the rows above the window by position',chat().top<trimmedTop&&resident()[0]===chat().top);
+
+    // A byte-bounded page stops short of its 100 rows: the batch steps on until it meets the window, no gap.
+    phoneFixture.limit=37;before=reads().length;const shortFrom=chat().top;await touchTo(0);
+    const steps=reads().slice(before).filter(u=>u.includes('fromSeq'));
+    check('a page that stops short (37 rows) steps on by position until it meets the window: one contiguous run ['+steps.map(u=>u.match(/fromSeq=(\d+)/)[1])+']',
+      steps.length>=3&&chat().top===Math.max(0,shortFrom-100)&&same(resident(),visible(chat().top,450)));
+    phoneFixture.limit=100;
+
+    // ⤒ First, then scrolling down: the next pages after it, through the middle to the end, where it becomes the live tail.
+    el('first').click();await until(()=>chat().start&&chat().loaded&&settled()&&resident()[0]===0,'First');
+    check('⤒ First opens at the first message with one page (0–99), held at the top',same(resident(),visible(0,99))&&conv.scrollTop===0&&
+      el('first').getAttribute('aria-pressed')==='true');
+    before=reads().length;await touchTo(conv.scrollHeight);
+    check('scrolling down past ⤒ First’s page reads the page after it by position (fromSeq 100), placed below without moving the view',
+      reads().slice(before).some(u=>/fromSeq=100\b/.test(u))&&same(resident(),visible(0,199))&&chat().start);
+    for(let i=0;i<10&&chat().start;i++)await touchTo(conv.scrollHeight);
+    check('scrolling on reaches the newest row: the whole conversation 0–450 on screen, and the view is the live tail again (⤒ First released)',
+      same(resident(),visible(0,450))&&!chat().start&&chat().delta==='delta:451'&&el('first').getAttribute('aria-pressed')==='false');
+    phoneFixture.total=453;before=reads().length;await until(()=>resident().at(-1)===452&&settled(),'joined delta');
+    check('the joined view reads on by its delta: new rows arrive at the end',reads().slice(before).some(u=>u.includes('cursor=delta%3A451')));
+
+    // A turn opened from View (its window from 20 rows before it) pages both ways too.
+    el('latest').click();await until(()=>resident()[0]>300&&settled(),'trim before the turn');
+    await api.showTurn({session:{kind:'manager',executionId:A.executionId},seq:230,uuid:'event-230'});await until(settled);
+    check('a turn shown from View opens its window from 20 rows before it (210–309)',same(resident(),visible(210,309))&&chat().start&&chat().from===210);
+    await touchTo(0);
+    check('scrolling up from it reads the rows above (110–209)',same(resident(),visible(110,309)));
+    await touchTo(conv.scrollHeight);
+    check('and scrolling down the rows after it (310–409)',same(resident(),visible(110,409))&&chat().start);
+    check('all transports stayed inert and the actual scripts had no uncaught errors ['+phoneFixture.errors.join('; ')+']',phoneFixture.errors.length===0);
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

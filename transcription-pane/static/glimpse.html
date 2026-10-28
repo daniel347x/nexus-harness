@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#151922">
+  <title>View · NEXUS documents</title>
+  <script>
+    // Inside /m's View frame the page follows the phone page's ☀ glare (glare.js reads this before it starts);
+    // opened on its own, it keeps the usual stored choice. Asset failures are named on a plain status line.
+    // data-view-embed names the page around it (phone /m, the desktop View pane), for its history key and layout.
+    if (window.parent !== window) document.documentElement.setAttribute('data-glare-follow', '');
+    let viewEmbed = window.parent !== window ? 'framed' : 'page';
+    try { const f = window.frameElement?.id; if (f === 'm-glimpse-frame') viewEmbed = 'phone'; else if (f === 'desktop-view-frame') viewEmbed = 'desktop'; } catch (_) { /* not our origin */ }
+    document.documentElement.setAttribute('data-view-embed', viewEmbed);
+    window.glimpseAssetFailures = [];
+    function glimpseAssetFailed(node) { window.glimpseAssetFailures.push(node.getAttribute('src') || node.getAttribute('href')); }
+    // The image lightbox (beside the renderer) is optional to painting: without it a document still renders, and a
+    // document with images says the lightbox did not load.
+    window.glimpseLightboxFailures = [];
+    function glimpseLightboxFailed(node) { window.glimpseLightboxFailures.push(node.getAttribute('src') || node.getAttribute('href')); }
+  </script>
+  <link rel="stylesheet" href="/nexus-md/katex/katex.min.css" onerror="glimpseAssetFailed(this)">
+  <link rel="stylesheet" href="/nexus-md/katex-overrides.css" onerror="glimpseAssetFailed(this)">
+  <link rel="stylesheet" href="/nexus-md/glimpse-md-render.css" onerror="glimpseAssetFailed(this)">
+  <link rel="stylesheet" href="/nexus-md/photoswipe/photoswipe.css" onerror="glimpseLightboxFailed(this)">
+  <link rel="stylesheet" href="/nexus-md/glimpse-lightbox.css" onerror="glimpseLightboxFailed(this)">
+  <link rel="stylesheet" href="/glimpse.css">
+  <link rel="stylesheet" href="/glare.css">
+  <script src="/glare.js"></script>
+</head>
+<body>
+  <main id="g-page">
+    <div id="g-assets" role="alert" hidden></div>
+    <!-- History (view-history.js), always at the top, never folded. Row 1 the root widget (with where and ⤢ the whole inner
+         history); row 2 ‹ the current entry › with maximize at its right (the one row a maximized View keeps); row 3 Recent
+         roots, the outer history, one tap dropping its list down. Whole cards are the targets here, never the handles
+         inside them (data-opc-no-handles). -->
+    <section id="g-hist" aria-label="Inner history and recent roots" data-opc-no-handles hidden>
+      <div id="g-hist-row" hidden>
+        <button id="g-root" type="button" class="g-hcard g-hroot" aria-haspopup="dialog"></button>
+        <!-- Where the node on screen lives: its ancestors (node.ancestors), shown while one node is rendered. -->
+        <button id="g-where" type="button" aria-haspopup="dialog" aria-label="Where this node lives: its ancestors" title="Where this node lives in Workflowy: its ancestors" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h7M8.5 10.5h7M12 16.5h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M5.5 4.5v6h3M9 10.5v6h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/><circle cx="19.5" cy="16.5" r="2.3" fill="currentColor"/></svg><span>where</span></button>
+        <button id="g-hist-open" type="button" aria-haspopup="dialog" aria-label="This root's whole inner history" title="This root's whole inner history">⤢<span id="g-hist-count"></span></button>
+      </div>
+      <div id="g-hist-nav" hidden>
+        <button id="g-back" type="button" aria-label="Back" title="Back (nothing is dropped)">‹</button>
+        <button id="g-now" type="button" aria-haspopup="dialog" title="This root's whole inner history"></button>
+        <button id="g-fwd" type="button" aria-label="Forward" title="Forward">›</button>
+        <!-- Maximize (glimpse.js toggleMaximized): the document fills View (on the phone the whole screen) and only this row
+             stays; the same button, in the same place, brings everything back. -->
+        <button id="g-max" type="button" aria-pressed="false" aria-label="Maximize: only the document and ‹ ›" title="Maximize: only the document and ‹ › (the same button brings everything back)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div id="g-roots" hidden>
+        <button id="g-roots-open" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="g-roots-panel"><span class="g-roots-icon" aria-hidden="true">🕘</span><span id="g-roots-label">Recent roots</span><span id="g-roots-count"></span><span class="g-roots-chev" aria-hidden="true">▾</span></button>
+      </div>
+    </section>
+    <!-- Controls: everything else above the document behind one thin bar (open or closed remembered on the device; open by
+         itself while nothing is shown): the chooser, the document toolbar and the as-of line. -->
+    <section id="g-ctl" aria-label="Controls">
+      <button id="g-ctl-toggle" type="button" aria-expanded="false" aria-controls="g-ctl-body" title="Choose what to render; Rendered | Source, Copy MD, Refresh, Find"><span class="g-ctl-chev" aria-hidden="true">▸</span><span class="g-ctl-label">Controls</span></button>
+      <div id="g-ctl-body" hidden>
+        <details id="g-pick" open>
+          <summary><span class="g-pick-label">Choose</span> <span id="g-current">nothing rendered yet</span>
+            <!-- The two pickers full screen, one tap from here even while Choose is folded. -->
+            <button id="g-pick-docks" type="button" class="g-pick-full" aria-haspopup="dialog" title="Choose a Dock, full screen">⚓ Docks</button><button id="g-pick-groups" type="button" class="g-pick-full" aria-haspopup="dialog" title="Choose a slice group, full screen">Groups</button></summary>
+          <div class="g-pick-body">
+            <!-- The two pickers (view-pickers.js), as the Chrome extension shows them: Docks nested under their parent Docks,
+                 slice groups in the pipe hierarchy. One unwrapped row each; a tap renders. Rows are targets, never handles.
+                 ⤢ opens the same list full screen (the Docks there also all / local). -->
+            <details id="g-dock-box" class="g-picker">
+              <summary><span id="g-dock-label" class="g-picker-label">Favorite Docks</span> <span id="g-dock-count" class="g-picker-count"></span> <small>tap one to render it</small><button id="g-dock-full" type="button" class="g-picker-full" aria-haspopup="dialog" aria-label="Docks, full screen" title="Full screen (all Docks, local Docks)">⤢</button></summary>
+              <div id="g-dock" class="g-picker-list" aria-label="Favorite Docks" data-opc-no-handles></div>
+            </details>
+            <details id="g-group-box" class="g-picker">
+              <summary><span class="g-picker-label">Slice groups</span> <span id="g-group-count" class="g-picker-count"></span> <small>▸ opens a section</small><button id="g-group-full" type="button" class="g-picker-full" aria-haspopup="dialog" aria-label="Slice groups, full screen" title="Full screen">⤢</button></summary>
+              <div id="g-group" class="g-picker-list" aria-label="Slice groups" data-opc-no-handles></div>
+            </details>
+            <form id="g-handle-form" autocomplete="off">
+              <label for="g-handle">Paste a handle</label>
+              <input id="g-handle" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="[ap:K7M2QF] or 3f3754e2">
+              <div class="g-seg" role="radiogroup" aria-label="Read the handle as">
+                <button type="button" role="radio" data-how="node" aria-checked="true" title="The node itself with its note">Node</button>
+                <button type="button" role="radio" data-how="subtree" aria-checked="false" title="The node and every descendant">Subtree</button>
+                <button type="button" role="radio" data-how="dock" aria-checked="false" title="An Anchor Dock, as the dock renders it (stops at child Docks)">Dock</button>
+              </div>
+              <button id="g-handle-render" type="submit" class="g-go">Render</button>
+            </form>
+            <details id="g-spec-box">
+              <summary>Spec: a parcel or an estate</summary>
+              <textarea id="g-spec" rows="3" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Parcel or estate" placeholder='{"tags":["opc-pane"],"root":"25a49a99"} · a group name · [ap:ESTATE]'></textarea>
+              <div class="g-seg" role="radiogroup" aria-label="Send the spec as">
+                <button type="button" role="radio" data-kind="parcel" aria-checked="true" title="One parcel or formal render specification (glimpse run, or the dock's render for {dock})">Parcel</button>
+                <button type="button" role="radio" data-kind="estate" aria-checked="false" title="A named estate handle or an estate payload (glimpse estate, with its headings)">Estate</button>
+              </div>
+              <button id="g-spec-render" type="button" class="g-go">Render spec</button>
+            </details>
+            <fieldset id="g-options">
+              <legend>Options <small>(apply to the current document at once)</small></legend>
+              <label class="g-check"><input id="g-headings" type="checkbox"> Headings only</label>
+              <label class="g-check" title="Add the export archives' subtrees (read-only, marked 📦) to the document"><input id="g-archives" type="checkbox"> Include archives 📦</label>
+              <select id="g-sort" aria-label="Order"><option value="saved" title="The scope's own order: a slice group's saved sort, else the outline">Saved order</option><option value="none" title="The outline's order, whatever the scope saved">Document order</option><option value="created">By created</option><option value="modified">By modified</option></select>
+              <select id="g-direction" aria-label="Direction" hidden><option value="desc">Newest first</option><option value="asc">Oldest first</option></select>
+              <input id="g-recent" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Recent" placeholder="recent: last 20 · 1w">
+            </fieldset>
+          </div>
+        </details>
+        <div id="g-bar" role="toolbar" aria-label="Document">
+          <div class="g-seg" role="group" aria-label="Presentation">
+            <button id="g-rendered" type="button" aria-pressed="true">Rendered</button>
+            <button id="g-source" type="button" aria-pressed="false">Source</button>
+          </div>
+          <button id="g-copy" type="button" title="Copy the whole Markdown this document was rendered from">Copy MD</button>
+          <button id="g-refresh" type="button" title="Render the current request again (from the daemon's cache)">Refresh</button>
+          <div id="g-findbox">
+            <input id="g-find" type="search" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Find in source" placeholder="Find in source">
+            <button id="g-prev" type="button" aria-label="Previous match" title="Previous match (Shift+Enter)">‹</button>
+            <span id="g-count" role="status"></span>
+            <button id="g-next" type="button" aria-label="Next match" title="Next match (Enter)">›</button>
+          </div>
+          <!-- ☀ only on the page opened on its own: in /m and the desktop pane the page around carries it. -->
+          <button id="g-glare" type="button" data-glare-toggle aria-pressed="false" aria-label="Outdoor glare mode" title="Outdoor glare mode: bright white text and larger small print, for reading in the sun"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.3" fill="currentColor"/><path d="M12 2.4v2.7M12 18.9v2.7M2.4 12h2.7M18.9 12h2.7M5.2 5.2l1.9 1.9M16.9 16.9l1.9 1.9M5.2 18.8l1.9-1.9M16.9 7.1l1.9-1.9" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg></button>
+        </div>
+        <div id="g-asof" role="status">Choose a Dock or a slice group, or paste a handle.</div>
+      </div>
+      <!-- Drag (thumb or mouse) or Up/Down: how tall the controls may get before they scroll inside themselves. -->
+      <div id="g-ctl-split" class="g-split" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="Resize the controls (drag, or Up/Down)" title="Drag to resize the controls" hidden></div>
+    </section>
+    <!-- Outside the bar, never folded away: the compact notice with Full, errors, the daemon's notices, the catalog's
+         errors and short notes. -->
+    <div id="g-status" role="status" aria-live="polite">
+      <div id="g-compact" hidden><span id="g-compact-text"></span> <button id="g-full" type="button">Full</button></div>
+      <!-- A handle whose note lists parcels (a named estate) shows that estate: Estate · ‹name› · N parcels, and one tap
+           to the node itself (or back). -->
+      <div id="g-estate" hidden><span id="g-estate-text"></span> <button id="g-estate-toggle" type="button"></button></div>
+      <!-- The document's images: 🖼️ 145 images · 3 groups; a tap opens the lightbox (a tap on any image opens it there).
+           ⧉ Side by side (a wide page, two groups or more): two or three groups in panels stepping together. -->
+      <div id="g-images" hidden><button id="g-images-open" type="button" title="Look at the images full screen: swipe, pinch or double-tap to zoom, the groups on top">🖼️ <span id="g-images-text"></span></button><button id="g-images-compare" type="button" title="Two or three groups side by side, stepping together by position (← →), each panel nudged on its own; one shared zoom" hidden>⧉ Side by side</button><span id="g-images-note"></span></div>
+      <div id="g-error" hidden></div>
+      <!-- The daemon's own status lines for this document (an archived node, a corrected handle, archives left out). -->
+      <div id="g-notices" hidden></div>
+      <!-- Archived subtrees: left out (with Include them, one tap) or included (with Leave them out). -->
+      <div id="g-arch" hidden><span id="g-arch-text"></span> <button id="g-arch-toggle" type="button"></button></div>
+      <div id="g-catalog-errors"></div>
+      <div id="g-note"></div>
+    </div>
+    <!-- The dock's row list (its table of contents), painted by the extension's GlimpseMd.renderRowList from the daemon's rows. -->
+    <details id="g-rows-box" open hidden>
+      <summary><span class="g-rows-label">Rows</span> <span id="g-rows-count"></span> <small>tap one to read it alone</small></summary>
+      <div id="g-rows" class="glimpse-md-row-list" tabindex="-1" aria-label="Rows: tap one to read it alone"></div>
+      <div id="g-rows-more" hidden><span id="g-rows-more-text"></span> <button id="g-rows-all" type="button">Show all</button></div>
+    </details>
+    <!-- Drag (thumb or mouse) or Up/Down: the row list above, the document below. -->
+    <div id="g-rows-split" class="g-split" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="Resize the row list and the document (drag, or Up/Down)" title="Drag to resize the row list and the document" hidden></div>
+    <div id="g-scroll" tabindex="0" aria-label="Document">
+      <div id="g-doc" class="glimpse-md-render"></div>
+      <div id="g-more" hidden><span id="g-more-text"></span> <button id="g-show-all" type="button">Show all</button></div>
+    </div>
+    <section id="g-hist-sheet" class="g-sheet" role="dialog" aria-modal="true" aria-labelledby="g-hist-title" data-opc-no-handles hidden>
+      <div class="g-sheet-panel">
+        <div class="g-sheet-head"><h2 id="g-hist-title">Inner history</h2><button id="g-hist-close" type="button">Close</button></div>
+        <div id="g-hist-list"></div>
+      </div>
+    </section>
+    <!-- Recent roots (the outer history), dropped down from its row over the document: one card per root (the root widget's
+         own words, a badge for how deep its inner history goes, where it stands, your note), the root on screen first; a tap
+         goes back to that root where its digging went. Shared by the phone and the desktop (the pane server keeps it). -->
+    <section id="g-roots-panel" class="g-sheet g-drop" role="dialog" aria-modal="true" aria-labelledby="g-roots-title" data-opc-no-handles hidden>
+      <div class="g-sheet-panel">
+        <div class="g-sheet-head"><h2 id="g-roots-title">Recent roots</h2><button id="g-roots-close" type="button">Close</button></div>
+        <input id="g-roots-filter" type="search" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Filter the recent roots by name or note" placeholder="Filter by name or note">
+        <div id="g-roots-status" role="status"></div>
+        <div id="g-roots-list"></div>
+        <div id="g-roots-foot"><label for="g-roots-limit">Keep the last</label><select id="g-roots-limit" title="How many recent roots the list keeps (phone and desktop share it)"></select><span id="g-roots-keep"></span></div>
+      </div>
+    </section>
+    <!-- The root's pop-up: what the root is; for a session's socket, where it sits (a handle here is a new root). -->
+    <section id="g-pos" class="g-sheet" role="dialog" aria-modal="true" aria-labelledby="g-pos-title" hidden>
+      <div class="g-sheet-panel">
+        <div class="g-sheet-head"><h2 id="g-pos-title">Root</h2><button id="g-pos-close" type="button">Close</button></div>
+        <button id="g-pos-show" type="button" class="g-go">Show</button>
+        <button id="g-pos-turn" type="button" hidden>Show in conversation</button>
+        <div id="g-pos-body"></div>
+      </div>
+    </section>
+    <!-- A picker full screen (the whole frame): the Docks (favorites, all, local) or the slice groups, a filter, big rows;
+         a tap renders and closes it. Rows are targets, never handles. -->
+    <section id="g-psheet" class="g-sheet g-sheet-full" role="dialog" aria-modal="true" aria-labelledby="g-psheet-title" data-opc-no-handles hidden>
+      <div class="g-sheet-panel">
+        <div class="g-sheet-head"><h2 id="g-psheet-title">Docks</h2><span id="g-psheet-count" class="g-picker-count"></span><button id="g-psheet-close" type="button">Close</button></div>
+        <div id="g-psheet-docks" class="g-psheet-tools">
+          <label class="g-check" title="Every Anchor Dock, not just the ⭐ favorites (dock.list favorites_only false)"><input id="g-docks-all" type="checkbox"> All Docks</label>
+          <label class="g-check" title="Add the local Docks (Ⓛ; dock.list include_local)"><input id="g-docks-local" type="checkbox"> Local Docks Ⓛ</label>
+        </div>
+        <div id="g-psheet-groups" class="g-psheet-tools" hidden>
+          <label class="g-check"><input id="g-groups-open" type="checkbox"> Open every section</label>
+        </div>
+        <input id="g-psheet-filter" type="search" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Filter the list" placeholder="Filter by name">
+        <div id="g-psheet-status" role="status"></div>
+        <div id="g-psheet-list" class="g-picker-list" aria-label="Choose one" data-opc-no-handles></div>
+      </div>
+    </section>
+    <!-- Where the node on screen lives: the daemon's node.ancestors chain (H1 = root, ⚓ ⭐ Ⓛ 🗺️ 📄), by the shared renderer.
+         A handle in it opens in View (and closes this). -->
+    <section id="g-anc" class="g-sheet" role="dialog" aria-modal="true" aria-labelledby="g-anc-title" hidden>
+      <div class="g-sheet-panel">
+        <div class="g-sheet-head"><h2 id="g-anc-title">Where it lives</h2><button id="g-anc-copy" type="button" title="Copy the ancestor chain as Markdown">Copy</button><button id="g-anc-close" type="button">Close</button></div>
+        <div class="g-seg" role="radiogroup" aria-label="UUIDs in the chain">
+          <button type="button" role="radio" data-uuids="leaf" aria-checked="true" title="The node's own UUID at the end (F3)">Leaf UUID</button>
+          <button type="button" role="radio" data-uuids="every-level" aria-checked="false" title="A UUID under every ancestor (F2): tap one to open it">Every level</button>
+        </div>
+        <div id="g-anc-status" role="status"></div>
+        <div id="g-anc-scroll"><div id="g-anc-doc" class="glimpse-md-render"></div></div>
+      </div>
+    </section>
+  </main>
+  <script src="/nexus-md/marked.min.js" onerror="glimpseAssetFailed(this)"></script>
+  <script src="/nexus-md/katex/katex.min.js" onerror="glimpseAssetFailed(this)"></script>
+  <script src="/nexus-md/marked-katex-init.js" onerror="glimpseAssetFailed(this)"></script>
+  <script src="/nexus-md/glimpse-md-render.js" onerror="glimpseAssetFailed(this)"></script>
+  <script src="/nexus-md/photoswipe/photoswipe.umd.min.js" onerror="glimpseLightboxFailed(this)"></script>
+  <script src="/nexus-md/glimpse-lightbox.js" onerror="glimpseLightboxFailed(this)"></script>
+  <script src="/view-history.js"></script>
+  <script src="/view-pickers.js"></script>
+  <script src="/glimpse.js" onerror="const a=document.getElementById('g-assets');a.hidden=false;a.textContent='The View page script did not load: /glimpse.js (reload the page; the pane serves it from transcription-pane/static)'"></script>
+  <script src="/handle-links.js"></script>
+</body>
+</html>

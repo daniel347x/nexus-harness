@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "windows-2.1.185.jsonl": {
+    "kind": "sanitized-derived-history",
+    "cliVersion": "2.1.185",
+    "fixtureSha256": "b8f83a30b16784270d61248c2e0953f5390b608b919345d8e047120631d8aa16",
+    "sourceSha256": "3c86f40a8b2fb4ed4efa1a26d280d31914ed7a560af3706c6eaf4adab9096faa",
+    "sourceRecords": 35,
+    "sanitization": "Observed field layouts projected to seven representative records. All UUIDs, provider/tool IDs, paths, title and prose replaced. Attachments/internal content removed. Not byte-identical to source; not native WSL evidence.",
+    "observed": ["human-origin string", "attachment parent", "repeated provider id", "tool use/result", "sourceToolAssistantUUID"]
+  },
+  "synthetic-v1.jsonl": {
+    "kind": "synthetic-policy",
+    "cliVersion": null,
+    "fixtureSha256": "0b864c0cb6c1ba5534e2ed2025f3102e47f7160b54f85bfa448c9e07fe1bb3e6",
+    "observed": [],
+    "purpose": "Lexical duplicate/number and structured limited-artifact policy. savedArtifact is NOT an observed native format. Generated variants in tests cover branches, joins, malformed lines and limits."
+  },
+  "native-2.1.296.jsonl": {
+    "kind": "sanitized-derived-native-history",
+    "cliVersion": "2.1.296",
+    "fixtureSha256": "1699ae8ac3bb59154be6840975a83518b8f3209302634a75fb6b93a6c646f57d",
+    "sourceSha256": "61f26bd49352fbb2646e62386c358f87a2df73ba1c1dc6de96443d709ac31066",
+    "source": "Native manager-sessions project history b2940507-d2ca-41bc-bdc3-c7dec75b2f24.jsonl; matching cockpit run Manager-20261013-204933-1ae3a4 launch/preflight records independently say 2.1.296",
+    "sourceRecords": 60,
+    "sourceLines": [7, 8, 26, 38, 39, 41, 42, 44],
+    "observed": ["human-origin typed pasted-content wrapper", "attachment ancestry", "repeated provider id", "thinking", "Workflowy tool use/result", "sourceToolAssistantUUID", "end_turn", "turn_duration"],
+    "sanitization": "Minimal structural projection only. UUIDs, IDs, paths, prose, tool inputs/results and thinking replaced; unused private fields removed. Intervening attachments collapsed and parents rewired to the preceding retained record. Actual version/provenance and content container types preserved. NOT original bytes or native input authority."
+  },
+  "last-reply-2.1.299.json": {
+    "kind": "sanitized-derived-headless-stream-layout",
+    "cliVersion": "2.1.299",
+    "fixtureSha256": "7971467d83922bf704f9960f9dbd748186ba7f7d221f4779d8b6cb46fd94272d",
+    "sourceSha256": "0463468f01c01d7835afec79561007df55a2faddb8f2fb9734c589cfa9e1f504",
+    "source": "Manager native stdout generation 2 observed read-only on 2026-10-14; independently compared with its 2.1.299 project JSONL and pane events API",
+    "sourceLines": [8, 273],
+    "sourceRecords": 266,
+    "observed": ["60 interleaved thinking telemetry frames", "59 thinking deltas", "135 text deltas totaling 1804 characters", "separate thinking/text final UUIDs sharing one provider message id", "final before block_stop", "rate limit frame before result", "100-frame replay cuts through a single assistant row"],
+    "sanitization": "Compact structural recipe expanded by last_reply_fixture in test_claude_streaming.py. Frame order/count, text chunk character boundaries, block indices, final-record separation and result container preserved. IDs, thinking, signatures and assistant prose replaced; private telemetry/usage/rate-limit payloads omitted. The generated reply and native-shaped result agree exactly; no private original text is retained. Not original bytes or input authority."
+  },
+  "headless-2.1.299.jsonl": {
+    "kind": "sanitized-derived-headless-native-history",
+    "cliVersion": "2.1.299",
+    "fixtureSha256": "1419d7a8214e2a96af1b06f054631252fb47c7b4dae52ac2ec3a325d870235e0",
+    "sourceSha256": "a40a40607663e943bb8ef02e82c5ca8bcfa960d2a10fc752e867b7ca6f6c600a",
+    "source": "Headless spike 06b-mcp-corrected native transcript 994a5a53-ecc9-4733-a5fd-f83ef9103670.jsonl at the exact project store for its recorded launch cwd; all versioned records say 2.1.299",
+    "launchEvidence": "tmp/headless-spike/06b-mcp-corrected.launch.json",
+    "launchSha256": "728b3cb47d3dde23a65ad27db3d645fe6fc69511b17a04397aaa5fc67120d9f8",
+    "stdinEvidence": "tmp/headless-spike/06b-mcp-corrected.stdin.jsonl",
+    "stdinSha256": "e3b9f4c9aeae2f245b9822425ffa7401b7ad030b0c6e09d7cad387a22d7dd80e",
+    "sourceRecords": 21,
+    "sourceLines": [3, 4, 13, 14, 19],
+    "observed": ["origin absent; promptSource sdk + turnOrigin sdk + entrypoint sdk-cli + external user", "string user input", "attachment ancestry", "Workflowy tool use/result", "sourceToolAssistantUUID", "end_turn"],
+    "sanitization": "Minimal structural projection only. UUIDs, IDs, paths, prose and tool inputs/results replaced; private payload fields removed. Intervening attachments collapsed and parents rewired to preceding retained record. Actual 2.1.299 version, absent origin, SDK provenance and container types preserved; never relabeled 2.1.296. NOT original bytes or native input authority."
+  }
+}

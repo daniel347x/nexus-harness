@@ -1,0 +1,4 @@
+{
+  "about": "The Claude host's root-search guard (docs/root-search-guard.md): extra root folders. Each one, and every ancestor of it, is a root where no whole-tree search and no search across repositories may start. Read once per host process (a change takes effect at the next host restart); the environment variable ROOT_SEARCH_GUARD_ROOTS (os.pathsep-separated) replaces this list when set.",
+  "extra_roots": ["/mnt/e/__daniel347x/__Dan_Root/__repos"]
+}

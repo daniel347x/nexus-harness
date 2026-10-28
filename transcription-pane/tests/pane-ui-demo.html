@@ -1,0 +1,171 @@
+<!doctype html><meta charset="utf-8"><title>Claude-mode right pane · visual fixture</title>
+<!-- Offline visual fixture for the Claude-mode right pane (sessions.html) with a realistic
+     conversation. No live request leaves the page. ?shot=collapsed|expanded|sidebar|paused -->
+<style>html,body{margin:0;height:100%;background:#151820}iframe{display:block;width:100vw;height:100vh;border:0}</style>
+<iframe id="pane" title="Claude-mode right pane"></iframe>
+<script>
+(async()=>{
+  const shot=new URLSearchParams(location.search).get('shot')||'collapsed';
+  const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+  const [html,js,css,md,marked,purify,reading]=await Promise.all(['sessions.html','sessions.js','sessions.css','message-markdown.js','vendor/marked.umd.js','vendor/purify.min.js','tool-reading.js'].map(read));
+  const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+  const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async n=>(await fetch(new URL(n,sharedBase))).text()));
+  const mock=`
+    const now=Date.now()/1000,env=x=>({schemaVersion:1,backend:'claude',...x});
+    const str=v=>({kind:'string',characters:Array.from(v).length,jsonCharacters:Array.from(JSON.stringify(v)).length,head:Array.from(v).slice(0,128).join(''),tail:Array.from(v).slice(-128).join('')});
+    const obj=entries=>({schemaVersion:1,status:'available',value:{kind:'object',entries:entries.map(([k,v])=>[k,str(v)])}});
+    const cwd='/mnt/e/__daniel347x/__Dan_Root/__repos/manager-sessions';
+    const live={sessionRef:'m214',uuid:'3f3754e2-9b1c-4d8e-a1f0-5c2d7e9a6b41',title:'3f3754e2-9b1c-4d8e-a1f0-5c2d7e9a6b41',sessionLabel:'Manager-Session-214',cwd,source:'host',role:'Manager',state:'ready',lifecycle:'live',executionId:'cc-3f3754e2',generation:3,
+      capabilities:{history:true,nativeInput:true,controls:true,subagents:true},scopes:[{scopeRef:'m214-main',label:'main'}]};
+    const sleeping={sessionRef:'m213',uuid:'8a11c0de-2222-4333-8444-555566667777',title:'8a11c0de-2222-4333-8444-555566667777',sessionLabel:'Manager-Session-213',cwd,source:'host',role:'Manager',state:'exited',lifecycle:'sleeping',close_reason:'collected',executionId:'cc-8a11c0de',generation:1,
+      capabilities:{history:true,nativeInput:false,controls:false,reconnect:true,subagents:true},scopes:[{scopeRef:'m213-main',label:'main'}]};
+    const hist={sessionRef:'m209',uuid:'b0b0b0b0-1111-4222-8333-444455556666',title:'Bake-off design review for the history viewer',sessionLabel:'Manager-Session-209-b',cwd,source:'native',status:'complete',
+      capabilities:{history:true,nativeInput:false,subagents:true},scopes:[{scopeRef:'m209-main',label:'main'}]};
+    const plain={sessionRef:'h1',uuid:'c4c4c4c4-aaaa-4bbb-8ccc-dddddddddddd',title:'c4c4c4c4-aaaa-4bbb-8ccc-dddddddddddd',cwd:'/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion',source:'native',status:'complete',
+      capabilities:{history:true,nativeInput:false,subagents:true},scopes:[{scopeRef:'h1-main',label:'main'}]};
+    const child=(ref,parent,type,desc)=>({sessionRef:ref,uuid:parent.uuid,parentUuid:parent.uuid,role:'subagent',source:'native',agentType:type,description:desc,agentId:'agent-'+ref,
+      title:parent.sessionLabel+' ▸ '+type+' · '+desc,cwd,capabilities:{history:true,nativeInput:false,subagents:true},scopes:[{scopeRef:ref+'-scope',label:'agent:'+ref}]});
+    const kids={m214:[child('k1',live,'manager-quick','Pane UI pass, round 1'),child('k2',live,'Explore','Find every caller of reconcile()'),child('k3',live,'general-purpose','Run the browser suites')],
+      m209:[child('k4',hist,'manager-quick','Compare the two designs side by side')]};
+    let n=0;const ev=(kind,text,extra={})=>({recordRef:'r'+(++n),uuid:'0000'+String(n).padStart(4,'0')+'-77aa-4bbb-8ccc-'+String(n).padStart(12,'0'),kind,status:'stored',text,calls:[],thinking:[],time:now-1900+n*45,...extra});
+    // A finished call carries its time and its result's (the row's total time); a running one only its own.
+    const call=(name,args,inB,outB,status='stored')=>({callRef:'c'+n+name.length,block:0,id:'t'+n,name,status,previewData:obj(args),inputBytes:inB,outputBytes:outB,
+      time:now-1900+n*45,resultTime:status==='stored'?now-1900+n*45+[1.4,12,83,6.3][n%4]:null});
+    const think=(text,availability='stored',streaming=false)=>[{blockIndex:0,text,availability,streaming}];
+    const events=[
+      ev('user','Manager-Session-214. Please run the pane UI pass on the right pane: collapse the top, add a follow toggle, and color the turns. Report back when the suites are green.'),
+      ev('assistant','',{thinking:think('The socket names the clone and the isolation rules. Read the viewer first: sessions.html, sessions.js and sessions.css hold the whole right pane; the shell only embeds it.')}),
+      ev('assistant','I will read the socket in full, then the three viewer files.'),
+      ev('assistant','',{calls:[call('mcp__workflowy__node',[['verb','read'],['node_handle','[ap:AAPW5Q]'],['max_lines','0']],86,18240)]}),
+      ev('user','',{toolResults:1}),
+      ev('assistant','',{calls:[call('Bash',[['command','rg -n "follow|atLatest|scrollTop" transcription-pane/static/sessions.js'],['description','Find the scroll logic']],112,2430)]}),
+      ev('user','',{toolResults:1}),
+      ev('assistant','',{thinking:think('','omitted'),calls:[call('Read',[['file_path','/mnt/e/.../transcription-pane/claude_reader.py']],78,156200)]}),
+      ev('user','',{toolResults:1}),
+      ev('assistant','',{calls:[call('Grep',[['pattern','tool_result'],['path','transcription-pane'],['output_mode','content']],96,312800)]}),
+      ev('user','',{toolResults:1}),
+      ev('user','',{toolResults:0,isMeta:true,textBytes:0}),
+      ev('assistant','Done. The right pane now opens on the newest turn and follows it live.\\n\\n- **Top:** only the status ribbon stays; everything else sits under *more info*.\\n- **Ribbon:** a follow toggle, jumps between your messages and final answers, thinking and tools-only switches.\\n- **Turns:** yours are green, final answers red, tool calls a quiet blue.\\n\\nAll pane suites pass.'),
+      {recordRef:'r'+(++n),uuid:null,kind:'result',status:'stored',text:'',calls:[],thinking:[],receipt:{subtype:'success',total_cost_usd:0.4213,usage:{input_tokens:1200,output_tokens:5400,cache_read_input_tokens:290000,cache_creation_input_tokens:4100}}},
+      ev('user','Great. Make the ribbon a touch thinner and commit it.'),
+      ev('assistant','',{thinking:think('','stored',true),partial:true}),
+      ev('assistant','Tightening the ribbon padding, then committing on the branch.'),
+      ev('assistant','',{calls:[call('Bash',[['command','git commit -am "Thinner conversation ribbon"'],['description','Commit the change']],64,null,'pending-or-missing')]})
+    ];
+    // Subagent activity between primary turns: three subagents, interleaved, one still running.
+    let a=0;const act=(agent,after,name,args,extra={})=>({key:'act'+(++a),agent,after,ordinal:1000+a,time:now-1500+a*21,generation:3,type:'call',
+      name,id:'sc'+a,block:0,callRef:'sub'+a,status:'stored',previewData:obj(args),inputBytes:80,outputBytes:900,...extra});
+    const subagents=[{agent:'toolA',index:0,agentId:'agent-k1',description:'Pane UI pass, round 1',subagentType:'manager-quick',state:'running'},
+      {agent:'toolB',index:1,agentId:'agent-k2',description:'Find every caller of reconcile()',subagentType:'Explore',state:'completed'},
+      {agent:'toolC',index:2,agentId:'agent-k3',description:'Run the browser suites',subagentType:'general-purpose',state:'completed'}];
+    const activity=[
+      act('toolA','r6','mcp__workflowy__node',[['verb','read'],['node_handle','[ap:AAPW5Q]']]),
+      act('toolB','r6','Grep',[['pattern','reconcile\\('],['path','transcription-pane/static']]),
+      act('toolA','r6','Read',[['file_path','/mnt/e/.../transcription-pane/static/sessions.js']]),
+      act('toolB','r6','Read',[['file_path','/mnt/e/.../transcription-pane/static/sessions.js'],['offset','600']]),
+      act('toolC','r6','Bash',[['command','python3 transcription-pane/tests/run_browser_checks.py --real-time-markdown'],['description','Run the browser suites']]),
+      {key:'actT',agent:'toolC',after:'r6',ordinal:1000+(++a),time:now-1500+a*21,generation:3,type:'task',status:'task_notification',taskType:'local_bash',taskStatus:'completed',summary:'Background command "Run the browser suites" completed (exit code 0)'},
+      act('toolA','r6','Edit',[['file_path','/mnt/e/.../transcription-pane/static/sessions.css'],['old_string','.history-event {'],['new_string','.history-event { margin:6px 8px;']]),
+      act('toolA','r17','Bash',[['command','node --test transcription-pane/tests/*.test.cjs'],['description','Run the Node suites']]),
+      act('toolA','r17','Bash',[['command','git diff --stat'],['description','Review the change']],{status:'pending-or-missing',outputBytes:null})];
+     // Long active trees, a second collapsed active root and a quiet home root exercise
+     // the root indicator without reading any real program/session inventory.
+     const programs=[],programShot=${JSON.stringify(shot.startsWith('program-'))};
+     if(programShot)for(const [core,title,count,active,days] of [['MCI012','MCI · an old program still running',22,true,18],['PANE12','Pane final round',3,true,1],['QUIET1','An idle program',1,false,0]]) {
+       for(let i=0;i<count;i++)programs.push({...live,sessionRef:core+'-'+i,uuid:core+'-uuid-'+i,executionId:'cc-'+core+'-'+i,
+         role:i?'worker':'conductor',displayRole:i?'worker':'conductor',sessionLabel:null,createdAt:now-days*86400+i,
+         title:i?'Worker '+i+' · isolated offline fixture':'[ap:'+core+']-001 · '+title,
+         lineage:{program:core,kind:i?'seat':'conductor',conductorN:1,quickProgram:core!=='MCI012',title:i?'Worker '+i:'[ap:'+core+']-001 · '+title},
+         capabilities:{history:true,nativeInput:false},lifecycle:active?'live':'ended',state:active?'ready':'exited',
+         liveState:{state:active?'ready':'exited',primary_turn_open:active && i===count-1,pending_message_uuids:[],background_tasks:{}},
+         turnFacts:{status:'complete',firstAt:now-days*86400+i,lastAt:now-days*86400+i+600,models:[],levels:[]}});
+     }
+     if(programShot)window.setInterval=()=>0; // static layout shots do not need poll/clock rebuilds
+     window.demo={events,live,kids,ev,activity,subagents,programs};
+    window.fetch=async(url)=>{let data;
+       if(url.startsWith('/api/claude/sessions'))data=env({sessions:[live,sleeping,hist,plain,...programs],listWindowDays:14,hasMore:false,status:'complete'});
+      else if(url==='/api/pins')data={schemaVersion:1,pins:{}};
+      else if(url.startsWith('/api/claude/subagents')){const ref=new URLSearchParams(url.split('?')[1]).get('sessionRef');data=env({sessions:kids[ref]||[],hasMore:false,status:'complete'});}
+      else if(url.startsWith('/api/claude/events')){const q=new URLSearchParams(url.split('?')[1]),delta=q.get('cursor')==='delta';
+        data=env({sessionRef:q.get('sessionRef'),scopeRef:q.get('scopeRef'),fileEpoch:'epoch',leafRef:'leaf',targetRef:'target',events:delta?[]:events,branches:[],traces:[],diagnostics:[],
+          status:'complete',change:delta?'append':'snapshot',hasMore:false,deltaCursor:'delta',
+          subagentActivity:delta?[]:activity,subagents,
+          liveState:{state:'ready',owner:'host',primary_turn_open:true,activity:{state:'tool',tool:'Bash',lastEventAt:now-4},
+            background_tasks:{'agent-k1':{task_type:'local_agent',description:'Pane UI pass, round 1'}}},
+          contextReadout:{state:'measured',occupancy_tokens:294246,window_tokens:1000000,measured_at:now-40},
+          sourceProgress:{indexedBytes:2480000,sourceBytes:2480000,kind:'host-raw'}});}
+      else if(url==='/api/tool-selection')data={epoch:'mail',revision:1,selection:null};
+      else if(url.startsWith('/api/telemetry')){
+        // oc.sh telemetry as the pane server answers it: the Conductor's context and wall clock, each worker's phases.
+        const core=new URLSearchParams(url.split('?')[1]).get('program');
+        const impl=[['start-up 57.3 KT · edit@142 KT · report@356 KT · end 398 KT · 0/1/39/12 min · ⚑0','57.3 (0) → 142 (1) → 356 (39) → 398 KT (12 min) ⚑0'],
+          ['start-up 103 KT · edit@207 KT · report@400 KT · end 425 KT · 1/2/29/6 min · ⚑0','103 (1) → 207 (2) → 400 (29) → 425 KT (6 min) ⚑0'],
+          ['start-up 54.0 KT · edit@94.9 KT · report@163 KT · end 173 KT · 0/0/6/2 min · ⚑1','54.0 (0) → 94.9 (0) → 163 (6) → 173 KT (2 min) ⚑1']];
+        // The second worker was resumed twice (one line per run, the live one last); every other row ran once.
+        const resumed=[['carried 425 KT · src@431 KT · edit@443 KT · report@547 KT · end 568 KT · 6/2/51/6 min · ⚑0','431 (6) → 443 (2) → 547 (51) → 568 KT (6 min) ⚑0'],
+          ['carried 568 KT · src@574 KT · edit@— · report@— · end 590 KT · 3/4/—/— min · ⚑0','574 (3) → — → — → 590 KT (4 min) ⚑0']];
+        const seg=(p,t,n,live)=>({key:p.executionId+'#'+n,segment:n,kind:n?'follow_up':'fresh',label:n?'+'+n+' follow-up':'fresh',full:t[0],short:t[1]||t[0],line:(n?'+'+n+' follow-up':'fresh')+' · '+t[0],flags:[],notes:[],live});
+        data={schemaVersion:1,backend:'telemetry',status:'complete',sessions:Object.fromEntries(programs.filter(p=>p.lineage.program===core).map((p,i)=>{
+          const t=i?impl[i%3]:['context 35.6 → 429 KT · 20 min'],more=i===2?resumed:[],live=p.liveState.primary_turn_open;
+          return [p.executionId,{sid:p.executionId,backend:'claude',role:i?'IMPLEMENTER':'CONDUCTOR',roleSource:'title',phases:!!i,unit:i?'U0'+i:null,lastT:1,
+            segments:[seg(p,t,0,live && !more.length),...more.map((x,n)=>seg(p,x,n+1,live && n===more.length-1))]}];}))};
+      }
+      else throw new Error('offline fixture: '+url);
+      return new Response(JSON.stringify(data));};
+  `;
+  const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+  const app=js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();window.demo.api=history;');
+  const markup=html.replace(/<link[^>]+>/,'<style>'+css+'</style>').replace(/<script src="[^"]+"><\/script>/g,'').replace('<body>','<body class="embedded">')
+    .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>${safe(marked)}<\/script><script>${safe(purify)}<\/script><script>${safe(md)}<\/script><script>${safe(reading)}<\/script><script>${safe(app)}<\/script></body>`);
+  const frame=document.getElementById('pane');frame.srcdoc=markup;await new Promise(r=>frame.onload=r);
+   const w=frame.contentWindow,d=w.document,sleep=ms=>new Promise(r=>setTimeout(r,ms));
+   await sleep(150);const api=w.demo.api;
+   await api.browse(api.state.inventory[0]);await sleep(50);await api.children();await sleep(50);
+   const checks=[],check=(name,ok)=>checks.push({name,passed:!!ok});
+   if(shot.startsWith('program-')) {
+     const root=core=>[...d.querySelectorAll('.program')].find(p=>p.querySelector('.program-meta').textContent.includes('[ap:'+core+']'));
+     const small=()=>root('PANE12'),smallHead=()=>small().querySelector('.program-head');
+     const paint=w.getComputedStyle(small(),'::after');
+     check('one top-painted non-interactive rectangle',paint.position==='absolute' && paint.zIndex==='2' && paint.pointerEvents==='none' && paint.borderTopStyle==='solid' && w.getComputedStyle(small()).outlineStyle==='none');
+     const open=smallHead().getAttribute('aria-expanded'),r=smallHead().getBoundingClientRect(),hit=d.elementFromPoint(r.left+60,r.top+10);
+     check('overlay does not intercept root pointer hit',smallHead().contains(hit));hit?.click();
+     check('root click toggles',smallHead().getAttribute('aria-expanded')!==open);
+     const beforeFold=smallHead().getAttribute('aria-expanded');small().querySelector('.program-fold').click();
+     check('fold control remains clickable',smallHead().getAttribute('aria-expanded')!==beforeFold);
+     const programToggle=small().querySelector('.tree-toggle'),was=smallHead().getAttribute('aria-expanded');programToggle.click();
+     check('root expander remains clickable',smallHead().getAttribute('aria-expanded')!==was);
+     const header=()=>d.querySelector('#sessions-list > .session-group > h3');
+     const h=header(),label=h.children[1].textContent;h.click();
+     check('whole section header still collapses',header().querySelector('.section-toggle').getAttribute('aria-expanded')==='false');header().click();
+     check('section label survives toggles',header().children[1].textContent===label);
+     check('only section headers get larger type',w.getComputedStyle(header()).fontSize==='15px' && !d.querySelector('.program h3') && w.getComputedStyle(smallHead()).fontSize==='13px');
+     api.state.lineageOpen.set('p:MCI012',shot!=='program-collapsed');
+     api.state.lineageOpen.set('p:PANE12',false);api.inventory();
+     const scroll=d.getElementById('sessions-scroll');
+     if(shot==='program-scrolled') {
+       const long=root('MCI012');scroll.scrollTop+=long.getBoundingClientRect().top-scroll.getBoundingClientRect().top+280;
+       check('program head still sticks while scrolled',Math.abs(long.querySelector('.program-head').getBoundingClientRect().top-scroll.getBoundingClientRect().top)<1);
+     }
+     if(shot==='program-home') {
+       // Styling-only relocation: live placement normally leaves a home stub, not a
+       // duplicate active row. Prove the indicator has no Running-now ancestor dependency.
+       const home=[...d.querySelectorAll('.session-group')].find(g=>g.querySelector('h3')?.textContent.includes('Full programs'));
+       const long=root('MCI012');home.append(long);scroll.scrollTop+=home.getBoundingClientRect().top-scroll.getBoundingClientRect().top;
+       check('same painter in home-section styling probe',w.getComputedStyle(long,'::after').zIndex==='2' && long.parentNode===home);
+     }
+   }
+  if(shot==='expanded')d.getElementById('history-more-info').open=true;
+  if(shot==='folded')d.getElementById('ribbon-subagents').click();
+  if(shot==='activity'){const v=d.getElementById('history-viewport'),run=d.querySelector('.subagent-run');api.setFollow(false,{byScroll:true});v.scrollTop=Math.max(0,run.offsetTop-160);}
+  if(shot==='sidebar'){d.querySelectorAll('.session-item')[2].querySelector('.session-toggle').click();await sleep(100);}
+  if(shot==='paused'){const v=d.getElementById('history-viewport');api.setFollow(false,{byScroll:true});v.scrollTop=Math.max(0,v.scrollHeight-v.clientHeight-420);
+    api.reconcile([w.demo.ev('assistant','A later reply arrives below without moving the view.'),w.demo.ev('user','And one more message from you.')],'delta','epoch');}
+  // Headless shots cannot hover: paint the hover rule's bar on one tool turn to show it.
+  if(shot==='hover'){const v=d.getElementById('history-viewport'),row=[...d.querySelectorAll('.history-event.turn-tools')].at(-2);api.setFollow(false,{byScroll:true});
+    v.scrollTop=Math.max(0,row.offsetTop-260);row.style.borderLeftColor='var(--block-hover-accent)';}
+  if(shot==='child'){const child=d.querySelector('#subagents-list button');if(child)child.click();await sleep(300);}
+   await sleep(100);
+   const report=document.createElement('script');report.type='application/json';report.id='shot-report';report.textContent=JSON.stringify({shot,checks});document.body.append(report);
+   document.title='ready:'+shot;
+})().catch(e=>{document.body.append(String(e&&e.stack||e));document.title='error';});
+</script>

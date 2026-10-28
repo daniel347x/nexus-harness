@@ -1,0 +1,150 @@
+<!doctype html><meta charset="utf-8"><title>📦 History — the actual desktop sidebar/viewer and the actual phone page over a fixture archive, all transport inert</title>
+<style>body{margin:0}iframe{border:0;vertical-align:top;height:900px}#desktop{width:1200px}#phone{width:390px}pre{white-space:pre-wrap}</style>
+<iframe id="desktop" title="Actual desktop sidebar and viewer"></iframe><iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<800;i++){try{if(fn())return;}catch(_){}await sleep(5);}throw new Error(what+' did not settle');};
+  try {
+    const base=new URL('../static/',location.href),sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const read=async(name,from=base)=>(await fetch(new URL(name,from))).text();
+    const [sessionsHtml,sessionsCss,sessionsJs,reading,quotaHalt,handleLinks,mHtml,mCss,mJs,progHtml,progCss,marked,purify,markdown,defaults,core,refineView,seenLatest,highlighter,diffView,diffCss]=
+      await Promise.all(['sessions.html','sessions.css','sessions.js','tool-reading.js','quota-halt.js','handle-links.js','m.html','m.css','m.js','m-programs.html','m-programs.css',
+        'vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js','refine-defaults.js','refine-core.js','refine-view.js','seen-latest.js','vendor/highlight.min.js','diff-view.js','diff-view.css'].map(n=>read(n)));
+    const [records,previews]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(n=>read(n,sharedBase)));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const inline=(page,styles,scripts)=>page.replace(/<link[^>]+>/g,'').replace('</head>',()=>styles.map(s=>'<style>'+s+'</style>').join('')+'</head>')
+      .replace(/ *<script src="[^"]+"><\/script>\n?/g,'').replace('</body>',()=>scripts.map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    const fx=window.historyFixture={requests:[],programRequests:[],errors:[],posts:[]};
+    // One inert transport for every frame: the live routes a page reads at start, and a fixture archive behind /api/history/*.
+    const transport=`
+      const fx=window.top.historyFixture,inPrograms=document.body.classList.contains('phone-programs');
+      addEventListener('error',e=>fx.errors.push(e.message));addEventListener('unhandledrejection',e=>fx.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=>'',writeText:async()=>{}}});
+      const now=1792400000,U=n=>String(n).padStart(8,'0')+'-0000-4000-8000-000000000000',b64u=t=>btoa(unescape(encodeURIComponent(t))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+      const CAPS={history:true,live:false,context:false,inspect:false,nativeInput:false,controls:false,subagents:false,reconnect:false};
+      const refs=key=>({sessionRef:'h_'+b64u(key),scopeRef:'h_'+b64u(key+':main')});
+      const row=(key,over)=>({storeRef:'history',sessionRef:refs(key).sessionRef,targetRef:null,fileEpoch:'h_e1',scopes:[{label:'main',scopeRef:refs(key).scopeRef}],lifecycle:'ended',
+        liveState:null,lastContext:null,successor:null,capabilities:CAPS,archived:{key,archivedAt:now,prunedAt:null},telemetry:null,...over});
+      const facts={status:'complete',records:4,models:['claude-opus-5-5'],levels:['high'],modelsComplete:true,levelsComplete:true,firstAt:now-900,lastAt:now-300};
+      const host=(n,lineage,over)=>row('claude:cc-'+U(n),{source:'host',uuid:U(n),executionId:'cc-'+U(n),generation:1,state:'exited',status:'exited',title:lineage.title,cwd:'/r/quick-worker',
+        createdAt:now-1000+n,lineage,turnFacts:facts,...over});
+      const TITLE='[ap:HISTRY]-001 · ⚡ archived program',SEAT='[ap:HISTRY]-001 ▸ ⚡ quick worker · the archived seat';
+      const COND=host(1,{program:'HISTRY',kind:'conductor',conductorN:1,quickProgram:true,title:TITLE},{role:'conductor',displayRole:'conductor'});
+      const SEATROW=host(2,{program:'HISTRY',kind:'seat',conductorN:1,conductorId:'cc-'+U(1),quick:true,title:SEAT},{role:'worker',displayRole:'quick-worker'});
+      const CHILDKEY='opencode:ses_child00000001';
+      const CHILD=row(CHILDKEY,{id:'ses_child00000001',busy:false,kind:'helper',program:'HISTRY',parentSeat:'cc-'+U(2),title:'ARCHIVED_HELPER',createdAt:now-800,updatedAt:now-700,
+        turnFacts:{status:'complete',firstAt:now-800,lastAt:now-700}});
+      fx.keys={seat:'claude:cc-'+U(2),child:CHILDKEY,seatRef:SEATROW.sessionRef};
+      const PREVIEW={schemaVersion:1,status:'available',value:{kind:'object',entries:[['description',{kind:'string',characters:9,jsonCharacters:11,head:'scan code',tail:'scan code'}]]}};
+      const ev=(id,seq,kind,text,calls=[])=>({recordRef:'h_'+id+'_'+seq,uuid:'h_'+id+'_'+seq,seq,kind,scope:'main',status:'stored',text,textBytes:text.length,partial:false,time:now-600+seq,
+        thinking:[],calls,orphanResults:[],toolResults:0,isMeta:false,originKind:kind,model:kind==='assistant'?'claude-opus-5-5':null,effort:null,agent:null,receipt:null});
+      const call=(id,seq,i,childKey)=>({callRef:'h_'+id+'_'+seq+'_'+i,block:i,id:'h_'+id+'_'+seq+'_'+i,name:'Task',status:'stored',previewData:PREVIEW,inputBytes:null,outputBytes:null,
+        time:null,resultTime:null,messageId:null,partIndex:null,childSessionId:null,childKey});
+      const convs={[fx.keys.seat]:[ev('aaaaaaaaaaaa',0,'user','ARCHIVED_PROMPT'),ev('aaaaaaaaaaaa',1,'assistant','',[call('aaaaaaaaaaaa',1,0,CHILDKEY)]),ev('aaaaaaaaaaaa',2,'assistant','ARCHIVED_ANSWER **bold**')],
+        [CHILDKEY]:[ev('bbbbbbbbbbbb',0,'user','HELPER_PROMPT'),ev('bbbbbbbbbbbb',1,'assistant','ARCHIVED_HELPER_ANSWER')],
+        ['claude:cc-'+U(1)]:[ev('cccccccccccc',0,'user','CONDUCTOR_PROMPT'),ev('cccccccccccc',1,'assistant','CONDUCTOR_ANSWER')]};
+      const live={source:'host',uuid:U(50),executionId:'cc-'+U(50),generation:1,sessionRef:'live-50',scopes:[{label:'main',scopeRef:'main-50'}],role:'Manager',displayRole:'manager',
+        title:'Manager-Session-196 · LIVE_MANAGER',cwd:'/r',state:'ready',lifecycle:'live',createdAt:now,targetRef:'target-50',capabilities:{nativeInput:true,controls:true,reconnect:true},liveState:{}};
+      const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+      const env=x=>({schemaVersion:1,backend:'claude',...x}),ocv=x=>({schemaVersion:1,backend:'opencode',...x}),hv=x=>({schemaVersion:1,backend:'history',...x});
+      window.fetch=async(url,options={})=>{
+        url=String(url);(inPrograms?fx.programRequests:fx.requests).push([url,options.method||'GET']);
+        const u=new URL(url,'http://pane.fixture/'),q=Object.fromEntries(u.searchParams);
+        if(options.method==='POST')fx.posts.push([u.pathname,options.body]);
+        if(u.pathname==='/api/history/programs')return json(hv({status:'complete',units:[{unit:'program:HISTRY',kind:'program',program:'HISTRY',firstAt:now-1000,lastAt:now-300,sessions:3,
+          sealedAt:now-200,costUsd:null,telemetry:null}],claude:[COND,SEATROW],opencode:[CHILD],hasMore:false,nextBefore:null,total:{units:1,sessions:3},archive:{lastSweepAt:now-100}}));
+        if(u.pathname==='/api/history/sessions'){const all={[fx.keys.seat]:SEATROW,[CHILDKEY]:CHILD,['claude:cc-'+U(1)]:COND},keys=q.keys.split(','),hit=keys.map(k=>all[k]).filter(Boolean);
+          return json(hv({status:'complete',claude:hit.filter(r=>!r.id),opencode:hit.filter(r=>r.id),missing:keys.filter(k=>!all[k])}));}
+        if(u.pathname==='/api/history/glance')return json(hv({status:'complete',key:q.key,messages:[{role:'assistant',time:now-300,chars:15,text:'ARCHIVED_GLANCE'}],call:null,lastAt:now-300,model:'claude-opus-5-5',partial:false}));
+        if(u.pathname==='/api/history/events'){const events=convs[q.key];if(!events)return json(hv({status:'missing',error:'no archived session has this key'}),404);
+          return json(hv({source:'history',...refs(q.key),fileEpoch:'h_e1',events,hasMore:false,nextCursor:null,deltaCursor:null,rowsAhead:0,leafRef:null,targetRef:null,indexLimit:null,branches:[],
+            traces:[],summaryUpdates:[],subagentActivity:[],diagnostics:[],eventUpdates:[],status:'complete',change:'snapshot',busy:false,runningCalls:[],observedAt:null,sessionInfo:null}));}
+        if(u.pathname==='/api/claude/sessions')return json(env({sessions:[live],hasMore:false,status:'complete',listWindowDays:7}));
+        if(u.pathname==='/api/claude/events')return json(env({sessionRef:q.sessionRef,scopeRef:q.scopeRef,fileEpoch:'epoch-live',events:[],eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete',
+          source:'host',role:'Manager',executionId:live.executionId,generation:1,targetRef:live.targetRef,liveState:{native_session_state:'idle',primary_turn_open:false}}));
+        if(u.pathname==='/api/claude/state')return json(env({targetRef:live.targetRef,executionId:live.executionId,generation:1,uuid:live.uuid,source:'host',role:'Manager',capabilities:live.capabilities,
+          lifecycle:'live',liveState:{native_session_state:'idle',primary_turn_open:false}}));
+        if(u.pathname==='/api/pins')return json({schemaVersion:1,pins:{}});
+        if(u.pathname==='/api/tool-selection')return json(env({epoch:'mail',revision:1,selection:null}));
+        if(u.pathname.startsWith('/api/opencode/'))return json(ocv({status:'complete',error:null,sessions:[],active:[],observedAt:Date.now()/1000}));
+        return json(env({status:'unavailable',error:'offline fixture: '+u.pathname}),503);
+      };`;
+    // ---------------------------------------------------------------- desktop: the actual sidebar and conversation viewer
+    const desk=document.getElementById('desktop');
+    desk.srcdoc=inline(sessionsHtml,[sessionsCss],[transport,records,previews,reading,quotaHalt,sessionsJs.replace('const history=createClaudeHistory();','const history=createClaudeHistory();window.top.historyFixture.desk=history;'),handleLinks]);
+    await new Promise(r=>desk.onload=r);
+    const dw=desk.contentWindow,dd=dw.document,$=id=>dd.getElementById(id),api=fx.desk,reqs=(from=0,list=fx.requests)=>list.slice(from).map(([u])=>u);
+    await until(()=>$('sessions-list').textContent.includes('LIVE_MANAGER'),'live list');
+    const select=$('sessions-view');
+    check('desktop: the view selector has its fourth entry, 📦 History, and a new page starts on Last 7 days',
+      [...select.options].map(o=>o.value+':'+o.textContent).join('|')==='week:Last 7 days|month:30 days|all:Everything live|history:📦 History'&&select.value==='week'&&api.setView()==='week');
+    check('desktop: nothing reads the archive before History is picked',!reqs().some(u=>u.startsWith('/api/history/')));
+    const startedAt=performance.now();select.value='history';select.dispatchEvent(new dw.Event('change'));
+    await until(()=>$('sessions-list').textContent.includes('archived program'),'History list');
+    fx.deskDrawMs=Math.round(performance.now()-startedAt);
+    check('desktop: picking 📦 History reads page 1 and draws the archived program through the existing tree',reqs().filter(u=>u.startsWith('/api/history/programs')).length===1&&
+      !$('sessions-list').textContent.includes('LIVE_MANAGER')&&/📦 History/.test($('sessions-freshness').textContent));
+    const liveAt=fx.requests.length;await sleep(2200);
+    check('desktop: while in History no inventory, live poll, OpenCode list/activity, glance, turns or telemetry read runs',
+      !reqs(liveAt).some(u=>/^\/api\/(claude|opencode)\/|^\/api\/telemetry/.test(u)));
+    // An archived program is neither live nor active, so it is drawn closed; a click on its head opens it, as Dan would.
+    const openProgram=doc=>[...doc.querySelectorAll('#sessions-list .program')].find(p=>p.textContent.includes('archived program'))?.querySelector('.program-head')?.click();
+    openProgram(dd);
+    let seatOpen;await until(()=>seatOpen=[...dd.querySelectorAll('#sessions-list .session-item .session-open')].find(b=>b.textContent.includes('the archived seat')),'archived seat row');
+    check('desktop: the archived seat is drawn under its program',!!seatOpen);
+    seatOpen.click();
+    await until(()=>$('history-events').textContent.includes('ARCHIVED_ANSWER'),'archived conversation');
+    const bar=$('history-events').querySelector('.tool-bar');
+    check('desktop: the archived conversation opens in the same viewer, read-only: 📦 title, archived activity, prompts, answers and the tool preview',
+      /^📦 /.test($('history-title').textContent)&&$('history-activity').textContent==='📦 Archived conversation · read-only'&&$('history-events').textContent.includes('ARCHIVED_PROMPT')&&
+      bar?.classList.contains('archived-call')&&bar.querySelector('.tool-preview').textContent.includes('scan code')&&$('history-target').disabled);
+    const before=fx.requests.length;bar.click();await sleep(50);
+    check('desktop: an archived tool bar has no Inspect',!reqs(before).some(u=>u.includes('/inspect'))&&fx.posts.length===0&&bar.getAttribute('aria-disabled')==='true');
+    check('desktop: it was read through /api/history/events only',reqs(liveAt).filter(u=>u.startsWith('/api/history/events')).length===1&&
+      !reqs(liveAt).some(u=>/^\/api\/(claude|opencode)\//.test(u)));
+    $('history-events').querySelector('.oc-child-link').click();
+    await until(()=>$('history-events').textContent.includes('ARCHIVED_HELPER_ANSWER'),'archived child');
+    check('desktop: the tool’s childKey opens the archived child in the same viewer, never through OpenCode',api.state.session.key===fx.keys.child&&
+      reqs(liveAt).some(u=>u.startsWith('/api/history/sessions?keys='))&&!reqs(liveAt).some(u=>u.startsWith('/api/opencode/')));
+    const backAt=fx.requests.length;select.value='week';select.dispatchEvent(new dw.Event('change'));
+    await until(()=>$('sessions-list').textContent.includes('LIVE_MANAGER'),'live list again');
+    check('desktop: Last 7 days restores the live list and its reads; the archived conversation stays readable',reqs(backAt).some(u=>u.startsWith('/api/claude/sessions')&&u.includes('view=week'))&&
+      !$('sessions-list').textContent.includes('archived program')&&$('history-events').textContent.includes('ARCHIVED_HELPER_ANSWER'));
+    // ---------------------------------------------------------------- phone: Programs' Read › opens it read-only in Chat
+    const phone=document.getElementById('phone');
+    phone.srcdoc=inline(mHtml,[mCss,diffCss],[transport,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,quotaHalt,mJs+'\nwindow.top.historyFixture.phone=phoneManager;',handleLinks]);
+    await new Promise(r=>phone.onload=r);
+    const pw=phone.contentWindow,pdoc=pw.document,m=id=>pdoc.getElementById('m-'+id),papi=fx.phone;
+    Object.defineProperty(m('glimpse-frame'),'src',{configurable:true,set(){this.setAttribute('src','about:blank');}});
+    await until(()=>m('managers').children.length>=1,'phone Manager chips');
+    const programs=m('programs-frame');
+    programs.srcdoc=inline(progHtml,[sessionsCss,progCss],[transport,records,previews,quotaHalt,sessionsJs.replace('const history=createClaudeHistory();','const history=createClaudeHistory();window.top.historyFixture.programs=history;'),handleLinks]);
+    m('view-programs').click();
+    let pd;await until(()=>(pd=programs.contentDocument)&&pd.getElementById('sessions-list').textContent.includes('LIVE_MANAGER'),'phone Programs list');
+    check('phone: the Programs selector has the same fourth entry',[...pd.getElementById('sessions-view').options].map(o=>o.value).join(',')==='week,month,all,history');
+    const pStart=performance.now(),psel=pd.getElementById('sessions-view');psel.value='history';psel.dispatchEvent(new programs.contentWindow.Event('change'));
+    await until(()=>pd.getElementById('sessions-list').textContent.includes('archived program'),'phone History list');
+    fx.phoneDrawMs=Math.round(performance.now()-pStart);
+    openProgram(pd);
+    let chip;await until(()=>chip=[...pd.querySelectorAll('#sessions-list .session-item')].find(n=>n.textContent.includes('the archived seat'))?.querySelector(':scope > .session-read'),'phone archived seat row');
+    check('phone: an archived row carries the Read › chip',chip?.textContent==='Read ›');
+    const at=fx.requests.length;chip.click();
+    await until(()=>papi.state.viewing&&m('messages').textContent.includes('ARCHIVED_ANSWER'),'phone archived Chat');
+    check('phone: Read › opens the archived conversation read-only in Chat by its key, never a live read or a Manager',papi.state.viewing.backend==='history'&&papi.state.viewing.key===fx.keys.seat&&
+      /Read-only .*📦 archived/.test(m('state').textContent)&&reqs(at).some(u=>u.startsWith('/api/history/events?key='))&&!reqs(at).some(u=>u.startsWith('/api/claude/events?sessionRef=h_')));
+    const tool=m('messages').querySelector('details.m-tool');
+    tool.querySelector('summary').click();await sleep(30);
+    check('phone: an archived tool bar is its preview and never opens onto a body to read',tool.classList.contains('m-tool-archived')&&!tool.open&&!reqs(at).some(u=>u.includes('tool-record')));
+    const reads=reqs(at).filter(u=>u.startsWith('/api/history/events')).length;await sleep(2500);
+    check('phone: a loaded archived conversation is not re-read by the poll',reqs(at).filter(u=>u.startsWith('/api/history/events')).length===reads);
+    check('no script error in any frame',fx.errors.length===0);
+  } catch(e) {checks.push({name:e.message+(window.historyFixture?.errors?.length?' · errors: '+window.historyFixture.errors.join(' | '):''),passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,
+    deskDrawMs:window.historyFixture?.deskDrawMs,phoneDrawMs:window.historyFixture?.phoneDrawMs,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0 && checks.every(x=>x.passed));
+})();
+</script>

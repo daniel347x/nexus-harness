@@ -1,0 +1,40 @@
+/* Native toggle and actions remain siblings. No conversation/preview text styling. */
+.tool-call .tool-call-header > .opc-tool-toggle {
+  flex: 0 0 auto;
+  max-width: 9.5em;
+  margin-inline: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--border-base, #888);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, inherit);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-call .tool-call-header > .opc-tool-toggle:focus-visible {
+  outline: 2px solid var(--text-primary, currentColor);
+  outline-offset: 2px;
+}
+.tool-call .tool-call-header[data-native-expanded="true"] > .tool-call-header-toggle .disclosure-chevron {
+  transform: rotate(90deg);
+}
+.tool-call .tool-call-header[data-inspect-selected="true"] {
+  /* Neutral foreground mix works for both themes, including neutral native surfaces. */
+  background-color: color-mix(in srgb, var(--text-primary, currentColor) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--text-secondary, currentColor);
+}
+.tool-call .tool-call-header[data-inspect-state="failed"] > .tool-call-header-toggle,
+.tool-call .tool-call-header[data-inspect-state="source-error"] > .tool-call-header-toggle {
+  outline: 1px solid var(--status-error, #c44);
+  outline-offset: -1px;
+}
+@media (forced-colors: active) {
+  .tool-call .tool-call-header[data-inspect-selected="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

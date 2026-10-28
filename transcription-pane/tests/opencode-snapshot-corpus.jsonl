@@ -1,0 +1,26 @@
+{}
+{"status":"streaming","input":"{\"path\":\"汉字😀\\n\""}
+{"status":"running","input": { "n":1e+02, "zero":-0, "big":900719925474099312345, "duplicate":1,"duplicate":2 }}
+{"status":"completed","input":false,"content":[]}
+{"status":"completed","input":0,"output":false}
+{"status":"completed","input":null,"content":null,"output":"ignored"}
+{"status":"completed","input":"","content":""}
+{"status":"completed","input":[],"content":[],"output":"must not win"}
+{"status":"completed","input":{},"content":[{"type":"text","text":"汉字😀\nline"},{"type":"image", "n":1e+02,"data":"AA=="},{"type":"text","text":""}]}
+{"status":"error","input":"one\\nlayer","error":{"name":"Failure", "code":-0},"content":[{"type":"text","text":"partial output"}]}
+{"status":"error","error":"failed"}
+{"error":null,"output":0}
+{"error":false,"content":[false,null,0,[],{},"string"]}
+{"input":"a\t\"b\"\r\n\\n","output":{"first":1,  "first":2,"big":123456789012345678901234567890}}
+{"input":{"providerState":"ordinary input key"},"content":[{"type":"text","text":"[saved output stub · original not retained]"}]}
+{"content":[{"type":"text","text":null},{"type":"text","text":false},{"type":"other","text":"not a text block","x":1e-02}]}
+{"input":1e+02,"output":-0}
+{"content": { "a":1,  "b":2 },"error":""}
+{"status":"completed","input":{"command":"ls"},"output":"before \ud83d after"}
+{"status":"completed","input":"before \ud83d after","output":"done"}
+{"status":"completed","input":{},"content":[{"type":"text","text":"before \ud83d after"}]}
+{"status":"error","input":{},"error":"before \ud83d after","output":"partial"}
+{"status":"completed","input":"\ud800","output":"\udfff"}
+{"status":"completed","input":"\ud83d\ude00","output":"汉😀 \ud83d\ud83d x \ude00\ude00 \\ud83d"}
+{"status":"completed","input":{"\ud83d":"\ude00", "n":1e+02},"output":{"cut":"\ud83d", "zero":-0}}
+{"status":"completed","content":[{"type":"text","text":"\ude00"},{"type":"image","cut":"\ud83d"},{"type":"text","text":"\ud83d"}]}

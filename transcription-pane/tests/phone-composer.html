@@ -1,0 +1,292 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>iPhone/iPad composer — actual modules, real device metrics via CDP</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}iframe{display:block;width:100%;height:100%;border:0}pre{position:fixed;left:-9999px;top:0;white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page at the emulated device"></iframe><pre id="results">running…</pre>
+<script>
+// Dan dictates long replies on an iPhone (390×844, touch, keyboard up) and must keep reading a real screenful of the
+// conversation; status must never take layout. Loads the ACTUAL m.html/m.js/m.css/status-toast.* with inert host IO, and
+// drives REAL device metrics through run_phone_device_browser.cjs (isolated Chrome CDP, no live pane).
+// The keyboard is the browser's visualViewport, mocked at the page boundary exactly as Safari reports it under a keyboard
+// (the layout viewport is untouched; only visualViewport.height shrinks). iPad Mini 744×1133 keeps the growing editor even
+// when that visual viewport goes below 500 px: the layout rule is the layout viewport, never the keyboard.
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait',n=400)=>{for(let i=0;i<n;i++){try{if(fn())return;}catch(_){}await sleep(25);}throw new Error((typeof what==='function'?what():what)+' did not settle');};
+  let seq=0;
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,css,diffCss,glareCss,toastCss,marked,purify,markdown,defaults,core,refineView,previews,records,reading,seenLatest,highlighter,diffView,quotaHalt,statusToast,app]=await Promise.all([
+      'm.html','m.css','diff-view.css','glare.css','status-toast.css','vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js','refine-defaults.js','refine-core.js',
+      'refine-view.js','../../chrome-extension/codenomad-session-watcher/tool-preview-core.js','../../chrome-extension/codenomad-session-watcher/tool-record-text.js',
+      'tool-reading.js','seen-latest.js','vendor/highlight.min.js','diff-view.js','quota-halt.js','status-toast.js','m.js'].map(read));
+    check('the fixture loaded the actual production m.js, m.css and the status-toast module',app.length>1000&&statusToast.length>1000&&toastCss.includes('.pane-toast')&&html.includes('/status-toast.js'));
+    const fixture=window.phoneComposer={errors:[],requests:[],mode:'idle',now:Date.now()};
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const uuid='11111111-1111-4111-8111-111111111111';
+    const manager={source:'host',role:'Manager',uuid,executionId:'cc-'+uuid,generation:1,targetRef:'target-'+uuid,sessionRef:'session-'+uuid,
+      scopes:[{label:'main',scopeRef:'main-'+uuid}],title:'Newest Manager',createdAt:'2026-10-18T10:00:00Z',lifecycle:'live',
+      capabilities:{nativeInput:true,controls:true,reconnect:true}};
+    const event=(n,kind,text)=>({seq:n,kind,text,uuid:'event-'+n,recordRef:'record-'+n,scope:'main',calls:[],partial:false});
+    const events=[];
+    for(let i=0;i<26;i++)events.push(event(i*2,i%2?'assistant':'user',(i%2?'The Manager answered this turn':'Dan asked about this turn')+' — '+('a readable line of the conversation that must stay on screen. '.repeat(2))));
+    events.push(event(90,'assistant','FINAL_VISIBLE the newest answer, with a real screenful of history above it.'));
+    const mock=`
+      const fixture=parent.phoneComposer;
+      addEventListener('error',e=>fixture.errors.push(String(e.message||e.target?.src||'resource error')));
+      addEventListener('unhandledrejection',e=>fixture.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+        getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>Promise.resolve(''),writeText:()=>Promise.resolve()}});
+      let keyboard=0;
+      const vv=new EventTarget();vv.offsetTop=0;vv.offsetLeft=0;vv.width=innerWidth;vv.height=innerHeight;
+      const sync=()=>{vv.width=innerWidth;vv.offsetTop=0;vv.offsetLeft=0;vv.height=keyboard?Math.min(keyboard,innerHeight-80):innerHeight;
+        vv.dispatchEvent(new Event('resize'));};
+      Object.defineProperty(window,'visualViewport',{configurable:true,value:vv});
+      window.__keyboard=(on,height=450)=>{keyboard=on?height:0;sync();};
+      window.__syncViewport=()=>sync();
+      addEventListener('resize',()=>sync());
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      const identity=()=>({targetRef:'target-'+'${uuid}',executionId:'cc-'+'${uuid}',generation:1,uuid:'${uuid}',source:'host',role:'Manager'});
+      window.fetch=async(url,options={})=>{
+        url=String(url);fixture.requests.push([url,options.method||'GET']);
+        const u=new URL(url,parent.location.href),q=Object.fromEntries(u.searchParams);
+        let data;
+        if(u.pathname==='/api/claude/sessions')data=env({sessions:[${JSON.stringify(manager)}],hasMore:false,status:'complete'});
+        else if(u.pathname==='/api/claude/events'){
+          const past=q.fromSeq==='9007199254740991';
+          data=env({sessionRef:q.sessionRef,scopeRef:q.scopeRef,source:'host',role:'Manager',executionId:'cc-'+'${uuid}',generation:1,fileEpoch:'epoch',
+            events:q.cursor||past?[]:${JSON.stringify(events)},eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete',
+            ...(past?{contextReadout:{state:'measured',occupancy_tokens:41200,window_tokens:100000,measured_at:Date.now()/1000}}:{})});
+        }else if(u.pathname==='/api/claude/state'){
+          data=env({...identity(),capabilities:${JSON.stringify(manager.capabilities)},lifecycle:'live',
+            liveState:{native_session_state:'idle',primary_turn_open:false,settings_mismatch:false,settings_unverified:false,
+              controls_effective:{model:'claude-opus-5-5',effort:'high'},setting_control_state:'applied',setting_control_pending:false}});
+        }else if(u.pathname==='/api/usage')return new Response(JSON.stringify({schemaVersion:1,backend:'usage',status:'origin',error:'fixture'}),{status:403});
+        else if(u.pathname==='/api/claude/receipt')data=env({...identity(),receipt:null});
+        else if(u.pathname==='/api/claude/control-receipt')data=env({...identity(),controlReceipt:null});
+        else throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    const frame=document.getElementById('phone');
+    frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+'</style><style>'+diffCss+'</style><style>'+glareCss+'</style><style>'+toastCss+'</style></head>')
+      .replace(/  <script src="[^"]+"><\/script>/g,'').replace('</body>',()=>[mock,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,quotaHalt,statusToast,app+'\nfixture.api=phoneManager;'].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);
+    let w=frame.contentWindow,d=w.document;
+    await sleep(600);
+    if(!fixture.api)throw new Error('the actual page did not start: '+JSON.stringify({draft:!!d.getElementById('m-draft'),scripts:d.scripts.length,
+      last:(d.scripts[d.scripts.length-1]?.textContent||'').slice(-120),errors:fixture.errors,status:d.getElementById('m-status')?.textContent}));
+    let api=fixture.api,box=d.getElementById('m-draft');
+    await until(()=>api&&!api.state.pollBusy&&!api.state.listBusy,'phone start');
+    const el=id=>d.getElementById('m-'+id),rect=n=>n.getBoundingClientRect();
+    const composer=()=>el('composer'),conversation=()=>el('conversation'),actions=()=>el('actions'),page=()=>el('page');
+    const statusNode=()=>el('status'),toast=()=>d.querySelector('.pane-toast'),log=()=>d.querySelector('.pane-status-log');
+    const margin=()=>el('draft-margin');
+    const overlaps=(a,b)=>!(a.right<=b.left+.5||a.left>=b.right-.5||a.bottom<=b.top+.5||a.top>=b.bottom-.5);
+    const edit=async text=>{box.value=text;box.dispatchEvent(new w.Event('input',{bubbles:true}));await sleep(60);};
+    const setNote=async(text,error)=>{statusNode().textContent=text;statusNode().dataset.error=String(error);await sleep(80);};
+    const device=async(width,height)=>{
+      const token='d'+(++seq);window.deviceRequest={width,height,mobile:true,token};
+      await until(()=>window.deviceApplied===token,'device '+width+'x'+height);await sleep(250);
+      frame.contentWindow.__syncViewport();await sleep(150);
+      await until(()=>!api.state.pollBusy&&!api.state.listBusy,'device settle');
+    };
+    // No screenshots: the headless CDP capture lagged a state; the numbered JSON checks are this suite's receipt.
+    check('the emulated device is an iPhone 390×844 with touch input',w.innerWidth===390&&w.innerHeight===844&&w.matchMedia('(pointer: coarse)').matches&&navigator.maxTouchPoints>0);
+    await until(()=>el('managers')?.children.length>0,()=>'the Manager list ['+el('list-status')?.textContent+'] · '+fixture.errors.join('; ')+' · '+JSON.stringify(fixture.requests.slice(-6)));
+    el('managers').children[0].click();
+    await until(()=>el('messages').querySelectorAll('article').length>2,'the conversation');
+    const rowButtons=[...actions().querySelectorAll('button')],rowRects=rowButtons.map(rect);
+    check('at 390 px the row is Refine · After --- · ⋯ · Send on one line, every label whole ['+rowButtons.map(b=>b.id+':'+b.clientWidth+'/'+b.scrollWidth).join(' ')+']',
+      rowButtons.map(b=>b.id).join('|')==='m-refine|m-refine-break|m-more|m-send'&&rowRects.every(r=>Math.abs(r.top-rowRects[0].top)<1&&r.width>0)&&
+      rowButtons.every(b=>b.scrollWidth<=b.clientWidth)&&rowRects.at(-1).right<=w.innerWidth);
+    const finalRow=()=>[...el('messages').querySelectorAll('article')].at(-1);
+    check('the conversation is real, scrollable and following its newest message',conversation().scrollHeight>conversation().clientHeight*2&&api.state.follow&&finalRow().textContent.includes('FINAL_VISIBLE'));
+    // ---- the fixed three-line editor on a phone layout
+    const shortH=rect(box).height,style=w.getComputedStyle(box),lh=parseFloat(style.lineHeight)||22.4;
+    const wanted=3*lh+['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth'].reduce((n,p)=>n+(parseFloat(style[p])||0),0);
+    const convoAtRest=rect(conversation()).height;
+    check('a phone layout keeps the normal draft a fixed three-line window ['+Math.round(shortH)+' px, wanted '+Math.round(wanted)+']',Math.abs(shortH-wanted)<=2&&shortH>=76&&shortH<=100);
+    const longDraft=Array.from({length:60},(_,i)=>'Dictated line '+(i+1)+' of a long reply that must not eat the conversation.').join('\n');
+    await edit(longDraft);
+    const longH=rect(box).height,scrollMax=box.scrollHeight-box.clientHeight;
+    check('a long dictation neither grows that window nor takes the conversation\'s room ['+[shortH,longH,convoAtRest,rect(conversation()).height].map(Math.round).join(' / ')+']',
+      Math.abs(longH-shortH)<=1&&scrollMax>box.clientHeight*6&&Math.abs(rect(conversation()).height-convoAtRest)<=1&&convoAtRest>=250);
+    box.scrollTop=box.scrollHeight;
+    check('the whole draft scrolls inside the box, to its last line',box.scrollHeight-box.clientHeight-box.scrollTop<2);
+    // ---- the keyboard: the box takes focus, then Safari's visualViewport down to 450 px
+    box.focus();await sleep(150);frame.contentWindow.__keyboard(true);await sleep(220);
+    const kbComposer=rect(composer()),kbConvo=rect(conversation()),kbActions=rect(actions()),kbPage=rect(page()),kbBox=rect(box);
+    const newest=rect(finalRow());
+    check('with the keyboard up the shell covers the 450 px visual viewport and the text box and buttons sit at home ['+
+      [kbPage.top,kbPage.height,kbComposer.bottom,kbActions.bottom].map(Math.round).join(' / ')+']',
+      d.body.dataset.thumb==='on'&&w.getComputedStyle(page()).position==='fixed'&&Math.abs(kbPage.top)<=1&&Math.abs(kbPage.height-450)<=1&&
+      Math.abs(kbComposer.bottom-442)<=1&&kbActions.bottom<=450 &&w.getComputedStyle(d.body).overflowY==='hidden');
+    check('the draft stays the same three-line window and keeps its own scroll with the keyboard up',Math.abs(kbBox.height-shortH)<=1&&box.scrollHeight>box.clientHeight*6);
+    const kbVisible=Math.min(kbConvo.bottom,w.visualViewport.height)-Math.max(kbConvo.top,0);
+    check('the visible conversation is still a real screenful, with the newest message on screen ['+[Math.round(kbConvo.height),Math.round(kbConvo.top),Math.round(kbConvo.bottom),Math.round(kbVisible),Math.round(newest.bottom)].join(' / ')+']',
+      kbVisible>=240&&newest.top>=kbConvo.top-1&&newest.bottom<=kbConvo.bottom+1&&kbConvo.height>kbBox.height*2);
+    // ---- success/progress: a toast over that conversation, no layout space, gone after three seconds
+    const layoutBefore={composer:kbComposer.bottom,convo:kbConvo.height,actions:kbActions.top};
+    const success='Delivered · exact replay acknowledgement, unchanged draft cleared, original retained in the journal.';
+    await setNote(success,false);
+    const okToast=rect(toast()),okConvo=rect(conversation()),okDraft=rect(box),okActions=rect(actions());
+    check('a success note is a toast inside the visible conversation, never over the text box or its buttons, and it moves nothing ['+
+      [okToast.top,okToast.bottom,okConvo.top,okConvo.bottom,okDraft.top,okActions.top].map(Math.round).join(' / ')+']',
+      toast().dataset.visible==='true'&&toast().dataset.error==='false'&&toast().contains(statusNode())&&statusNode().textContent===success&&
+      okToast.top>=okConvo.top-1&&okToast.bottom<=okConvo.bottom+1&&okToast.left>=okConvo.left-1&&okToast.right<=okConvo.right+1&&
+      !overlaps(okToast,okDraft)&&!overlaps(okToast,okActions)&&
+      Math.abs(rect(composer()).bottom-layoutBefore.composer)<=1&&Math.abs(rect(conversation()).height-layoutBefore.convo)<=1&&Math.abs(rect(actions()).top-layoutBefore.actions)<=1);
+    await sleep(3250);
+    check('a success/progress toast fades after about three seconds, leaving the same layout and keeping its text for the log',
+      toast().dataset.visible==='false'&&statusNode().textContent===success&&
+      Math.abs(rect(composer()).bottom-layoutBefore.composer)<=1&&Math.abs(rect(conversation()).height-layoutBefore.convo)<=1);
+    // ---- errors persist, are visibly errors, and can be dismissed without losing the note
+    const failure='Send refused: the host is holding settings; the full draft is retained.';
+    await setNote(failure,true);
+    const errToast=rect(toast());
+    check('a failure is visibly an error, stays a toast, and still takes no layout',toast().dataset.visible==='true'&&toast().dataset.error==='true'&&
+      w.getComputedStyle(toast()).borderTopColor==='rgb(255, 129, 120)'&&!overlaps(errToast,rect(box))&&!overlaps(errToast,rect(actions()))&&
+      Math.abs(rect(composer()).bottom-layoutBefore.composer)<=1&&Math.abs(rect(conversation()).height-layoutBefore.convo)<=1);
+    await sleep(3300);
+    check('the error is still there after three seconds (only successes/progress fade)',toast().dataset.visible==='true'&&toast().dataset.error==='true'&&statusNode().textContent===failure);
+    toast().querySelector('.pane-toast-dismiss').click();await sleep(60);
+    check('dismissing the error hides the toast but keeps its full note',toast().dataset.visible==='false'&&statusNode().textContent===failure);
+    // ---- the opt-in page-local log, behind ⋯ → Status messages
+    el('more').click();el('status-history').dispatchEvent(new w.MouseEvent('click',{bubbles:true,detail:1}));await sleep(80);
+    const entries=[...log().querySelectorAll('.pane-status-entry')].map(n=>n.textContent),logBox=rect(log());
+    check('⋯ → Status messages opens the page-local log, full width, with the full success and error notes, keeping the dictation focus ['+entries.length+' notes; '+d.activeElement?.id+']',
+      !log().hidden&&log().getAttribute('role')==='dialog'&&el('more-menu').hidden&&d.activeElement===box&&
+      entries.some(n=>n.includes(success))&&entries.some(n=>n.includes('Error · '+failure))&&
+      logBox.top<=1&&Math.abs(logBox.height-450)<=2&&logBox.width>=388&&w.getComputedStyle(log()).position==='fixed');
+    log().querySelector('header button').dispatchEvent(new w.MouseEvent('click',{bubbles:true,detail:1}));await setNote('',false);
+    check('closing the log and clearing the owner hides every surface without moving the page ['+
+      [log().hidden,toast().dataset.visible,statusNode().textContent.length,Math.round(rect(composer()).bottom),Math.round(layoutBefore.composer),d.activeElement?.id].join(' / ')+']',
+      log().hidden&&toast().dataset.visible==='false'&&statusNode().textContent===''&&
+      Math.abs(rect(composer()).bottom-layoutBefore.composer)<=1);
+    // ---- maximize: a compact badge in the thumb margin, never over the dictation
+    d.getElementById('m-draft-max').click();await sleep(250);
+    check('the text box maximizes over the 450 px visible screen, its thumb margin beside the editor',d.body.dataset.maximized==='draft'&&
+      el('draft-max').getAttribute('aria-pressed')==='true'&&margin().getClientRects().length>0&&box.clientHeight>200&&
+      Math.abs(rect(composer()).height-450)<=1);
+    const maxLayout=rect(composer()).height;
+    await setNote('A maximized status note that must not cover the dictation.',false);await sleep(150);
+    const maxToast=rect(toast()),maxMargin=rect(margin()),maxBox=rect(box);
+    check('maximized, the note is a compact badge inside the thumb margin: no text over the draft, no layout ['+
+      [maxToast.left,maxToast.right,maxToast.top,maxToast.bottom,maxMargin.left,maxMargin.right].map(Math.round).join(' / ')+']',
+      toast().dataset.compact==='true'&&maxToast.width<=36&&maxToast.left>=maxMargin.left-1&&maxToast.right<=maxMargin.right+1&&
+      maxToast.top>=maxMargin.top-1&&maxToast.bottom<=maxMargin.bottom+1&&!overlaps(maxToast,maxBox)&&
+      toast().querySelector('.pane-toast-open').textContent==='i'&&w.getComputedStyle(statusNode()).display==='none'&&
+      Math.abs(rect(composer()).height-maxLayout)<=1);
+    await setNote('A maximized failure badge.',true);await sleep(120);
+    check('maximized, an error badge is marked as an error',toast().dataset.compact==='true'&&toast().dataset.error==='true'&&toast().querySelector('.pane-toast-open').textContent==='!'&&
+      w.getComputedStyle(toast().querySelector('.pane-toast-open')).borderTopColor==='rgb(255, 129, 120)');
+    el('draft-max').click();await sleep(250);await setNote('',false);
+    const backConvo=rect(conversation()),backVisible=Math.min(backConvo.bottom,w.visualViewport.height)-Math.max(backConvo.top,0);
+    check('restoring returns the fixed three-line box, the badge gone and the conversation screenful ['+[Math.round(rect(box).height),Math.round(backVisible),toast().dataset.compact,d.body.dataset.maximized].join(' / ')+']',
+      d.body.dataset.maximized===''&&toast().dataset.compact==='false'&&Math.abs(rect(box).height-shortH)<=1&&backVisible>=240);
+    box.blur();frame.contentWindow.__keyboard(false);await sleep(120);
+    // The draft's own scroll is separate from shell home / conversation following. Model the reported stale inner
+    // offset on keyboard opening, then real deliberate reading gestures: never a scroll-event tug-of-war with iOS.
+    const atDraftEnd=()=>box.scrollHeight-box.clientHeight-box.scrollTop<=1;
+    // Observe page-script scroll writes only: the browser is free to reveal its own focused caret, which does not
+    // call this JS setter. That native focus scroll must not be mistaken for a new correction by the keyboard shell.
+    const scrollProperty=Object.getOwnPropertyDescriptor(w.Element.prototype,'scrollTop');let draftWrites=0;
+    Object.defineProperty(box,'scrollTop',{configurable:true,get(){return scrollProperty.get.call(this);},set(value){draftWrites++;scrollProperty.set.call(this,value);}});
+    for(const maximized of [false,true]){
+      if(maximized)el('draft-max').click();
+      const mode=maximized?'maximized':'normal';
+      await edit(longDraft);box.setSelectionRange(box.value.length,box.value.length);box.scrollTop=box.scrollHeight;
+      box.dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true,pointerType:'touch',isPrimary:true}));
+      // iOS may change the inner offset while focusing, before any viewport event. The pre-focus sample must survive.
+      box.scrollTop-=lh*2;const writesBeforeFocus=draftWrites;box.focus();await sleep(60);
+      check(mode+' · the shell makes no scripted draft-scroll write during the caret-placing focus tap',draftWrites===writesBeforeFocus);
+      box.scrollTop-=lh*2;
+      w.__keyboard(true);await sleep(220);
+      check(mode+' · the keyboard resize restores the previously visible draft end, with the end caret unselected',atDraftEnd()&&
+        box.selectionStart===box.value.length&&box.selectionEnd===box.value.length&&d.activeElement===box);
+      // A later resize/fit, while the keyboard settles, keeps that intent too.
+      box.scrollTop-=lh*2;w.__keyboard(true,420);await sleep(180);
+      check(mode+' · a settling keyboard resize keeps the draft end in view',atDraftEnd());
+      if(!maximized){
+        box.setSelectionRange(box.value.length-2,box.value.length-2);box.dispatchEvent(new w.Event('select'));
+        box.scrollTop-=lh*2;w.__keyboard(true,410);await sleep(150);
+        check('normal · the opening tap can land short of the final character without losing the end pin or changing that caret',atDraftEnd()&&
+          box.selectionStart===box.value.length-2&&box.selectionEnd===box.value.length-2);
+      }
+      box.dispatchEvent(new w.Event('touchmove',{bubbles:true}));box.scrollTop=lh*4;
+      const ownScroll=box.scrollTop;w.__keyboard(true,400);await sleep(180);
+      check(mode+' · scrolling up inside the draft releases the pin; a later keyboard resize leaves that reading position alone',
+        !atDraftEnd()&&Math.abs(box.scrollTop-ownScroll)<=1);
+      box.blur();w.__keyboard(false);await sleep(120);
+      box.setSelectionRange(0,0);box.scrollTop=0;
+      box.dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true,pointerType:'touch',isPrimary:true}));box.focus();await sleep(60);
+      const earlier=box.scrollTop;w.__keyboard(true);await sleep(180);
+      check(mode+' · already reading earlier text before focus: opening the keyboard does not drag the draft to its end',!atDraftEnd()&&Math.abs(box.scrollTop-earlier)<=1);
+      box.blur();w.__keyboard(false);await sleep(120);
+      box.setSelectionRange(box.value.length,box.value.length);box.scrollTop=box.scrollHeight;box.focus();w.__keyboard(true);await sleep(150);
+      box.setSelectionRange(0,10);box.dispatchEvent(new w.Event('select'));box.scrollTop=0;w.__keyboard(true,420);await sleep(150);
+      check(mode+' · deliberately selecting earlier text also releases the pin, never changing that range',box.selectionStart===0&&box.selectionEnd===10&&!atDraftEnd());
+      box.blur();w.__keyboard(false);await sleep(120);
+      box.setSelectionRange(box.value.length,box.value.length);box.scrollTop=box.scrollHeight;box.focus();w.__keyboard(true);await sleep(150);
+      box.setSelectionRange(10,10);box.scrollTop=lh*4;const midScroll=box.scrollTop;
+      box.dispatchEvent(new w.InputEvent('input',{bubbles:true,inputType:'insertText',data:'x'}));w.__keyboard(true,420);await sleep(150);
+      check(mode+' · a mid-text edit releases before changedDraft can fit and re-pin the box',!atDraftEnd()&&Math.abs(box.scrollTop-midScroll)<=1&&box.selectionStart===10);
+      box.blur();w.__keyboard(false);await sleep(120);
+      if(maximized){
+        // End in view is not permission to hide a deliberately earlier caret in a tall box as the keyboard shrinks it.
+        const caret=box.value.length-400;box.setSelectionRange(caret,caret);box.scrollTop=box.scrollHeight;
+        box.dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true,pointerType:'touch',isPrimary:true}));box.focus();await sleep(60);
+        box.scrollTop=lh*4;const nativeScroll=box.scrollTop;w.__keyboard(true);await sleep(150);
+        check('maximized · the opening tap choosing earlier text keeps its native scroll, never pinning that caret off screen',!atDraftEnd()&&
+          Math.abs(box.scrollTop-nativeScroll)<=1&&box.selectionStart===caret&&box.selectionEnd===caret);
+        box.blur();w.__keyboard(false);await sleep(120);
+      }
+      if(maximized)el('draft-max').click();
+    }
+    // ---- rotation: 844×390 is still a phone layout (its smaller LAYOUT dimension is 390)
+    await device(844,390);
+    await edit(longDraft);
+    const rotBox=rect(box),rotConvo=rect(conversation()),rotActions=rect(actions());
+    const rotPage=d.documentElement.scrollHeight;
+    w.scrollTo(0,rotPage);const rotActionsReachable=rect(actions());
+    const rotReach=rotActionsReachable.top>=0&&rotActionsReachable.bottom<=w.innerHeight+1;w.scrollTo(0,0);
+    const rotVisible=Math.min(rotConvo.bottom,w.innerHeight)-Math.max(rotConvo.top,0);
+    check('rotated to 844×390 the phone rule still holds: the box is three lines, the buttons are reachable, no sideways scroll ['+
+      [Math.round(rotBox.height),Math.round(rotConvo.height),Math.round(rotVisible),Math.round(rotActions.bottom),rotPage,w.innerWidth,w.innerHeight].join(' / ')+']',
+      w.innerWidth===844&&w.innerHeight===390&&w.matchMedia('(pointer: coarse)').matches&&Math.abs(rotBox.height-shortH)<=1&&box.scrollHeight>box.clientHeight*6&&
+      rotActions.left>=0&&rotActions.right<=844&&rotReach&&rotVisible>=100&&d.documentElement.scrollWidth<=845);
+    await setNote('Rotated status note.',false);await sleep(80);
+    const rotToast=rect(toast()),rotDraft2=rect(box);
+    check('in landscape the note is still a toast over the conversation, never over the text box',toast().dataset.visible==='true'&&
+      rotToast.top>=rotConvo.top-1&&rotToast.bottom<=rotConvo.bottom+1&&rotToast.left>=rotConvo.left-1&&rotToast.right<=rotConvo.right+1&&
+      !overlaps(rotToast,rotDraft2)&&!overlaps(rotToast,rotActions));
+    await setNote('',false);
+    // ---- iPad Mini 744×1133: the growing editor, even when the keyboard's visual viewport is under 500
+    await device(744,1133);
+    await edit('short');await sleep(80);
+    const padShort=rect(box).height;
+    await edit(longDraft);
+    const padLong=rect(box).height;
+    check('iPad Mini 744×1133 keeps autosizing: the box grows with its text to its CSS cap ['+[Math.round(padShort),Math.round(padLong)].join(' → ')+']',
+      w.innerWidth===744&&w.innerHeight===1133&&padShort<120&&padLong>padShort+100&&padLong<=w.innerHeight*.38+2&&box.scrollHeight>box.clientHeight);
+    box.focus();await sleep(80);frame.contentWindow.__keyboard(true);await sleep(220);
+    const padKeyboard=rect(box).height;
+    check('an iPad keyboard\'s visual viewport under 500 px must NOT make it a phone editor: the layout viewport decides ['+
+      [Math.round(padKeyboard),Math.round(padLong),d.body.dataset.thumb,w.getComputedStyle(page()).position].join(' / ')+']',
+      Math.abs(padKeyboard-padLong)<=1&&d.body.dataset.thumb==='on'&&w.getComputedStyle(page()).position==='fixed'&&
+      d.documentElement.scrollWidth<=745);
+    box.blur();frame.contentWindow.__keyboard(false);await sleep(120);
+    // ---- and back: the media-query change refits the phone box at once
+    await device(390,844);
+    await edit(longDraft);
+    check('back on the iPhone the fixed three-line box returns and the draft scrolls inside it',Math.abs(rect(box).height-shortH)<=1&&box.scrollHeight>box.clientHeight*6&&
+      Math.abs(rect(conversation()).height-convoAtRest)<=2);
+    check('no real transport was attempted and the actual scripts had no uncaught errors',fixture.errors.length===0&&
+      fixture.requests.every(([url])=>url.startsWith('/api/claude/')||url.startsWith('/api/usage')));
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

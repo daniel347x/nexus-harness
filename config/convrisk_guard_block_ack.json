@@ -1,0 +1,16 @@
+{
+  "repos": {
+    "conversational": {
+      "4bcccf0d6b22b2ca": {
+        "acked": "2026-10-04T02:45:47Z",
+        "kind": "log",
+        "note": "accepted, Dan, Manager-Session-117: old commit message, not worth a history rewrite",
+        "rule": "Workflowy tooling",
+        "text": ".nexusignore",
+        "where": "commit 8272329 line 1",
+        "word": "nexus"
+      }
+    }
+  },
+  "version": 1
+}

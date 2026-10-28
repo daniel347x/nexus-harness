@@ -1,0 +1,16 @@
+{
+  "base": "f3aec099784b05ddcc3026b7a804bb0600f39927",
+  "implementation": "eedf0e6",
+  "method": "Copies under tmp/a2-mutations; production files never reverted or stashed. Each copy runs node --test tests/diff-view.test.cjs. TAP logs and generated receipts remain in tmp/a2-mutations.",
+  "baseline": {"component_and_highlighter_absent": true, "exit": 1, "passed": 0, "failed": 8, "disposition": "All eight new Node tests fail before the component/vendor exists."},
+  "mutations": [
+    {"change": "width >= 900 becomes width >= 901", "exit": 1, "passed": 6, "failed": 2, "assertion": "Auto at 900 must be split, not inline; pure layout and mounted resize tests both fail."},
+    {"change": "old++ becomes (old += 2) - 2", "exit": 1, "passed": 7, "failed": 1, "assertion": "Recorded old line sequence is 41,42,43, not 41,43,45."},
+    {"change": "INITIAL_LINES = 2000 becomes 1999", "exit": 1, "passed": 7, "failed": 1, "assertion": "Initial displayed code count must be 2000, not 1999."},
+    {"change": "Disable scheduling subsequent Show all batches", "exit": 1, "passed": 7, "failed": 1, "assertion": "Final reachable line count must be 2502, not 2500."},
+    {"change": "Highlight each side line independently and join emitter trees instead of highlighting the side block", "exit": 1, "passed": 7, "failed": 1, "assertion": "Actual highlight.js multiline comment continuation must retain hljs-comment scope; per-line mutation loses it."}
+  ],
+  "restored_node": {"exit": 0, "passed": 8, "failed": 0},
+  "existing_message_markdown": {"exit": 0, "passed": 4, "failed": 0},
+  "actual_dom": {"command": "python3 transcription-pane/tests/run_diff_view_browser.py", "chrome_exit": 0, "launcher_exit": 0, "passed": 37, "failed": 0, "body_data_test_passed": true, "receipt": "tmp/diff-view-browser/result.json", "caveat": "Chrome at 390px container, not iPhone. Virtual time is not a trustworthy performance clock; ResizeObserver callback driven in Node, real resized geometry checked in HTML."}
+}

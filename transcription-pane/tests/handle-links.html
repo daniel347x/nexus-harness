@@ -1,0 +1,181 @@
+<!doctype html><meta charset="utf-8"><title>Clickable handles (handle-links.js) — actual module, actual renderer, pane markup</title>
+<style>body{margin:0}iframe{width:1000px;height:900px;border:0;display:block}pre{white-space:pre-wrap}</style>
+<iframe id="page" title="Pane markup with clickable handles"></iframe><pre id="results">running…</pre>
+<script>
+// The actual static/handle-links.js on the pane's own markup: prose through the actual message renderer (marked +
+// DOMPurify, message-markdown.js) under the actual sessions.css, a desktop tool bar <button> as sessions.js builds it,
+// a phone tool <details><summary>, a <pre> tool output, highlight.js-style tokens, a pressable row, a link and a text
+// box. Only the opener (Open in View), window.open and the clipboard are replaced. Pointer events are dispatched at the
+// handles' own on-screen boxes.
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<600;i++){try{if(fn())return true;}catch(_){}await sleep(5);}throw new Error(what+' did not settle');};
+  const fx=window.handleFixture={opened:[],parentOpened:[],windowOpens:[],clipboard:[],rowClicks:0,barClicks:0,errors:[]};
+  const UUID='25a49a99-1dbc-4f66-9cd3-d8a9f60ec976';
+  const md=['Read **[ap:X8TYWJ]** first, then the map `9e210387` and the root '+UUID+'.','',
+    '- a session `ses_abc12345` and `cc-1ebeaf49-0d70` are not handles; neither is #3fcf7aff or 0x1234abcd',
+    '- the date 20261022 is (any 8 lowercase hex, digits too)','','A [link to 74bd1a7a](https://example.com/74bd1a7a) keeps its own click.'].join('\n');
+  let w,d,api;
+  try {
+    const S='/transcription-pane/static/';
+    const page=`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${S}sessions.css">
+      <style>body{margin:0;padding:12px}#out{width:900px;white-space:pre;overflow:hidden}.tok{color:#e9c479}</style></head><body>
+      <div id="prose" class="message-body"></div>
+      <button type="button" class="tool-bar" id="bar"><span class="tool-title">Read · done</span><span class="tool-preview">read [ap:K7M2QF] note</span><span class="tool-sizes"><span class="tool-time">2 s</span></span></button>
+      <details id="tool"><summary id="sum">Bash · git show 5433067 then 1edcc8a4</summary><pre>OUT</pre></details>
+      <pre id="out">first line of output
+the selected handle ends this line 3f3754e2
+${'x'.repeat(30)}</pre>
+      <pre id="diff"><span class="hljs-string">"d8a9f60e"</span><span class="hljs-punctuation">,</span><span class="hljs-string">"split</span><span>"</span></pre>
+      <div id="row" role="button" tabindex="0">Session 1ebeaf49 · working</div>
+      <textarea id="ta">[ap:EDITME] in a text box</textarea>
+      <div id="stream">streaming: nothing yet</div>
+      <script src="${S}vendor/marked.umd.js"><\/script><script src="${S}vendor/purify.min.js"><\/script><script src="${S}message-markdown.js"><\/script>
+      <script>
+        const fx=parent.handleFixture;
+        addEventListener('error',e=>fx.errors.push(String(e.message||'error')));
+        Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:t=>{fx.clipboard.push(String(t));return Promise.resolve();}}});
+        window.open=(url,name)=>{fx.windowOpens.push([String(url),String(name)]);return null;};
+        opcMessageMarkdown.render(document.getElementById('prose'),${JSON.stringify(md)},true);
+        document.getElementById('row').onclick=e=>{e.stopPropagation();fx.rowClicks++;};
+        document.getElementById('bar').onclick=()=>{fx.barClicks++;};
+      <\/script>
+      <script src="${S}handle-links.js"><\/script></body></html>`;
+    const frame=document.getElementById('page');
+    await new Promise(r=>{frame.onload=r;frame.srcdoc=page;});
+    w=frame.contentWindow;d=w.document;api=w.opcHandleLinks;
+    w.opcOpenInView=h=>fx.opened.push(h);
+    const $=id=>d.getElementById(id),hl=()=>w.CSS.highlights.get('opc-handle');
+    const lit=()=>[...hl()].map(r=>r.startContainer.data.slice(r.startOffset,r.endOffset));
+    // The on-screen centre of the first occurrence of a token inside an element's text.
+    const at=(el,token)=>{
+      const walker=d.createTreeWalker(el,w.NodeFilter.SHOW_TEXT);
+      for(let n=walker.nextNode();n;n=walker.nextNode()){const i=n.data.indexOf(token);if(i<0)continue;
+        const r=d.createRange();r.setStart(n,i);r.setEnd(n,i+token.length);const b=r.getClientRects()[0];return {x:b.left+b.width/2,y:b.top+b.height/2,b,node:n};}
+      throw new Error('no '+token+' in #'+el.id);
+    };
+    const fire=(p,type,{kind='mouse',dx=0,dy=0,button=0,id=1}={})=>{const x=p.x+dx,y=p.y+dy,target=d.elementFromPoint(x,y);
+      const init={bubbles:true,cancelable:true,composed:true,clientX:x,clientY:y,pointerId:id,isPrimary:true,pointerType:kind,button,buttons:type==='pointerdown'?1:0};
+      const e=type==='click'||type==='contextmenu'?new w.MouseEvent(type,init):new w.PointerEvent(type,init);target.dispatchEvent(e);return e;};
+    const tap=async(p,kind='mouse')=>{fire(p,'pointerdown',{kind});fire(p,'pointerup',{kind});return fire(p,'click',{kind});};
+    const menu=()=>d.querySelector('.opc-handle-menu');
+
+    // ---- the pages load it, last
+    const pages=await Promise.all(['index.html','sessions.html','m.html','m-programs.html','glimpse.html'].map(async f=>[f,await (await fetch(S+f)).text()]));
+    check('all five pages load handle-links.js once, after their own scripts',pages.every(([f,t])=>{const all=[...t.matchAll(/<script src="([^"]+)"/g)].map(m=>m[1]);
+      return all.filter(s=>/handle-links\.js$/.test(s)).length===1&&/handle-links\.js$/.test(all.at(-1));}));
+
+    // ---- decoration: exactly the handles, paint only
+    await until(()=>api.stats().ranges>0,'first scan');
+    const want=['[ap:X8TYWJ]','9e210387',UUID,'20261022','[ap:K7M2QF]','1edcc8a4','3f3754e2','d8a9f60e','1ebeaf49'];
+    check('decorated: AP-IDs, whole UUIDs and 8-hex tokens (digits-only included) in prose, code, a tool bar, a <summary>, a <pre>, a hljs token and a row; never in a link, a text box, ses_/cc-/#/0x or a 7-char SHA ['+lit().join(' ')+']',
+      JSON.stringify([...lit()].sort())===JSON.stringify([...want].sort()));
+    const fresh=d.createElement('div');w.opcMessageMarkdown.render(fresh,md,true);
+    check('paint only: the rendered prose is the renderer\'s own DOM, unchanged (no spans, no attributes added)',$('prose').innerHTML===fresh.innerHTML&&!d.querySelector('[data-opc-handle-press]'));
+    check('the style is the module\'s own: ::highlight(opc-handle), a glare variant and the menu',/::highlight\(opc-handle\)/.test($('opc-handle-links-style').textContent)&&
+      /data-glare="on"\] ::highlight/.test($('opc-handle-links-style').textContent));
+
+    // ---- hit-test from the text at the point
+    const P={ap:at($('prose'),'[ap:X8TYWJ]'),code:at($('prose'),'9e210387'),uuid:at($('prose'),UUID),bar:at($('bar'),'[ap:K7M2QF]'),sum:at($('sum'),'1edcc8a4'),
+      out:at($('out'),'3f3754e2'),tok:at($('diff'),'d8a9f60e'),row:at($('row'),'1ebeaf49'),link:at($('prose'),'link to 74bd1a7a'),ta:$('ta').getBoundingClientRect()};
+    check('hit: each handle at its own centre (prose bold, inline code, a whole UUID, the tool bar <button>, the <summary>, the <pre>, an hljs token, a row)',
+      [['ap','[ap:X8TYWJ]'],['code','9e210387'],['uuid',UUID],['bar','[ap:K7M2QF]'],['sum','1edcc8a4'],['out','3f3754e2'],['tok','d8a9f60e'],['row','1ebeaf49']]
+        .every(([k,h])=>api.handleAt(P[k].x,P[k].y)?.handle===h));
+    const lineEnd={x:P.out.b.right+300,y:P.out.y};
+    check('no hit: past the end of a line that ends in a handle, on a link\'s handle, in a text box, on plain text',
+      api.handleAt(lineEnd.x,lineEnd.y)===null&&api.handleAt(P.link.b.right-20,P.link.y)===null&&api.handleAt(P.ta.left+20,P.ta.top+P.ta.height/2)===null&&
+      api.handleAt(at($('row'),'Session').x,P.row.y)===null);
+
+    // ---- tap / left-click: straight into View, the click under it swallowed
+    const open0=$('tool').open;
+    await tap(P.sum);
+    check('desktop click on a handle in a <summary>: opened in View, the tool did not toggle',fx.opened.join()==='1edcc8a4'&&$('tool').open===open0);
+    await tap(P.bar);await tap(P.row);
+    check('click on a handle in the tool bar and in a pressable row: opened, neither the bar nor the row acted',fx.opened.join()==='1edcc8a4,[ap:K7M2QF],1ebeaf49'&&fx.barClicks===0&&fx.rowClicks===0);
+    await tap(P.ap,'touch');
+    check('phone tap on a handle: opened the same way',fx.opened.at(-1)==='[ap:X8TYWJ]');
+    fx.opened.length=0;
+    const plain=at($('sum'),'Bash');await tap(plain);await tap(at($('row'),'Session'));await tap(at($('bar'),'Read'),'touch');
+    check('a tap that is not on a handle behaves exactly as before: the <summary> toggles, the row and the bar act, nothing opens',
+      $('tool').open!==open0&&fx.rowClicks===1&&fx.barClicks===1&&fx.opened.length===0);
+    $('tool').open=open0;await sleep(20);  // the layout the measured points were taken in
+    fire(P.out,'pointerdown');fire(P.out,'pointermove',{dx:25});fire(P.out,'pointerup',{dx:25});
+    fire(P.out,'pointerdown',{kind:'touch'});fire(P.out,'pointercancel',{kind:'touch'});fire(P.out,'pointerup',{kind:'touch'});
+    check('a drag past 10 px or a scroll (pointercancel) opens nothing',fx.opened.length===0);
+    const sel=w.getSelection(),range=d.createRange();range.selectNodeContents($('out'));sel.removeAllRanges();sel.addRange(range);
+    await tap(P.out);
+    check('a mouse click with text selected (drag-select) opens nothing',fx.opened.length===0);
+    sel.removeAllRanges();
+    const mod=new w.PointerEvent('pointerdown',{bubbles:true,cancelable:true,clientX:P.out.x,clientY:P.out.y,pointerId:1,isPrimary:true,pointerType:'mouse',button:0,ctrlKey:true});
+    d.elementFromPoint(P.out.x,P.out.y).dispatchEvent(mod);fire(P.out,'pointerup');
+    check('Ctrl/Cmd/Shift/Alt-click is left to the browser',fx.opened.length===0);
+
+    // ---- hold (finger or mouse): the menu; Copy and Open in View
+    fire(P.sum,'pointerdown',{kind:'touch'});
+    const locked=P.sum.node.parentElement.hasAttribute('data-opc-handle-press')&&w.getComputedStyle(P.sum.node.parentElement).getPropertyValue('user-select')==='none';
+    await sleep(api.HOLD_MS+80);
+    const m=menu();
+    check('hold on a handle (450 ms, finger still): the menu at the finger, the handle named, Open in View · Copy; selection/callout off on that element for the press only',
+      locked&&!!m&&m.querySelector('.opc-handle-menu-label').textContent==='1edcc8a4'&&[...m.querySelectorAll('button')].map(b=>b.textContent).join('|')==='Open in View|Copy'&&
+      (r=>P.sum.x<r.left||P.sum.x>r.right||P.sum.y<r.top||P.sum.y>r.bottom)(m.getBoundingClientRect())&&fx.opened.length===0);
+    const before=$('tool').open;
+    fire(P.sum,'pointerup',{kind:'touch'});fire(P.sum,'click',{kind:'touch'});
+    check('lifting after the hold: the click is swallowed (the tool does not toggle), the press lock is gone, nothing opened',$('tool').open===before&&
+      !P.sum.node.parentElement.hasAttribute('data-opc-handle-press')&&fx.opened.length===0&&!!menu());
+    await sleep(600);
+    m.querySelector('[data-act="copy"]').click();
+    await until(()=>fx.clipboard.length===1,'copy');await sleep(20);
+    check('Copy: the handle on the clipboard, ✓ Copied, then the menu closes',fx.clipboard[0]==='1edcc8a4'&&m.querySelector('[data-act="copy"]').textContent==='✓ Copied'&&
+      (await until(()=>!menu(),'menu close'),true));
+    fire(P.uuid,'pointerdown');await sleep(api.HOLD_MS+80);fire(P.uuid,'pointerup');fire(P.uuid,'click');
+    check('a mouse hold opens the same menu, its click swallowed',!!menu()&&fx.opened.length===0);
+    await sleep(600);
+    menu().querySelector('[data-act="view"]').click();
+    check('Open in View from the menu: opened, the menu gone',fx.opened.join()===UUID&&!menu());
+    fx.opened.length=0;
+    const cm=fire(P.code,'contextmenu');
+    check('right-click on a handle: the menu instead of the browser\'s',cm.defaultPrevented&&menu()?.dataset.handle==='9e210387');
+    d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    const cmPlain=fire(at($('prose'),'first'),'contextmenu');
+    check('Escape closes it; right-click elsewhere keeps the browser\'s menu',!menu()&&!cmPlain.defaultPrevented);
+    fire(P.code,'contextmenu');fire(at($('prose'),'first'),'pointerdown');
+    check('a press outside closes the menu',!menu());fire(at($('prose'),'first'),'pointerup');
+
+    // ---- desktop hover cursor
+    fire(P.out,'pointermove');await sleep(60);
+    const hoverOn=$('out').style.cursor;fire({x:P.out.x,y:at($('out'),'first').y},'pointermove');await sleep(60);
+    check('hover: a pointer cursor over a handle only, restored off it',hoverOn==='pointer'&&$('out').style.cursor==='');
+
+    // ---- re-renders and streaming
+    $('stream').textContent='streaming: now [ap:STRM01] and b0b0cafe';
+    await until(()=>lit().includes('[ap:STRM01]'),'stream rescan');
+    $('stream').firstChild.data='streaming: replaced';
+    await until(()=>!lit().includes('[ap:STRM01]'),'characterData rescan');
+    $('stream').textContent='again 12345678';await until(()=>lit().includes('12345678'),'stream again');
+    $('stream').remove();await sleep(120);
+    check('re-renders: added text decorated, edited text re-read, removed nodes pruned',!lit().includes('12345678')&&!lit().includes('b0b0cafe'));
+
+    // ---- routes: this page's own View, else the page around the frame, else one reused View tab
+    w.opcOpenInView=undefined;window.opcOpenInView=h=>fx.parentOpened.push(h);
+    await tap(P.code);
+    window.opcOpenInView=undefined;
+    await tap(P.ap);
+    check('Open in View routes: the page around the frame (Programs inside /m), else window.open(/glimpse.html?handle=…, opc-view)',
+      fx.parentOpened.join()==='9e210387'&&JSON.stringify(fx.windowOpens)===JSON.stringify([['/glimpse.html?handle=%5Bap%3AX8TYWJ%5D','opc-view']]));
+
+    // ---- giant outputs: decoration capped, the gesture still works
+    const big=d.createElement('pre'),chunk=('output line with a handle a1b2c3d4 in it '+'.'.repeat(980)+'\n');
+    for(let i=0;i<16;i++)big.append(d.createTextNode(chunk.repeat(512)));  // 16 × 512 KiB text nodes ≈ 8 MiB, 8,192 handles
+    const huge=d.createElement('pre');huge.textContent='[ap:HUGE01] '+'z'.repeat(2*1024*1024);
+    d.body.prepend(huge,big);await null;  // the observer has queued them
+    const t0=performance.now();api.flush();const ms=performance.now()-t0;
+    const hp=at(huge,'[ap:HUGE01]');
+    check('8 MiB of output with 8,192 handles: capped at '+api.MAX_RANGES+' ranges, a 2 MiB text node left undecorated, its handle still hit ['+Math.round(ms)+' ms]',
+      api.stats().ranges===api.MAX_RANGES&&!lit().includes('[ap:HUGE01]')&&api.handleAt(hp.x,hp.y)?.handle==='[ap:HUGE01]'&&ms<5000);
+    check('no page errors ['+fx.errors.join('; ')+']',fx.errors.length===0);
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

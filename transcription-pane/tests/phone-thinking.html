@@ -1,0 +1,139 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone page: current-round and keep-open thinking — inert readers</title>
+<style>iframe{width:100%;height:844px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,name='fixture')=>{for(let i=0;i<600;i++){if(fn())return;await sleep(10);}throw Error(name+' did not settle');};
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,css,marked,purify,markdown,defaults,core,app,reading,refineView,previews,records,seenLatest]=await Promise.all([
+      'm.html','m.css','vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js','refine-defaults.js','refine-core.js','m.js','tool-reading.js','refine-view.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-preview-core.js','../../chrome-extension/codenomad-session-watcher/tool-record-text.js','seen-latest.js'].map(read));
+    const uuid='33333333-3333-4333-8333-333333333333',worker='44444444-4444-4444-8444-444444444444';
+    const A={source:'host',role:'Manager',uuid,executionId:'cc-'+uuid,generation:1,targetRef:'target-a',sessionRef:'session-a',
+      scopes:[{label:'main',scopeRef:'scope-a'}],title:'Manager-Session-228',lifecycle:'live',createdAt:1793100000,capabilities:{nativeInput:true,controls:true,reconnect:true}};
+    const W={...A,role:'conductor',uuid:worker,executionId:'cc-'+worker,sessionRef:'session-worker',scopes:[{label:'main',scopeRef:'scope-worker'}]};
+    const think=(blockIndex,streaming=false)=>({blockIndex,availability:'stored',streaming,text:'Thinking '+blockIndex+' <script>plain text<\/script>\n'+'A line of thinking.\n'.repeat(12)});
+    const ev=(seq,kind,text,extra={})=>({seq,kind,text,uuid:'event-'+seq,recordRef:'record-'+seq,scope:'main',calls:[],thinking:[],partial:false,time:1793100000+seq,...extra});
+    const call={block:2,id:'tool-1',name:'Bash',callRef:'call-1',status:'stored',inputBytes:0,outputBytes:0};
+    const fx=window.thinkingFixture={A,W,store:new Map(),requests:[],errors:[],updates:[],stale:false,
+      events:[ev(0,'user','Earlier question'),ev(1,'assistant','Earlier working prose. '.repeat(20),{thinking:[think(0),think(4)],calls:[call]}),
+        ev(2,'assistant','',{thinking:[think(0)]}),ev(3,'user',''),ev(4,'assistant','Earlier final answer. '.repeat(20),{thinking:[think(3)]}),
+        ev(5,'user','Current question'),ev(6,'assistant','Current tool step. '.repeat(20),{thinking:[think(0,true)],calls:[call]}),
+        ev(7,'assistant','',{thinking:[think(0),think(1,true)]}),ev(8,'user',''),
+        ev(9,'assistant','Current final answer. '.repeat(20),{thinking:[think(0)]})]};
+    const mock=`
+      const fx=parent.thinkingFixture;
+      addEventListener('error',e=>fx.errors.push(e.message));
+      addEventListener('unhandledrejection',e=>fx.errors.push(String(e.reason?.message||e.reason)));
+      const store=fx.store;
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+        getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      const env=(backend,x)=>({schemaVersion:1,backend,...x}),json=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:{'Content-Type':'application/json'}});
+      window.fetch=async(url)=>{
+        url=String(url);fx.requests.push(url);const u=new URL(url,parent.location.href),q=Object.fromEntries(u.searchParams),A=fx.A;
+        if(u.pathname==='/api/claude/sessions')return json(env('claude',{sessions:[A,fx.W],status:'complete',hasMore:false}));
+        if(u.pathname==='/api/claude/state')return json(env('claude',{...A,liveState:{native_session_state:'idle',primary_turn_open:false}}));
+        if(u.pathname==='/api/claude/events'||u.pathname==='/api/opencode/events'){
+          const oc=u.pathname.includes('/opencode/'),backend=oc?'opencode':'claude',t=q.sessionRef==='session-worker'?fx.W:A;
+          if(fx.stale){fx.stale=false;return json(env(backend,{status:'stale-epoch',error:'fixture index rebuilt'}),409);}
+          const at=q.fromSeq!==undefined?Number(q.fromSeq):q.cursor?Number(q.cursor.split(':')[1]):0;
+          const end=q.fromSeq!==undefined?Math.min(at+5,fx.events.length):fx.events.length,more=end<fx.events.length;
+          return json(env(backend,{...(oc?{source:'opencode',sessionRef:q.id,scopeRef:'main',busy:false,observedAt:Date.now()/1000}:t),
+            scopeRef:oc?'main':q.scopeRef,fileEpoch:'epoch',events:fx.events.slice(at,end),eventUpdates:fx.updates.splice(0),status:'complete',hasMore:more,rowsAhead:more,
+            nextCursor:more?'d:'+end:null,deltaCursor:'d:'+end}));
+        }
+        // No real host, provider, Send, tool-body or mutation is permitted by this fixture.
+        throw Error('No real transport permitted: '+url);
+      };`;
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const page=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+'</style></head>')
+      .replace(/ *<script src="[^"]+"><\/script>\n?/g,'').replace('</body>',()=>[mock,marked,purify,markdown,records,previews,reading,defaults,core,refineView,seenLatest,
+        app+'\nparent.thinkingFixture.api=phoneManager;'].map(s=>'<script>'+safe(s)+'<\/script>').join('')+'</body>');
+    const frame=document.getElementById('phone');let w,d,api;
+    const el=id=>d.getElementById('m-'+id),chat=()=>api.state.viewing?.chat||api.state.chat,settled=()=>chat()?.loaded&&!chat().busy&&!chat().paging;
+    const row=n=>[...chat().rows.values()].find(r=>r.event.seq===n),block=(n,index=0)=>row(n)?.thinking.get(index)?.node;
+    const open=(n,index=0)=>block(n,index)?.open;
+    const load=async()=>{
+      await new Promise(r=>{frame.onload=r;frame.srcdoc=page;});w=frame.contentWindow;d=w.document;api=fx.api;
+      await until(()=>el('managers').children.length===1&&!api.state.listBusy,'Manager list');
+      if(!api.state.selected)await api.selectManager(A.executionId);
+      await until(()=>settled()&&block(9),'cold chat');
+    };
+    const repaint=async(n,change={})=>{fx.events[n]={...fx.events[n],...change};fx.updates.push(fx.events[n]);await api.readChat();await until(settled);};
+    const bottom=()=>el('conversation').scrollHeight-el('conversation').clientHeight-el('conversation').scrollTop<2;
+    const mark=()=>{const c=el('conversation').getBoundingClientRect();const r=[...chat().rows.values()].find(r=>r.node.getBoundingClientRect().bottom>c.top+1);
+      return r&&{node:r.node,y:r.node.getBoundingClientRect().top-c.top};};
+    const held=m=>m&&Math.abs(m.node.getBoundingClientRect().top-el('conversation').getBoundingClientRect().top-m.y)<2;
+    await load();
+    check('default ON: compact 🧠 in the chat row beside First; both modes named accessibly',el('thinking-mode').getAttribute('aria-pressed')==='true'&&
+      el('thinking-mode').nextElementSibling===el('first')&&/current round.*keep open/i.test(el('thinking-mode').getAttribute('aria-label'))&&
+      el('thinking-mode').getBoundingClientRect().width<=38&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    check('cold: every earlier-round block closed, every current assistant/tool/final block open (including streaming)',
+      !open(1)&&!open(1,4)&&!open(2)&&!open(4,3)&&open(6)&&open(7)&&open(7,1)&&open(9));
+    check('tool-result user carriers do not start rounds; thinking is safe text and Following remains at the end',!row(8)&&open(7,1)&&
+      block(6).querySelector('pre').textContent.includes('<script>')&&!block(6).querySelector('script')&&api.state.follow&&bottom());
+    block(6).querySelector('summary').click();await repaint(6,{thinking:[{...think(0,true),text:'More live thinking'}]});
+    check('ON: a hand-closed current block stays closed on its next streaming repaint',!open(6)&&open(7)&&open(9));
+    await repaint(6,{thinking:[{...think(0),text:'Finished thinking'}]});
+    check('ON: stream completion does not reopen a hand collapse',!open(6)&&!block(6).querySelector('summary').textContent.includes('streaming'));
+    block(1).querySelector('summary').click();await repaint(7);
+    check('ON: an earlier block can still be opened by hand and stays open within this round',open(1));
+    // Pause on earlier answer prose, with enough content below to hold it even after the thinking folds.
+    // The next user folds earlier thinking above the reading anchor, not the reader away.
+    const conv=el('conversation'),target=row(4).node;
+    conv.scrollTop+=target.getBoundingClientRect().top-conv.getBoundingClientRect().top;await sleep(30);api.state.follow=false;
+    const anchor=mark();fx.events.push(ev(10,'user','The next round begins'));await api.readChat();
+    check('new user folds ALL earlier thinking, including manually opened blocks, and preserves the paused row ['+
+      JSON.stringify({y:anchor?.y,now:anchor?.node.getBoundingClientRect().top-conv.getBoundingClientRect().top,follow:api.state.follow,
+        open:[...chat().rows.values()].flatMap(r=>[...r.thinking.values()].filter(b=>b.node.open).map(()=>r.event.seq))})+']',
+      [...chat().rows.values()].every(r=>[...r.thinking.values()].every(b=>!b.node.open))&&held(anchor));
+    fx.events.push(ev(11,'assistant','New round response',{thinking:[think(0,true),think(7)]}));await api.readChat();
+    check('all thinking in the new round opens, while older rounds stay folded',open(11)&&open(11,7)&&!open(9)&&!open(1));
+    block(11).querySelector('summary').click();await api.first();await until(()=>settled()&&chat().start);
+    check('First: earlier windows do not become the current round again',row(0)&&!open(1)&&!open(4,3));
+    api.latest();await until(()=>settled()&&!chat().start&&block(11));
+    check('Latest: same-conversation row re-creation retains the current-round hand collapse',!open(11)&&open(11,7)&&!open(1));
+    // OFF deliberately reapplies defaults, then remembers hand choices independently of nodes.
+    el('thinking-mode').click();
+    check('OFF opens all blocks, saves the device choice, and keeps the followed end in view',el('thinking-mode').getAttribute('aria-pressed')==='false'&&
+      fx.store.get('pane_m_v1:thinking_current_round')==='false'&&[...chat().rows.values()].every(r=>[...r.thinking.values()].every(b=>b.node.open))&&bottom());
+    block(11).querySelector('summary').click();await repaint(11,{thinking:[{...think(0,true),text:'OFF repaint'},think(7)]});
+    check('OFF respects a hand collapse across live repaint, without collapsing another block in that row',!open(11)&&open(11,7));
+    const oldBlock=block(11);await repaint(11,{thinking:[]});await repaint(11,{thinking:[think(0),think(7)]});
+    check('OFF remembers the row/block key after its disclosure disappears and is re-created',block(11)!==oldBlock&&!open(11)&&open(11,7));
+    await api.first();await until(()=>settled()&&chat().start);api.latest();await until(()=>settled()&&!chat().start&&block(11));
+    check('OFF remembers the hand collapse across First/Latest and entirely new row nodes',!open(11)&&open(1)&&open(11,7));
+    fx.events.push(ev(12,'user','Another message'),ev(13,'assistant','Another reply',{thinking:[think(0)]}));await api.readChat();
+    check('OFF: a new user never folds older blocks or forgets hand collapses; new thinking arrives open',open(1)&&open(9)&&!open(11)&&open(11,7)&&open(13));
+    fx.stale=true;await api.readChat();await until(()=>api.state.chat&&!api.state.chat.busy,'rebind');await api.readChat();await until(()=>settled()&&block(13));
+    check('OFF keeps manual state through a same-conversation resync with fresh rows',!open(11)&&open(11,7)&&open(13));
+    // The toggle must anchor too when old blocks disappear above the paused reader.
+    conv.scrollTop+=row(4).node.getBoundingClientRect().top-conv.getBoundingClientRect().top;await sleep(30);api.state.follow=false;
+    const toggleAnchor=mark();el('thinking-mode').click();
+    check('switching back ON reapplies round defaults without moving the paused reading row',held(toggleAnchor)&&!open(1)&&!open(11)&&open(13));
+    el('thinking-mode').click();block(13).querySelector('summary').click();
+    api.openSession({type:'open-session',schemaVersion:1,session:{backend:'opencode',id:'ses_thinking0001',title:'Viewed OpenCode',label:'Quick worker'}});
+    await until(()=>api.state.viewing?.backend==='opencode'&&settled()&&block(13),'OpenCode viewer');
+    check('a new conversation has independent row/block memory; viewed OpenCode sessions get OFF defaults too',open(13)&&open(1));
+    block(13).querySelector('summary').click();await repaint(13);
+    check('viewed OpenCode thinking retains a hand collapse on live update',!open(13));
+    el('thinking-mode').click();
+    check('viewed OpenCode current-round mode closes old rounds and opens the latest',!open(1)&&!open(11)&&open(13));
+    api.openSession({type:'open-session',schemaVersion:1,session:{backend:'claude',sessionRef:W.sessionRef,scopeRef:'scope-worker',executionId:W.executionId,
+      uuid:W.uuid,source:'host',title:'Viewed Conductor',label:'Conductor'}});
+    await until(()=>api.state.viewing?.executionId===W.executionId&&settled()&&block(13),'Claude viewer');
+    check('viewed Claude sessions use the same current-round rule',!open(1)&&!open(11)&&open(13));
+    el('thinking-mode').click();block(13).querySelector('summary').click();await repaint(13);
+    check('viewed Claude sessions use the same keep-open manual memory',!open(13)&&open(1));
+    await load();
+    check('reload keeps the saved OFF mode but resets per-block choices',el('thinking-mode').getAttribute('aria-pressed')==='false'&&open(13)&&open(1));
+    check('all transports stayed inert and scripts had no uncaught errors ['+fx.errors.join('; ')+']',fx.errors.length===0&&
+      fx.requests.every(u=>!u.includes('/send')&&!u.includes('/tool-record')));
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(c=>c.passed).length,failed:checks.filter(c=>!c.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(c=>c.passed));
+})();
+</script>

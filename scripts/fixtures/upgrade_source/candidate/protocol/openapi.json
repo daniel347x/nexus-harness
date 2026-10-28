@@ -1,0 +1,1002 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "opencode (fixture projection of v2.0.24)",
+  "version": "0.0.1"
+ },
+ "paths": {
+  "/api/session": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "anyOf": [
+           {
+            "type": "string",
+            "pattern": "^ses"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "parentID": {
+          "anyOf": [
+           {
+            "type": "string",
+            "pattern": "^ses"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "title": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "agent": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "model": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Model.Ref"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "location": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Location.PublicRef"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "metadata": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Session.Metadata"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "$ref": "#/components/schemas/Session.Info"
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionsResponse"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "$ref": "#/components/schemas/Session.Info"
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "title": {
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "metadata": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Session.Metadata"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "permissions": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Permission.Ruleset"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {
+      "description": "no content"
+     }
+    }
+   },
+   "delete": {
+    "responses": {
+     "204": {
+      "description": "no content"
+     },
+     "404": {
+      "description": "not found"
+     }
+    }
+   }
+  },
+  "/api/session/active": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "type": "object",
+           "patternProperties": {
+            "^ses": {
+             "$ref": "#/components/schemas/SessionActive"
+            }
+           }
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}/fork": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "before": {
+          "anyOf": [
+           {
+            "type": "string",
+            "pattern": "^msg_"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "$ref": "#/components/schemas/Session.Info"
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}/prompt": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "id": {
+          "anyOf": [
+           {
+            "type": "string",
+            "pattern": "^msg_"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "text": {
+          "type": "string"
+         },
+         "delivery": {
+          "anyOf": [
+           {
+            "$ref": "#/components/schemas/Session.Inbox.Delivery"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         },
+         "resume": {
+          "anyOf": [
+           {
+            "type": "boolean"
+           },
+           {
+            "type": "null"
+           }
+          ]
+         }
+        },
+        "required": [
+         "text"
+        ],
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "$ref": "#/components/schemas/Session.Inbox.Info"
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}/model": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "model": {
+          "$ref": "#/components/schemas/Model.Ref"
+         }
+        },
+        "required": [
+         "model"
+        ],
+        "additionalProperties": false
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {
+      "description": "no content"
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}/message": {
+   "get": {
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Maximum number of messages to return. When omitted, the endpoint returns its default page size."
+      },
+      "required": false
+     },
+     {
+      "name": "order",
+      "in": "query",
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "enum": [
+          "asc",
+          "desc"
+         ]
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Message order for the first page. Use desc for newest first or asc for oldest first."
+      },
+      "required": false
+     },
+     {
+      "name": "cursor",
+      "in": "query",
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "description": "Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order."
+        },
+        {
+         "type": "null"
+        }
+       ]
+      },
+      "required": false
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionMessagesResponse"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/session/{sessionID}/inbox": {
+   "get": {
+    "responses": {
+     "200": {
+      "description": "ok",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "type": "array",
+           "items": {
+            "$ref": "#/components/schemas/Session.Inbox.Info"
+           }
+          }
+         },
+         "required": [
+          "data"
+         ],
+         "additionalProperties": false
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "not found"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Session.Info": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^ses"
+     },
+     "parentID": {
+      "type": "string",
+      "pattern": "^ses"
+     },
+     "fork": {
+      "type": "object",
+      "properties": {
+       "sessionID": {
+        "type": "string",
+        "pattern": "^ses"
+       },
+       "boundary": {
+        "$ref": "#/components/schemas/Session.ForkBoundary"
+       }
+      },
+      "required": [
+       "sessionID",
+       "boundary"
+      ],
+      "additionalProperties": false
+     },
+     "projectID": {
+      "type": "string"
+     },
+     "agent": {
+      "type": "string"
+     },
+     "model": {
+      "$ref": "#/components/schemas/Model.Ref"
+     },
+     "cost": {
+      "$ref": "#/components/schemas/Money.USD"
+     },
+     "tokens": {
+      "$ref": "#/components/schemas/TokenUsage.Info"
+     },
+     "outcome": {
+      "type": "string",
+      "enum": [
+       "succeeded",
+       "failed",
+       "interrupted"
+      ]
+     },
+     "time": {
+      "type": "object",
+      "properties": {
+       "created": {
+        "type": "number"
+       },
+       "updated": {
+        "type": "number"
+       },
+       "idle": {
+        "type": "number"
+       },
+       "viewed": {
+        "type": "number"
+       },
+       "archived": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "created",
+       "updated"
+      ],
+      "additionalProperties": false
+     },
+     "title": {
+      "type": "string"
+     },
+     "subpath": {
+      "type": "string"
+     },
+     "metadata": {
+      "$ref": "#/components/schemas/Session.Metadata"
+     },
+     "permissions": {
+      "$ref": "#/components/schemas/Permission.Ruleset"
+     },
+     "revert": {
+      "$ref": "#/components/schemas/Session.Revert"
+     },
+     "location": {
+      "$ref": "#/components/schemas/Location.PublicRef"
+     }
+    },
+    "required": [
+     "id",
+     "projectID",
+     "cost",
+     "tokens",
+     "time",
+     "location"
+    ],
+    "additionalProperties": false
+   },
+   "Session.Metadata": {
+    "type": "object"
+   },
+   "Session.ForkBoundary": {
+    "anyOf": [
+     {
+      "type": "object",
+      "properties": {
+       "type": {
+        "type": "string",
+        "enum": [
+         "before"
+        ]
+       },
+       "messageID": {
+        "type": "string",
+        "pattern": "^msg_"
+       }
+      },
+      "required": [
+       "type",
+       "messageID"
+      ],
+      "additionalProperties": false
+     },
+     {
+      "type": "object",
+      "properties": {
+       "type": {
+        "type": "string",
+        "enum": [
+         "through"
+        ]
+       },
+       "messageID": {
+        "type": "string",
+        "pattern": "^msg_"
+       }
+      },
+      "required": [
+       "type",
+       "messageID"
+      ],
+      "additionalProperties": false
+     }
+    ]
+   },
+   "Model.Ref": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "providerID": {
+      "type": "string"
+     },
+     "variant": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "providerID"
+    ],
+    "additionalProperties": false
+   },
+   "Money.USD": {
+    "type": "number"
+   },
+   "TokenUsage.Info": {
+    "type": "object",
+    "properties": {
+     "input": {
+      "type": "number"
+     },
+     "output": {
+      "type": "number"
+     },
+     "reasoning": {
+      "type": "number"
+     },
+     "cache": {
+      "type": "object",
+      "properties": {
+       "read": {
+        "type": "number"
+       },
+       "write": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "read",
+       "write"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "input",
+     "output",
+     "reasoning",
+     "cache"
+    ],
+    "additionalProperties": false
+   },
+   "Location.PublicRef": {
+    "type": "object",
+    "properties": {
+     "directory": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "directory"
+    ],
+    "additionalProperties": false
+   },
+   "Permission.Ruleset": {
+    "type": "array",
+    "items": {
+     "$ref": "#/components/schemas/Permission.Rule"
+    }
+   },
+   "SessionsResponse": {
+    "type": "object",
+    "properties": {
+     "data": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Session.Info"
+      }
+     },
+     "cursor": {
+      "type": "object",
+      "properties": {
+       "previous": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "next": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "data",
+     "cursor"
+    ],
+    "additionalProperties": false
+   },
+   "SessionMessagesResponse": {
+    "type": "object",
+    "properties": {
+     "data": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Session.Message.Info"
+      }
+     },
+     "cursor": {
+      "type": "object",
+      "properties": {
+       "previous": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "next": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "data",
+     "cursor"
+    ],
+    "additionalProperties": false
+   },
+   "Session.Message.Info": {
+    "anyOf": [
+     {
+      "$ref": "#/components/schemas/Session.Message.Assistant"
+     },
+     {
+      "$ref": "#/components/schemas/Session.Message.Idle"
+     }
+    ]
+   },
+   "Session.Message.Assistant": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^msg_"
+     },
+     "time": {
+      "type": "object",
+      "properties": {
+       "created": {
+        "type": "number"
+       },
+       "completed": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "created"
+      ],
+      "additionalProperties": false
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "assistant"
+      ]
+     },
+     "agent": {
+      "type": "string"
+     },
+     "model": {
+      "$ref": "#/components/schemas/Model.Ref"
+     },
+     "content": {
+      "type": "array",
+      "items": {}
+     },
+     "cost": {
+      "$ref": "#/components/schemas/Money.USD"
+     },
+     "tokens": {
+      "$ref": "#/components/schemas/TokenUsage.Info"
+     }
+    },
+    "required": [
+     "id",
+     "time",
+     "type",
+     "agent",
+     "model",
+     "content"
+    ],
+    "additionalProperties": false
+   },
+   "Session.Message.Idle": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^msg_"
+     },
+     "metadata": {
+      "type": "object"
+     },
+     "time": {
+      "type": "object",
+      "properties": {
+       "created": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "created"
+      ],
+      "additionalProperties": false
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "idle"
+      ]
+     },
+     "outcome": {
+      "type": "string",
+      "enum": [
+       "succeeded",
+       "failed",
+       "interrupted"
+      ]
+     }
+    },
+    "required": [
+     "id",
+     "time",
+     "type",
+     "outcome"
+    ],
+    "additionalProperties": false
+   },
+   "Session.Inbox.Info": {
+    "anyOf": [
+     {
+      "$ref": "#/components/schemas/Session.Inbox.User"
+     }
+    ]
+   },
+   "Session.Inbox.User": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^msg_"
+     },
+     "sessionID": {
+      "type": "string",
+      "pattern": "^ses"
+     },
+     "time": {
+      "type": "object",
+      "properties": {
+       "created": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "created"
+      ]
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "user"
+      ]
+     },
+     "payload": {
+      "type": "object"
+     },
+     "delivery": {
+      "$ref": "#/components/schemas/Session.Inbox.Delivery"
+     }
+    },
+    "required": [
+     "id",
+     "sessionID",
+     "time",
+     "type",
+     "payload",
+     "delivery"
+    ],
+    "additionalProperties": false
+   },
+   "Session.Inbox.Delivery": {
+    "type": "string",
+    "enum": [
+     "steer",
+     "queue"
+    ]
+   },
+   "SessionActive": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "enum": [
+       "running"
+      ]
+     }
+    },
+    "required": [
+     "type"
+    ],
+    "additionalProperties": false
+   }
+  }
+ }
+}

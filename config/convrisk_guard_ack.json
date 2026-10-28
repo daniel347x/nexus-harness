@@ -1,0 +1,2203 @@
+{
+  "repos": {
+    "conversational": {
+      "00834fa5eacd0319": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# committed declared run's outputs validate by construction (axiom 6)",
+        "where": "convrisk/runs.py:899",
+        "word": "validate"
+      },
+      "0321b0d81535d21c": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "⚠️ Historic notes and helper SQL still call `convrisk_tara` \"disposable\". **That is stale.**",
+        "where": "README.md:39",
+        "word": "Historic"
+      },
+      "038b1dbf61869d59": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "warning = next(w for w in state[\"warnings\"] if w[\"code\"] == \"provenance_history_invalid\")",
+        "where": "tests/test_dashboard_state.py:910",
+        "word": "provenance_history_invalid"
+      },
+      "03a2ccbe0da93b3e": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "incoming_metadata[\"provenance_history\"] = history",
+        "where": "convrisk/operations.py:109",
+        "word": "history"
+      },
+      "045f032572adbe40": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# count stays derived from the kNN bundle's own valid values.",
+        "where": "convrisk/dashboard/state.py:420",
+        "word": "valid"
+      },
+      "04d482ef639f6197": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "return _validate_fields(shape_key, obj, shape_key, [])",
+        "where": "convrisk/registry.py:626",
+        "word": "_validate_fields"
+      },
+      "04f7e9a495672ab9": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "with the same type rules as the server's validate (float accepts int,",
+        "where": "convrisk/dashboard/static/app.js:1758",
+        "word": "validate"
+      },
+      "05e59e593dc70684": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_select_latest_never_selects_an_invalid_stored_declaration():",
+        "where": "tests/test_dashboard_state.py:640",
+        "word": "test_select_latest_never_selects_an_invalid_stored_declaration"
+      },
+      "06318f51371d4f0c": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "politics-adjacent",
+        "text": "SVG explainers: apply the picks (knn-3 + clustering-1 sole indicated ideas; renames, all 12 idea files kept), remove the compare/view-all toggle + lightbox, opaque modal-card backgrounds (same hue, no leak)",
+        "where": "commit ff0c604 line 1",
+        "word": "leak"
+      },
+      "0888b5483ca159e0": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "This is exploratory and transductive: vocabulary and SVD are fitted on the full unlabeled 82-claim cohort, and source text covers only the first 30 seconds of each recording with Whisper Tiny transcription errors. It therefore establishes a linguistic representation capability without supporting a f",
+        "where": "descriptions/tara_text_representation_v1.md:5",
+        "word": "validation"
+      },
+      "09ecb497f909e4fe": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "registry.validate(controls_metadata, \"controls_bundle\"),",
+        "where": "convrisk/dashboard/state.py:346",
+        "word": "validate"
+      },
+      "0af81e90caedc5eb": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"knn_bundle\", bundle) == [",
+        "where": "tests/test_registry.py:163",
+        "word": "validate"
+      },
+      "0dd398e2dc5791a2": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "framing word",
+        "text": "- presentation_copy.py: fail-soft loader for the third TOML",
+        "where": "commit 6842123 line 5",
+        "word": "presentation_copy"
+      },
+      "0eded97f778dfb8a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# ── The presentation copy stays keyed to the registry ───────────────────────",
+        "where": "tests/test_registry.py:121",
+        "word": "presentation"
+      },
+      "0f563886e8a24134": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "RUN git config --system --add safe.directory /app",
+        "where": "Dockerfile:20",
+        "word": "safe"
+      },
+      "0f770300c711159d": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "f\"not a list ({type(history).__name__}); the provenance history \"",
+        "where": "convrisk/dashboard/state.py:174",
+        "word": "history"
+      },
+      "0f895631333556a0": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def _validate_window_embedding(",
+        "where": "convrisk/stages/embed_audio.py:342",
+        "word": "_validate_window_embedding"
+      },
+      "103c2754112453aa": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "warning = next(w for w in state[\"warnings\"] if w[\"code\"] == \"recipe_value_invalid\")",
+        "where": "tests/test_dashboard_state.py:849",
+        "word": "recipe_value_invalid"
+      },
+      "11c331f4006685ee": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "\"registry_version\": safe_stored.get(\"registry_version\", 0),",
+        "where": "convrisk/dashboard/repository.py:274",
+        "word": "safe"
+      },
+      "11d0de96859a243d": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "selected row at the safe seam: a malformed selected rung warns",
+        "where": "convrisk/dashboard/repository.py:373",
+        "word": "safe"
+      },
+      "12410fe388d5390b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Read a UTF-8, multi-paragraph run description from disk and validate it.\"\"\"",
+        "where": "convrisk/run_descriptions.py:39",
+        "word": "validate"
+      },
+      "1241d42509bc3f2f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Build A→B→C (valid chain)",
+        "where": "tests/test_artifact_dag.py:46",
+        "word": "valid"
+      },
+      "128f0e465588c009": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "_validate_cross_references accepts exact record match OR artifact-record descendant of label-record (bounded parent_record_id walk, depth cap 8). Turn-WAVs legitimately carry the parent conversation label; wrong-conversation pairings still die loudly. The embed_audio recipe gains pooling.pool_to (se",
+        "where": "commit d8e86d1 line 3",
+        "word": "_validate_cross_references"
+      },
+      "12cce0b39a17523f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "problems.extend(_validate_fields(field.of, value, root, here))",
+        "where": "convrisk/registry.py:597",
+        "word": "_validate_fields"
+      },
+      "16f6fcf82dde6729": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "validate_run_description(\" \")",
+        "where": "tests/test_run_descriptions.py:14",
+        "word": "validate_run_description"
+      },
+      "171a4ff7855054b5": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "allowed: tuple = () # enumerated legal values; () = any value of the type",
+        "where": "convrisk/registry.py:46",
+        "word": "legal"
+      },
+      "177d76cffaa449a8": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "Identity is compared exactly using IS NOT DISTINCT FROM (NULL-safe).",
+        "where": "convrisk/operations.py:70",
+        "word": "safe"
+      },
+      "18bcdccb8db4db51": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "safe_stored = stored if isinstance(stored, dict) else {}",
+        "where": "convrisk/dashboard/repository.py:272",
+        "word": "safe"
+      },
+      "1b8f8304cf3cb70e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "raise SystemExit(f\"Invalid committed transcript artifact: {row!r}\")",
+        "where": "scripts/run_text_representation.py:25",
+        "word": "Invalid"
+      },
+      "1cc520cd957f68d4": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "Run-path: GPU device+batching + canonical AutoFeatureExtractor in embed_audio (STAGE_VERSION 2); plan_windows validation (infinite-loop guard); Tara adapter label source_key from configured source + fail-loud column lookup (ADAPTER_VERSION 2); label idempotency includes resolution_details; record re",
+        "where": "commit fd421cd line 3",
+        "word": "demoted"
+      },
+      "1d078ee74e7a3e5c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "run_description = validate_run_description(",
+        "where": "convrisk/cli.py:169",
+        "word": "validate_run_description"
+      },
+      "1d9586978b5b7f85": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "declaration is invalid provides nothing (never selected); ``as_of_ts``",
+        "where": "convrisk/dashboard/repository.py:53",
+        "word": "invalid"
+      },
+      "1fb31bf1c97303f8": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "Claim grouping (the cross-validation unit — so a claim's calls never straddle",
+        "where": "convrisk/adapters/tara_folder.py:15",
+        "word": "validation"
+      },
+      "23bea6901d26af2d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"controls_bundle\", bundle) == [",
+        "where": "tests/test_registry.py:171",
+        "word": "validate"
+      },
+      "25970aad8cf45951": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "history, not UUID spam.",
+        "where": "README.md:175",
+        "word": "history"
+      },
+      "25c2e78ffbba2ecb": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert [warning[\"code\"] for warning in facts[\"selection_warnings\"]] == [\"declaration_invalid\"]",
+        "where": "tests/test_dashboard_state.py:1070",
+        "word": "declaration_invalid"
+      },
+      "261a9a758532c38f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "outputs and must validate against the stored shape that output",
+        "where": "convrisk/runs.py:871",
+        "word": "validate"
+      },
+      "27b2753b9cecd03f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=The whole-database stored-shape audit (read-only): every committed run's effective declaration and every committed derived artifact's summary validated against the registry; one line per problem, exit 1 on any.,",
+        "where": "scripts/registry_audit.py:94",
+        "word": "validated"
+      },
+      "296e2a2891daa72e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# id=auto-beacon@RunBuilder._validate_cross_references-dmnr,",
+        "where": "convrisk/runs.py:779",
+        "word": "_validate_cross_references"
+      },
+      "2993d030e00eeae9": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# role=dashboard presentation copy beside the re-exported registry vocabulary,",
+        "where": "convrisk/dashboard/config.py:3",
+        "word": "presentation"
+      },
+      "2aa42938b7dff5ff": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert codes.count(\"duration_rung_invalid\") == 4",
+        "where": "tests/test_dashboard_state.py:1117",
+        "word": "duration_rung_invalid"
+      },
+      "2bb6f1f2483b790d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "from convrisk.run_descriptions import validate_run_description",
+        "where": "convrisk/runs.py:42",
+        "word": "validate_run_description"
+      },
+      "2ce0f6bfeb2cceb7": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "The pager's ``runs[]`` rows carry ``sequence_number`` (today's full-history",
+        "where": "convrisk/dashboard/repository.py:75",
+        "word": "history"
+      },
+      "30245e86b00d1d36": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate one object against a declared shape; [] means valid.\"\"\"",
+        "where": "convrisk/registry.py:625",
+        "word": "valid"
+      },
+      "30ab343939d0245b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# meant to be edited by hand; the presentation_copy.py precedent). Loaded at import",
+        "where": "convrisk/dashboard/clustering_spectrum_copy.toml:2",
+        "word": "presentation_copy"
+      },
+      "30d385b8b7b815a7": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_expect_valid_scalar_vectors_still_read():",
+        "where": "tests/test_registry.py:521",
+        "word": "test_expect_valid_scalar_vectors_still_read"
+      },
+      "312cefc1cfb764fc": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"knn_bundle\", bundle) == [\"knn_bundle.perm_p: missing\"]",
+        "where": "tests/test_registry.py:179",
+        "word": "validate"
+      },
+      "32d8e8010cfb3141": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "\"\"\"Resolve a Hugging Face model revision to a pinned commit SHA.",
+        "where": "convrisk/runs.py:346",
+        "word": "Face"
+      },
+      "32fd404fde6ad550": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"declaration\", declared) == []",
+        "where": "tests/test_registry.py:377",
+        "word": "validate"
+      },
+      "344a853150c80759": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "outer-type-only semantics at the read seam (the caller validates the",
+        "where": "tests/test_registry.py:530",
+        "word": "validates"
+      },
+      "36431ef5c02c19c8": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert [w[\"code\"] for w in state[\"warnings\"] if w[\"code\"] == \"recipe_value_invalid\"] == []",
+        "where": "tests/test_dashboard_state.py:892",
+        "word": "recipe_value_invalid"
+      },
+      "36aa4f3511c9f6b6": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Validate unique keys",
+        "where": "convrisk/runs.py:879",
+        "word": "Validate"
+      },
+      "371b18e3f3404080": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "Never re-ingest to fix missing files. If artifact *bytes* are lost but DB rows are valid:",
+        "where": "README.md:200",
+        "word": "valid"
+      },
+      "39fd4e69c0666071": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "declaration.loop carries {program}, validated as an opaque program handle; any other CONVRISK_LOOP_PROGRAM value is refused before any row is written. Tests, README and one comment updated.",
+        "where": "commit c87bf48 line 3",
+        "word": "validated"
+      },
+      "3b2c14b96c0613be": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "eq(h.run('selectedRun'), sel, 'arrows never leak to run paging while the explainer is open');",
+        "where": "tests/dashboard_dom.cjs:478",
+        "word": "leak"
+      },
+      "3b63656085bfafb4": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "\"\"\"Versioned, presentation-only dashboard vocabulary.",
+        "where": "convrisk/dashboard/config.py:17",
+        "word": "presentation"
+      },
+      "3bbfdb4155872fef": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "declaration, problems = _validated_declaration(origin)",
+        "where": "convrisk/dashboard/repository.py:474",
+        "word": "_validated_declaration"
+      },
+      "3d69da3f39f1bde9": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "commentary = \"No valid entries — skipped.\"",
+        "where": "tests/test_presentation_copy.py:217",
+        "word": "valid"
+      },
+      "3ec6da50cd4c59f8": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# one place, and keeps only the presentation copy (LABEL_PROCESS_REVIEW /",
+        "where": "convrisk/dashboard/config.py:14",
+        "word": "presentation"
+      },
+      "404c42bb5ba9bc65": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "/* Gutter collapses; connectors are a desktop-demo affordance. */",
+        "where": "convrisk/dashboard/static/styles.css:763",
+        "word": "demo"
+      },
+      "43968f86062a2a02": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "1. Validate staged paths are inside the workspace.",
+        "where": "convrisk/runs.py:868",
+        "word": "Validate"
+      },
+      "43b03b52f6a26641": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "f\"Invalid audio duration source {artifact.id} ({artifact.uri}): \"",
+        "where": "convrisk/stages/confound_controls.py:187",
+        "word": "Invalid"
+      },
+      "4613c184b2ac6c97": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "iteration (provenance_history_invalid) — no pseudo-stamps from dict or",
+        "where": "commit e94dec5 line 8",
+        "word": "provenance_history_invalid"
+      },
+      "47c21a4b3d682b73": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "const parsed = new URL(url, 'http://fixture.invalid');",
+        "where": "tests/dashboard_dom.cjs:91",
+        "word": "invalid"
+      },
+      "48401e59875081f2": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "from convrisk.dashboard.presentation_copy import (",
+        "where": "tests/test_presentation_copy.py:15",
+        "word": "presentation_copy"
+      },
+      "48b78ea04a48ceaf": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_fixture_bundle_validates_against_its_declared_shape(shape_name):",
+        "where": "tests/test_registry.py:155",
+        "word": "test_fixture_bundle_validates_against_its_declared_shape"
+      },
+      "48bced574f7094d3": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# The history CONTAINER is checked before iteration (Check 1): a present",
+        "where": "convrisk/dashboard/state.py:165",
+        "word": "history"
+      },
+      "49c69f5f0d8c3198": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# later change derives the ladder from the kNN history instead. Its rows are",
+        "where": "convrisk/dashboard/repository.py:365",
+        "word": "history"
+      },
+      "4ab201a4dca04b1c": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "politics-adjacent",
+        "text": "SVG explainers: 12 blind-idea assets (.SEL indicator, all three per metric indicated) + /api/svg-explainers manifest scan endpoint + lit kNN/clustering row-click SVG modal (delegated .mrow.lit branch, corridor click untouched) + tiny compare-toggle lightbox with arrow-key idea navigation (keydown ro",
+        "where": "commit d9ffd2b line 1",
+        "word": "leaks"
+      },
+      "4b5101bc30d35be1": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# End validation snapshot before the long model run.",
+        "where": "scripts/run_transcribe_audio.py:93",
+        "word": "validation"
+      },
+      "4edf97ee8806718f": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "Toy-simple by design (demo-grade): L2-normalize the rows of one sealed",
+        "where": "convrisk/stages/cluster_embeddings.py:10",
+        "word": "demo"
+      },
+      "503557361f00e2a8": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"capability_row\", row) == []",
+        "where": "tests/test_dashboard_state.py:568",
+        "word": "validate"
+      },
+      "517d7ee403b6ce8d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_every_emitted_row_and_capability_validates_against_the_registry():",
+        "where": "tests/test_dashboard_state.py:562",
+        "word": "test_every_emitted_row_and_capability_validates_against_the_registry"
+      },
+      "51b9fcc104e5cb92": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# role=RunBuilder._validate_cross_references,",
+        "where": "convrisk/runs.py:780",
+        "word": "_validate_cross_references"
+      },
+      "523327f49fb34ab7": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def validate_run_description(",
+        "where": "convrisk/run_descriptions.py:15",
+        "word": "validate_run_description"
+      },
+      "52536555b7b553ce": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "description = validate_run_description(description)",
+        "where": "convrisk/runs.py:424",
+        "word": "validate_run_description"
+      },
+      "534c21f0e7cfa8fe": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=Whole-object shape check: every problem as one \"shape.path: what is wrong\" string; [] means valid. Extra keys are always allowed; a mismatch is a warning upstream, never an exception here.,",
+        "where": "convrisk/registry.py:622",
+        "word": "valid"
+      },
+      "53f9c9857e33b366": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"\"\"Append one structured comment without replacing prior history.",
+        "where": "convrisk/operations.py:226",
+        "word": "history"
+      },
+      "54d6b4c38ab4d8e5": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "politics-adjacent",
+        "text": "SQL cast) and parses each dataset-scoped rung at a safe seam",
+        "where": "commit eb28ad5 line 11",
+        "word": "safe"
+      },
+      "54eeb4d31ce76d49": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "(content-addressed adoption — safe reuse after crash/sweep). Refuses",
+        "where": "convrisk/storage.py:78",
+        "word": "safe"
+      },
+      "5564a21e368c36d9": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# ── Read-side declaration validation rejects bad provides ──────",
+        "where": "tests/test_dashboard_state.py:1130",
+        "word": "validation"
+      },
+      "56128fbcaf871e2e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=Read-only dashboard state, selected by declared key: every stored read goes through registry.expect or a guarded local seam (Check 1 — a mismatch is a warning and an unlit row or unavailable figure, never an exception and never an invented value); the pipeline's four recipe numbers and the",
+        "where": "convrisk/dashboard/state.py:275",
+        "word": "recipe_value_invalid"
+      },
+      "5728ba4c431c5958": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "findings_policy / presentation_copy precedent).",
+        "where": "convrisk/dashboard/cluster_spectrum.py:69",
+        "word": "presentation_copy"
+      },
+      "57cbec80e23cfe82": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"recipe_value_invalid\",",
+        "where": "convrisk/dashboard/state.py:683",
+        "word": "recipe_value_invalid"
+      },
+      "57f2cfc98368e844": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def _validate_window_embedding(",
+        "where": "convrisk/stages/embed_duration_clip.py:380",
+        "word": "_validate_window_embedding"
+      },
+      "5883aeaa2695d30c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Normalize and validate a required run description.\"\"\"",
+        "where": "convrisk/run_descriptions.py:21",
+        "word": "validate"
+      },
+      "58d7c2ebb6f5114f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Capabilities light only from valid declarations.",
+        "where": "tests/test_dashboard_state.py:1057",
+        "word": "valid"
+      },
+      "59dcb20dcfb2c109": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "quarantined registry rule and is always valid. The ONE definition of that",
+        "where": "convrisk/dashboard/repository.py:24",
+        "word": "valid"
+      },
+      "5a9675a63660c00f": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "-- Idempotent: safe to run multiple times (CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS).",
+        "where": "migrations/0001_spine.sql:3",
+        "word": "safe"
+      },
+      "5bf841ab590a488c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "{\"code\": \"declaration_invalid\", \"message\": \"Run deadbee f carries an invalid stored declaration.\", \"source\": \"database\"}",
+        "where": "tests/test_dashboard_state.py:511",
+        "word": "declaration_invalid"
+      },
+      "5c4ff27ffbb9cccb": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"declaration\", legacy) == []",
+        "where": "tests/test_registry.py:396",
+        "word": "validate"
+      },
+      "5c51e1469d39417e": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "no longer leak through the card. --panel-2 itself stays translucent for",
+        "where": "convrisk/dashboard/static/styles.css:15",
+        "word": "leak"
+      },
+      "5cb140d32a64db5c": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "Use the append helper/CLI; never replace prior history. Legacy object-shaped comments are",
+        "where": "README.md:183",
+        "word": "history"
+      },
+      "60f9b5a4676c6044": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"\"\"The demonstrated nonempty-list embedding recipe — and its provenance",
+        "where": "tests/test_dashboard_state.py:767",
+        "word": "demonstrated"
+      },
+      "61bba347d0380a13": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "├── hf_cache/ # pinned-revision Hugging Face model cache",
+        "where": "README.md:127",
+        "word": "Face"
+      },
+      "625560603de637a5": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# Placeholders must remain presentation-only, outside both consumers.",
+        "where": "tests/test_dashboard_state.py:149",
+        "word": "presentation"
+      },
+      "637f111ec141b00b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "artifact: its stored metadata summary validates against the shape its stage",
+        "where": "scripts/registry_audit.py:6",
+        "word": "validates"
+      },
+      "63e5bba2ff39f22f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "\"\"\"Hand-editable presentation copy — TOML loaders, fail-soft.",
+        "where": "convrisk/dashboard/presentation_copy.py:1",
+        "word": "presentation"
+      },
+      "647f31cb56b35364": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "declaration, problems = _validated_declaration(row)",
+        "where": "convrisk/dashboard/repository.py:60",
+        "word": "_validated_declaration"
+      },
+      "66afffb946d441b9": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "2-clusters-assumed, 5s window granularity, no overlap handling, unvalidated",
+        "where": "convrisk/stages/diarize_windows.py:13",
+        "word": "unvalidated"
+      },
+      "67654efa3daf5588": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "the majority class. With imbalanced labels that strategy already scores",
+        "where": "convrisk/dashboard/gate_explanations.toml:36",
+        "word": "strategy"
+      },
+      "69bff9ae3f5a511c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_invalid_controls_count_is_never_aligned_or_coerced(mutate):",
+        "where": "tests/test_dashboard_state.py:741",
+        "word": "test_invalid_controls_count_is_never_aligned_or_coerced"
+      },
+      "69d1eabc001e5226": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "builder._validate_cross_references(conn, accessor, workspace)",
+        "where": "tests/test_scenario_b.py:245",
+        "word": "_validate_cross_references"
+      },
+      "6b1cfe58684b6e49": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"provenance_history\": [_stamp_view(stamp) for stamp in history],",
+        "where": "convrisk/dashboard/state.py:188",
+        "word": "history"
+      },
+      "6c6e15a838d1b057": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "``walk_back = true``, once the evidence pattern has fired at ANY historical",
+        "where": "convrisk/dashboard/findings.py:16",
+        "word": "historical"
+      },
+      "6d2414c16c62aab7": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=Run ceremony owner: registry gate (declare-or-refuse) → tx1 intent with the run's declaration stamped beside provenance → execute with no transaction → tx2 seal/register/finalize (Check 0 validates every output against its declared shape before the first file is sealed). Stages never touch",
+        "where": "convrisk/runs.py:376",
+        "word": "validates"
+      },
+      "6d2682574ba9e491": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "eq(row.querySelectorAll('.sp-dot-majority, .sp-dot-minority, .sp-shade').length, 0, 'no spectrum elements leak');",
+        "where": "tests/dashboard_dom.cjs:397",
+        "word": "leak"
+      },
+      "6da42efcfd73fba3": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# convrisk/dashboard/pill_descriptions.toml — hand-editable presentation copy.",
+        "where": "convrisk/dashboard/pill_descriptions.toml:1",
+        "word": "presentation"
+      },
+      "6ee3d9436a1b37c0": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "# it's safe to reuse (crash/sweep recovery). Different bytes = alarm.",
+        "where": "convrisk/storage.py:91",
+        "word": "safe"
+      },
+      "6f61a5f65d47e66e": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# A third scan appends the second stamp exactly once; history never loses",
+        "where": "tests/test_ingest_idempotency.py:50",
+        "word": "history"
+      },
+      "711f6ad77a974e8e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def _validated_declaration(row: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:",
+        "where": "convrisk/dashboard/repository.py:18",
+        "word": "_validated_declaration"
+      },
+      "73123e72aca6c56b": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "The safe seam of the last pre-registry query: the SQL",
+        "where": "convrisk/dashboard/repository.py:89",
+        "word": "safe"
+      },
+      "75c7d2211f896631": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert [w[\"code\"] for w in state[\"warnings\"] if w[\"code\"] == \"provenance_history_invalid\"] == []",
+        "where": "tests/test_dashboard_state.py:935",
+        "word": "provenance_history_invalid"
+      },
+      "772a5e18430d7939": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "This is an exploratory rigor pass, not a claims result. Folder-derived investigative labels, strong class imbalance, small n, and within-conversation clip subsampling remain material limitations, and a 4-window pool is noisier per conversation than the 8-window primary. The companion kNN run reads t",
+        "where": "descriptions/tara_duration_clip_embed_k4.md:5",
+        "word": "history"
+      },
+      "7a130b36abe960c1": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# ── Write-time validation ────────────────────────────────────────",
+        "where": "convrisk/stages/embed_audio.py:192",
+        "word": "validation"
+      },
+      "7ac522738dd5c5a0": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# The validate line above already names the malformed root; a",
+        "where": "scripts/registry_audit.py:64",
+        "word": "validate"
+      },
+      "7bfd9fe2b47b9dcc": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"code\": \"duration_rung_invalid\",",
+        "where": "convrisk/dashboard/repository.py:388",
+        "word": "duration_rung_invalid"
+      },
+      "7c11be300cea8c3d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "_validate_window_embedding(emb, emb_dim, i, rid)",
+        "where": "convrisk/stages/embed_duration_clip.py:209",
+        "word": "_validate_window_embedding"
+      },
+      "7d458fcc4d5deb62": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(shape_name, bundle) == []",
+        "where": "tests/test_registry.py:157",
+        "word": "validate"
+      },
+      "803e9cee177fc81b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# comment=Presentation copy and the re-exported registry vocabulary: the dashboard's vocabulary itself lives in convrisk/registry.py, and this file re-exports it beside the hand-edited prose copy. DB facts light it, the registry words it, this file adds only the cautious prose. The TOMLs are fixture",
+        "where": "convrisk/dashboard/config.py:7",
+        "word": "Presentation"
+      },
+      "826f56407f2544da": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "history = metadata.get(\"provenance_history\") or []",
+        "where": "convrisk/dashboard/state.py:164",
+        "word": "history"
+      },
+      "87618c7bb6b6d2b4": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# findings latch replays chronological prefixes of full history.",
+        "where": "convrisk/dashboard/repository.py:403",
+        "word": "history"
+      },
+      "87a06ca8d9e35fd7": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "hf_cache_dir: Path # Pinned-revision model cache for Hugging Face",
+        "where": "convrisk/config.py:19",
+        "word": "Face"
+      },
+      "87a2350470a88ebb": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "self._validate_cross_references(conn, inputs, workspace)",
+        "where": "convrisk/runs.py:559",
+        "word": "_validate_cross_references"
+      },
+      "892cd741cbac3e3a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "500s over a presentation asset.",
+        "where": "convrisk/dashboard/svg_explainers.py:14",
+        "word": "presentation"
+      },
+      "895a400792b1bf7d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"handling, unvalidated speaker purity — exploratory v1.\"",
+        "where": "convrisk/stages/diarize_windows.py:175",
+        "word": "unvalidated"
+      },
+      "8fb374f8b41ab9e9": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "positioning so a mid-demo window resize cannot leave a revealed connector",
+        "where": "convrisk/dashboard/static/app.js:1728",
+        "word": "demo"
+      },
+      "905ade308485539f": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "Freeze mode: preload all run states for instant Next/Back demo navigation",
+        "where": "commit 76149dd line 1",
+        "word": "demo"
+      },
+      "90abb39fb657a873": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"code\": \"declaration_invalid\",",
+        "where": "convrisk/dashboard/repository.py:255",
+        "word": "declaration_invalid"
+      },
+      "912045c4db385f99": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# Hand-editable presentation copy (fail-soft TOML",
+        "where": "convrisk/dashboard/state.py:851",
+        "word": "presentation"
+      },
+      "92029297375ab369": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "This is an exploratory rigor pass, not a claims result. Folder-derived investigative labels, strong class imbalance, small n, and within-conversation clip subsampling remain material limitations. The companion kNN run reads the pooled matrix through the unchanged knn_consistency stage; any drift fro",
+        "where": "descriptions/tara_duration_clip_embed_k5.md:5",
+        "word": "history"
+      },
+      "9292d98bbddda837": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# convrisk/dashboard/gate_explanations.toml — hand-editable presentation copy.",
+        "where": "convrisk/dashboard/gate_explanations.toml:1",
+        "word": "presentation"
+      },
+      "94ffeb344db705a1": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "Total checked reads at the demonstrated boundaries",
+        "where": "commit eb28ad5 line 1",
+        "word": "demonstrated"
+      },
+      "955e3f2e219b2044": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"dashboard_row\", row) == []",
+        "where": "tests/test_dashboard_state.py:566",
+        "word": "validate"
+      },
+      "957063f36ce6976e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "Honesty boundaries are explicit: this is a crude exploratory diarization — two clusters assumed, 5s window granularity, no overlap handling, no speaker-purity validation — recorded as such in the artifact metadata. It makes no claim of diarization quality and exists to establish the capability lane ",
+        "where": "descriptions/tara_diarization_v1.md:5",
+        "word": "validation"
+      },
+      "9739377d1571819f": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# The valid recomputed primary is preserved (the formerly early conversion",
+        "where": "tests/test_dashboard_state.py:749",
+        "word": "valid"
+      },
+      "976acc4c0910742f": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "\"import_context_id\": safe_stored.get(\"import_context_id\"),",
+        "where": "convrisk/dashboard/repository.py:277",
+        "word": "safe"
+      },
+      "9775a827cb373e5b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "\"\"\"DB-free tests for the hand-editable presentation-copy TOMLs.",
+        "where": "tests/test_presentation_copy.py:1",
+        "word": "presentation"
+      },
+      "979e13ad22db49de": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "f\"history and stays shown for every later view. The current as-of \"",
+        "where": "convrisk/dashboard/findings.py:61",
+        "word": "history"
+      },
+      "9894d820c9bf854f": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"\"\"The history CONTAINER is checked before iteration: a present numeric,",
+        "where": "tests/test_dashboard_state.py:906",
+        "word": "history"
+      },
+      "993f563602440abf": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "a substantial file-backed narrative so dashboard run history remains intelligible.",
+        "where": "convrisk/run_descriptions.py:5",
+        "word": "history"
+      },
+      "99555fc991e70acd": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Newer than the valid declared run: if the recovery loop misfired, these",
+        "where": "tests/test_dashboard_state.py:1045",
+        "word": "valid"
+      },
+      "9a140bdf3ba471b4": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "validate_run_description,",
+        "where": "tests/test_run_descriptions.py:8",
+        "word": "validate_run_description"
+      },
+      "9b726d0d9375cdba": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "Asks whether the metric beats the laziest possible strategy: always guess",
+        "where": "convrisk/dashboard/gate_explanations.toml:35",
+        "word": "strategy"
+      },
+      "9d5878bc352ffe30": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "f\"remap — exploratory v1, not a quality or validity claim.\"",
+        "where": "convrisk/stages/cluster_embeddings.py:257",
+        "word": "validity"
+      },
+      "9f3745e6ddc6e2bc": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"declaration\", declaration) == []",
+        "where": "tests/test_registry.py:370",
+        "word": "validate"
+      },
+      "9f74e1dbd8e3da3a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "{\"code\": \"declaration_invalid\", \"message\": \"Run deadbee f carries an invalid stored declaration.\", \"source\": \"database\"}",
+        "where": "tests/test_dashboard_state.py:511",
+        "word": "invalid"
+      },
+      "a1236c4ebfc02b7a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "for problem in registry.validate(\"declaration\", effective):",
+        "where": "scripts/registry_audit.py:61",
+        "word": "validate"
+      },
+      "a25814ed06bb9f24": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_commentary_records_and_entries_validate_silently(tmp_path):",
+        "where": "tests/test_presentation_copy.py:188",
+        "word": "test_commentary_records_and_entries_validate_silently"
+      },
+      "a3da59e3528fcd0d": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "ids=[\"history-int\", \"history-dict\", \"history-string\"],",
+        "where": "tests/test_dashboard_state.py:903",
+        "word": "history"
+      },
+      "a5015929a3bae888": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "return _validate_fields(of, value, root, prefix)",
+        "where": "convrisk/registry.py:571",
+        "word": "_validate_fields"
+      },
+      "a5a8e22eafc6122a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Validate the plan parameters: a degenerate config must die",
+        "where": "convrisk/stages/plan_windows.py:51",
+        "word": "Validate"
+      },
+      "a6a78540c7713d17": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"note\": \"Exploratory unsupervised-clustering recovery signature — a signature, not a headline. Interpret only against the declared references (majority baseline 0.8415, shuffle-null center 0.7299) with cohort and label-process review. A result at or below chance is a successful demonstration that th",
+        "where": "tests/fixtures/registry/cluster_bundle.json:6",
+        "word": "demonstration"
+      },
+      "a75810cc44d122c8": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "Run-path: GPU device+batching + canonical AutoFeatureExtractor in embed_audio (STAGE_VERSION 2); plan_windows validation (infinite-loop guard); Tara adapter label source_key from configured source + fail-loud column lookup (ADAPTER_VERSION 2); label idempotency includes resolution_details; record re",
+        "where": "commit fd421cd line 3",
+        "word": "validation"
+      },
+      "a8b2017b79348451": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"provenance_history_invalid\",",
+        "where": "convrisk/dashboard/state.py:171",
+        "word": "provenance_history_invalid"
+      },
+      "a8b61c9426b510d0": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "denominator; the provenance-history CONTAINER is list-checked before",
+        "where": "commit e94dec5 line 7",
+        "word": "history"
+      },
+      "aa0745cf37af220b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "problems = registry.validate(shape_key, {**o.metadata, \"artifact_kind\": o.artifact_kind})",
+        "where": "convrisk/runs.py:912",
+        "word": "validate"
+      },
+      "aae079cd51f47f0c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate cross-reference invariant before any compute.",
+        "where": "convrisk/runs.py:791",
+        "word": "Validate"
+      },
+      "ab5434571e16f929": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "2. validates unique logical keys",
+        "where": "convrisk/contracts.py:195",
+        "word": "validates"
+      },
+      "acaeb614a2142554": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "for problem in registry.validate(shape_key, metadata):",
+        "where": "scripts/registry_audit.py:85",
+        "word": "validate"
+      },
+      "ae9e3e6bce3ca5cf": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "Interpretation stays deliberately limited: the number is a signature, not a headline, readable only against the declared references — majority baseline 0.8415 and shuffle-null center 0.7299. A clustering result at or below chance is a SUCCESSFUL pipeline demonstration, not a failure. Known limitatio",
+        "where": "descriptions/tara_clustering_clip_k4.md:5",
+        "word": "demonstration"
+      },
+      "af13fc634e9738f0": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"knn_bundle\", bundle) == [\"knn_bundle.knn_acc.k=1: missing\"]",
+        "where": "tests/test_registry.py:182",
+        "word": "validate"
+      },
+      "b0163e698a75d186": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "raise ValueError(f\"declare() produced an invalid declaration: {problems}\")",
+        "where": "convrisk/registry.py:807",
+        "word": "invalid"
+      },
+      "b01de5874a5c47c4": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "history = []",
+        "where": "convrisk/dashboard/state.py:179",
+        "word": "history"
+      },
+      "b12421f04fc7d876": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "validate_run_description,",
+        "where": "convrisk/cli.py:26",
+        "word": "validate_run_description"
+      },
+      "b2264e5e03ae252a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# The one-row entry is dropped; the valid recovery entry survives.",
+        "where": "tests/test_presentation_copy.py:224",
+        "word": "valid"
+      },
+      "b3bce20035948adf": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# same declared item type whole-object validate applies): a",
+        "where": "convrisk/registry.py:677",
+        "word": "validate"
+      },
+      "b5fdb7bc9646f80c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate + stream one window row, and update the pooling accumulator.",
+        "where": "convrisk/stages/embed_audio.py:184",
+        "word": "Validate"
+      },
+      "b65eb99b92aca8c6": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "dict or string history can neither raise nor become entries by iterating",
+        "where": "tests/test_dashboard_state.py:907",
+        "word": "history"
+      },
+      "b884966ccca6f3d2": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "problems = validate(\"declaration\", declaration)",
+        "where": "convrisk/registry.py:805",
+        "word": "validate"
+      },
+      "b8e53c5bf8265b61": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "├── runs.py ← RunBuilder + validation",
+        "where": "README.md:301",
+        "word": "validation"
+      },
+      "b90c1883ea973efc": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "convrisk/dashboard/presentation_copy.py",
+        "where": "file name convrisk/dashboard/presentation_copy.py",
+        "word": "presentation_copy"
+      },
+      "b96ae063dc6eaa1a": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# comment=Read-only dashboard state, selected by declared key: every stored read goes through registry.expect or a guarded local seam (Check 1 — a mismatch is a warning and an unlit row or unavailable figure, never an exception and never an invented value); the pipeline's four recipe numbers and the",
+        "where": "convrisk/dashboard/state.py:275",
+        "word": "history"
+      },
+      "ba152a24e4a03d02": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# id=auto-beacon@validate-f4q2,",
+        "where": "convrisk/registry.py:618",
+        "word": "validate"
+      },
+      "bc5441f1e39c49de": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "change derives the ladder from the declared kNN history and deletes this.",
+        "where": "convrisk/dashboard/repository.py:536",
+        "word": "history"
+      },
+      "bc9a4c3301f350ea": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "- pinned Arrow schema + cheap write-time validation.",
+        "where": "convrisk/stages/embed_audio.py:14",
+        "word": "validation"
+      },
+      "bcbb83c1d590776e": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "return validate_run_description(",
+        "where": "convrisk/run_descriptions.py:43",
+        "word": "validate_run_description"
+      },
+      "be054ed525f8683c": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "2. Validate unique logical keys.",
+        "where": "convrisk/runs.py:869",
+        "word": "Validate"
+      },
+      "bfe634f4f8149153": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "return # no labeled memberships — nothing to validate",
+        "where": "convrisk/runs.py:800",
+        "word": "validate"
+      },
+      "c1353f22d7c9c666": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "a leakage negative control.",
+        "where": "convrisk/stages/pool_by_speaker.py:13",
+        "word": "leakage"
+      },
+      "c136e84e70246baa": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "string keys. Valid values and absent/optional legacy defaults are",
+        "where": "commit e94dec5 line 9",
+        "word": "Valid"
+      },
+      "c18a43609ce027a5": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def _validate_fields(shape_key: str, obj: object, root: str, prefix: list) -> list[str]:",
+        "where": "convrisk/registry.py:576",
+        "word": "_validate_fields"
+      },
+      "c19337845a851d26": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# in_dataset — full history (the pager must show every run so",
+        "where": "convrisk/dashboard/repository.py:231",
+        "word": "history"
+      },
+      "c2d5e581c0b98bcb": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# non-list history (number/string/dict) warns and yields no entries —",
+        "where": "convrisk/dashboard/state.py:166",
+        "word": "history"
+      },
+      "c2edcd196b97d76a": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# ── The four recipe numbers and the provenance-history container ──",
+        "where": "tests/test_dashboard_state.py:796",
+        "word": "history"
+      },
+      "c387b073c69c8f1c": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "| What | Where | Container replacement safe? |",
+        "where": "README.md:142",
+        "word": "safe"
+      },
+      "c40e668564d24a31": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "(1 < 2 < 3). Never raises on presentation-asset",
+        "where": "convrisk/dashboard/svg_explainers.py:48",
+        "word": "presentation"
+      },
+      "c41799a4cc26aa5a": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "from convrisk.dashboard.presentation_copy import (",
+        "where": "convrisk/dashboard/state.py:24",
+        "word": "presentation_copy"
+      },
+      "c469be7071a17bc1": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=Build one run's declaration dict (registry_version, stage, dataset, import_context_id, provides); always validates as the declaration shape; the RunBuilder stamps it in tx1.,",
+        "where": "convrisk/registry.py:793",
+        "word": "validates"
+      },
+      "c4f87d4b0d827ef3": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate one object against a declared shape; [] means valid.\"\"\"",
+        "where": "convrisk/registry.py:625",
+        "word": "Validate"
+      },
+      "c5793fd1fa4c5114": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert state[\"warnings\"][0][\"code\"] == \"declaration_invalid\"",
+        "where": "tests/test_dashboard_state.py:516",
+        "word": "declaration_invalid"
+      },
+      "c682adbb852aba05": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# The TOML's file order is presentation order; the registry's is",
+        "where": "tests/test_registry.py:142",
+        "word": "presentation"
+      },
+      "c73f96bdf5dc4162": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# comment=Read-only dashboard state, selected by declared key: every stored read goes through registry.expect or a guarded local seam (Check 1 — a mismatch is a warning and an unlit row or unavailable figure, never an exception and never an invented value); the pipeline's four recipe numbers and the",
+        "where": "convrisk/dashboard/state.py:275",
+        "word": "provenance_history_invalid"
+      },
+      "c7418eb5cdb6fbe4": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "history.append(previous_provenance)",
+        "where": "convrisk/operations.py:106",
+        "word": "history"
+      },
+      "c7935f49bc74e3e6": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "For every committed run: its effective declaration validates as the",
+        "where": "scripts/registry_audit.py:4",
+        "word": "validates"
+      },
+      "c8e2c00e53e0a870": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"declaration\", declaration) == []",
+        "where": "tests/test_run_declarations.py:216",
+        "word": "validate"
+      },
+      "ccd0d071cf315a46": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_the_valid_equivalent_of_the_f2_bundle_still_returns_the_spectrum():",
+        "where": "tests/test_cluster_spectrum.py:359",
+        "word": "test_the_valid_equivalent_of_the_f2_bundle_still_returns_the_spectrum"
+      },
+      "cd9e205666b152ff": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "This run scores the minor-speaker diarization-gated conversation matrix (WavLM layer-9 windows pooled over each recording's minor cluster only — the agent-proxy channel) through the unchanged knn_consistency stage: leave-one-conversation-out cosine 1-nearest-neighbor with 2,000 grouped permutations,",
+        "where": "descriptions/tara_speaker_knn_minor.md:3",
+        "word": "leakage"
+      },
+      "ce48194881c5bfe0": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "read produced — and no new warning on valid data.\"\"\"",
+        "where": "tests/test_dashboard_state.py:870",
+        "word": "valid"
+      },
+      "ce5a307609be4125": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "This run re-pools the sealed first-pass WavLM window embeddings to the conversation level keeping only windows assigned to each recording's MINOR diarization cluster (v1 cluster diarization, KMeans k=2, seed 17) — the complement of the dominant-speaker pool, approximating the call-center agent's voi",
+        "where": "descriptions/tara_speaker_pool_minor.md:3",
+        "word": "leakage"
+      },
+      "cfb209e7d766c318": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "Interpretation stays deliberately limited: the number is a signature, not a headline. Any recovery value reads only against the declared references — majority baseline 0.8415 and shuffle-null center 0.7299 — and a result at or below chance is a SUCCESSFUL demonstration that the pipeline works end to",
+        "where": "descriptions/tara_clustering_fusion_v1.md:5",
+        "word": "demonstration"
+      },
+      "d0a3f844d4f4aed1": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Scalar non-string members are equally invalid.",
+        "where": "tests/test_dashboard_state.py:1142",
+        "word": "invalid"
+      },
+      "d2a2c0482ba0cdba": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "/* convrisk evidence map — presentation layer.",
+        "where": "convrisk/dashboard/static/app.js:1",
+        "word": "presentation"
+      },
+      "d2effca1b9431257": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# ── Every emitted row validates against the registry's shapes ────────────",
+        "where": "tests/test_dashboard_state.py:559",
+        "word": "validates"
+      },
+      "d32ca7d996012356": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "the one healthy stamp flows, and empty/absent histories stay silent.\"\"\"",
+        "where": "tests/test_dashboard_state.py:933",
+        "word": "histories"
+      },
+      "d46e7c6a59939303": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"successful demonstration that the pipeline works, not a failure.\",",
+        "where": "convrisk/stages/cluster_embeddings.py:251",
+        "word": "demonstration"
+      },
+      "d4e21c3deec13108": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "_validate_window_embedding(emb, emb_dim, i, rid)",
+        "where": "convrisk/stages/embed_audio.py:205",
+        "word": "_validate_window_embedding"
+      },
+      "d66dda0d372d2a49": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# Presentation-copy shape parity with build_state (additive keys).",
+        "where": "convrisk/dashboard/state.py:256",
+        "word": "Presentation"
+      },
+      "d6ddf497965ae657": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "(presentation copy is meant to be edited by hand). They are loaded at",
+        "where": "convrisk/dashboard/presentation_copy.py:4",
+        "word": "presentation"
+      },
+      "d818118ccabfdb29": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert codes.count(\"declaration_invalid\") == 2",
+        "where": "tests/test_dashboard_state.py:1052",
+        "word": "declaration_invalid"
+      },
+      "d8bd6465a35bc97f": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "(duration_rung_invalid warning, dropped rung); registry_audit reports",
+        "where": "commit eb28ad5 line 12",
+        "word": "duration_rung_invalid"
+      },
+      "d9111a698a2408e5": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Valid history order and the existing absent/null behavior are unchanged:",
+        "where": "tests/test_dashboard_state.py:932",
+        "word": "Valid"
+      },
+      "da4a599795c71719": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "cache_dir = \"/data/convrisk/hf_cache\" # Pinned-revision model cache for Hugging Face",
+        "where": "convrisk.toml.example:12",
+        "word": "Face"
+      },
+      "dad77066727676b8": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "Guarded recipe-number and provenance-history descriptive reads",
+        "where": "commit e94dec5 line 1",
+        "word": "history"
+      },
+      "dc19f586b6c6db17": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "tara_folder adapter: folder-name labels (Fraud Identified/Believed or Actual Genuine), claim grouping by leading id (cross-validation unit; alias for X & Y files; no-id files self-keyed), parent claim record + turn-WAV children, folder-derived label on parent. scripts/tara_first_pass.py: ingest -> e",
+        "where": "commit 4490ef9 line 3",
+        "word": "validation"
+      },
+      "dea3e8becd2c97ca": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "history = list(raw_history) if isinstance(raw_history, list) else []",
+        "where": "convrisk/operations.py:103",
+        "word": "history"
+      },
+      "df61350a15208287": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "if history and not isinstance(history, list):",
+        "where": "convrisk/dashboard/state.py:168",
+        "word": "history"
+      },
+      "df687efaecc10a3d": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def validate(shape_key: str, obj: object) -> list[str]:",
+        "where": "convrisk/registry.py:624",
+        "word": "validate"
+      },
+      "e3125f4a51809f0b": {
+        "acked": "2026-10-04T02:31:22Z",
+        "kind": "log",
+        "note": "second review, Manager-Session-117: validation code terms, presentation_copy module",
+        "rule": "validity word",
+        "text": "present unusable value warns (recipe_value_invalid) and leaves only the",
+        "where": "commit e94dec5 line 5",
+        "word": "recipe_value_invalid"
+      },
+      "e389589de5cd841b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def test_loader_invalid_dict_declaration_keeps_membership_but_provides_nothing():",
+        "where": "tests/test_dashboard_state.py:1061",
+        "word": "test_loader_invalid_dict_declaration_keeps_membership_but_provides_nothing"
+      },
+      "e4030cebd2cf2298": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "This is an exploratory rigor pass, not a claims result. Folder-derived investigative labels, strong class imbalance, small n, and maximal within-conversation subsampling remain material limitations. The companion kNN run reads the pooled matrix through the unchanged knn_consistency stage; any drift ",
+        "where": "descriptions/tara_duration_clip_embed_k2.md:5",
+        "word": "history"
+      },
+      "e4db52e0737cc037": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"artifact root, producing a DB-backed dashboard result rather than a historical \"",
+        "where": "tests/test_run_descriptions.py:27",
+        "word": "historical"
+      },
+      "e5b2decceca9a350": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# role=validate,",
+        "where": "convrisk/registry.py:619",
+        "word": "validate"
+      },
+      "e8778f7f73b58a00": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"run_card\", row) == []",
+        "where": "tests/test_dashboard_state.py:570",
+        "word": "validate"
+      },
+      "e92dfea41e60e476": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate + stream one selected-window row (mirror of embed_audio's",
+        "where": "convrisk/stages/embed_duration_clip.py:193",
+        "word": "Validate"
+      },
+      "e9d32ed388c1eb18": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "def _validate_cross_references(",
+        "where": "convrisk/runs.py:785",
+        "word": "_validate_cross_references"
+      },
+      "ea5e47cfe1249a78": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "import convrisk.dashboard.presentation_copy as copy_mod",
+        "where": "tests/test_presentation_copy.py:14",
+        "word": "presentation_copy"
+      },
+      "eb78e66e9cedc597": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "sys.exit(f\"Could not validate CONVRISK_E2E_DB_DSN: {exc}\")",
+        "where": "scripts/e2e_tone_fixture.py:54",
+        "word": "validate"
+      },
+      "eb890db9619483b4": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"limitations\": \"k=2 assumed; one seeded KMeans draw; strong class imbalance ({'genuine': 13, 'fraud': 69}); folder-derived investigative labels; small n; ARI/NMI computed against the same labels used for the majority remap — exploratory v1, not a quality or validity claim.\",",
+        "where": "tests/fixtures/registry/cluster_bundle.json:12",
+        "word": "validity"
+      },
+      "ed0754cc979bd602": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "# Clustering-row size-spectrum copy — hand-editable (presentation copy is",
+        "where": "convrisk/dashboard/clustering_spectrum_copy.toml:1",
+        "word": "presentation"
+      },
+      "ed39d98f54c96a10": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# Validate staged paths are inside the workspace",
+        "where": "convrisk/runs.py:884",
+        "word": "Validate"
+      },
+      "ed6422885223741b": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "\"dataset\": safe_stored.get(\"dataset\"),",
+        "where": "convrisk/dashboard/repository.py:276",
+        "word": "safe"
+      },
+      "efe5ad82519d1e50": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "``declaration_invalid``). A legacy row — no stored declaration — takes the",
+        "where": "convrisk/dashboard/repository.py:23",
+        "word": "declaration_invalid"
+      },
+      "f37cfc949b5b6624": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "1. validates staged paths are inside the workspace",
+        "where": "convrisk/contracts.py:194",
+        "word": "validates"
+      },
+      "f4994e6e1124664c": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "# Callers cannot replace history: the operation derives it",
+        "where": "convrisk/operations.py:107",
+        "word": "history"
+      },
+      "f5224863a3f040c4": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "\"\"\"Validate, seal, promote, and register output artifacts.",
+        "where": "convrisk/runs.py:866",
+        "word": "Validate"
+      },
+      "f5f8cc58d8701f0e": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "politics-adjacent",
+        "text": "ok(!/rgba\\s*\\(/.test(bg[1]), 'the background declaration carries no rgba() translucency (the box-shadow alpha is not a leak surface)');",
+        "where": "tests/dashboard_dom.cjs:492",
+        "word": "leak"
+      },
+      "f71a89fd77ec7ebb": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "ids=[\"healthy-history\", \"history-empty\", \"history-null\", \"history-absent\"],",
+        "where": "tests/test_dashboard_state.py:929",
+        "word": "history"
+      },
+      "f85847d2af2beb80": {
+        "acked": "2026-10-04T02:11:05Z",
+        "kind": "tree",
+        "note": "first review, Manager-Session-117: technical use (provenance/run history, Hugging Face, NULL-safe, data leakage, pipeline demonstration)",
+        "rule": "framing word",
+        "text": "\"\"\"Valid history order and the existing absent/null behavior are unchanged:",
+        "where": "tests/test_dashboard_state.py:932",
+        "word": "history"
+      },
+      "f8a851fc6912244b": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "framing word",
+        "text": "(the presentation_copy.py precedent).",
+        "where": "convrisk/dashboard/cluster_spectrum.py:19",
+        "word": "presentation_copy"
+      },
+      "fb5a07a463d984e2": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "# that validates against the declared ``artifact_meta`` stored shape.",
+        "where": "tests/test_run_declarations.py:45",
+        "word": "validates"
+      },
+      "fb8cbde2778502fd": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "f\"Run {str(row['run_id'])[:8]} carries an invalid stored \"",
+        "where": "convrisk/dashboard/repository.py:257",
+        "word": "invalid"
+      },
+      "fdcb48e3831e2ccf": {
+        "acked": "2026-10-04T02:11:11Z",
+        "kind": "log",
+        "note": "first review, Manager-Session-117: technical commit subjects",
+        "rule": "framing word",
+        "text": "Guard e2e DB and preserve re-import provenance history",
+        "where": "commit 78a0926 line 1",
+        "word": "history"
+      },
+      "fe2c4c02de4bab93": {
+        "acked": "2026-10-04T02:31:24Z",
+        "kind": "tree",
+        "note": "second review, Manager-Session-117: validate()/invalid codes, presentation-copy module, majority-guess strategy, cross-validation; charged phrasings reworded first",
+        "rule": "validity word",
+        "text": "assert registry.validate(\"knn_bundle\", bundle) == []",
+        "where": "tests/test_registry.py:188",
+        "word": "validate"
+      }
+    }
+  },
+  "version": 1
+}

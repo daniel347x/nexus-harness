@@ -1,0 +1,34 @@
+/* The existing status node stays the authority; only its presentation moves out of document flow.
+   A full log is opt-in. Automatic notices never sit over the draft or its action row. */
+.pane-toast { position: fixed; z-index: 25; left: var(--toast-left, 12px); top: var(--toast-top, 12px); width: var(--toast-width, 360px);
+  box-sizing: border-box; display: flex; align-items: flex-start; gap: 5px; padding: 8px 9px; border: 1px solid #61728e; border-radius: 10px;
+  background: #202c40; color: #e3ecfc; box-shadow: 0 5px 20px #0008; font: 13px/1.4 system-ui, -apple-system, sans-serif;
+  overflow: hidden; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .25s ease, visibility .25s; }
+.pane-toast[data-visible="true"] { opacity: 1; visibility: visible; pointer-events: auto; }
+.pane-toast[data-error="true"] { background: #421c23; color: #ffcfca; border-color: #ff8178; }
+.pane-toast #m-status, .pane-toast #status { flex: 1; min-width: 0; margin: 0; max-height: 4.2em; overflow: auto;
+  color: inherit; text-align: left; font-size: inherit; line-height: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pane-toast button, .pane-status-log button { flex: none; min-width: 32px; min-height: 32px; padding: 4px 7px; border: 1px solid #8193b4;
+  border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; touch-action: manipulation; }
+.pane-toast .pane-toast-open { font-weight: 650; }
+.pane-toast[data-compact="true"] { width: 34px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.pane-toast[data-compact="true"] :is(#m-status, #status, .pane-toast-dismiss) { display: none; }
+.pane-toast[data-compact="true"] .pane-toast-open { width: 34px; height: 34px; padding: 0; border-color: #91baff; background: #202c40; }
+.pane-toast[data-compact="true"][data-error="true"] .pane-toast-open { border-color: #ff8178; background: #421c23; color: #ffcfca; }
+.pane-status-log { position: fixed; z-index: 60; box-sizing: border-box; top: var(--status-screen-top, 0px); left: 0; right: 0;
+  height: var(--status-screen-height, 100dvh); padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 8px; border: 1px solid #61728e; border-radius: 10px; background: #151d2b; color: #e3ecfc;
+  font: 14px/1.45 system-ui, -apple-system, sans-serif; }
+.pane-status-log[hidden] { display: none; }
+.pane-status-log > header { display: flex; flex: none; align-items: center; gap: 12px; padding: 0; border: 0; }
+.pane-status-log > header strong { flex: 1; }
+.pane-status-entries { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.pane-status-entry { padding: 8px 4px; border-bottom: 1px solid #394254; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pane-status-entry[data-error="true"] { color: #ffcfca; border-left: 3px solid #ff8178; padding-left: 8px; }
+.pane-status-entry time { display: block; color: #b8c2d4; font-size: 12px; }
+:is(#status-history, #m-status-history)[data-error="true"] { color: #ff9f95; }
+#status-history { margin-left: auto; }
+:root[data-glare="on"] .pane-toast { color: #fff; font-size: 14.5px; }
+:root[data-glare="on"] .pane-status-log { color: #fff; font-size: 15px; }
+:root[data-glare="on"] .pane-status-entry time { color: #f1f4f9; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .pane-toast { transition: none; } }

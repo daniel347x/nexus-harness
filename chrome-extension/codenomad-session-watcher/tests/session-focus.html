@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Offline CodeNomad 0.20.1 "Open in CodeNomad" DOM fixture</title>
+<style>.hidden { display:none; } .shell { border:1px solid; padding:6px; margin:4px 0; }</style>
+<!-- Markup from CodeNomad 0.20.1: components/instance-tabs.tsx + instance-tab.tsx (the workspace tab button, title =
+     folder), instance/shell/SessionSidebar.tsx (the "Search sessions" toggle), session-list.tsx (rows, expander,
+     search input; rows not loaded are absent from the DOM), message-section (the active stream). Clicks are handled
+     by ONE delegated document listener, as Solid does. No real network: the pane server is scripted below. -->
+<div class="tab-bar" id="tabs"></div>
+<div id="shells"></div>
+<pre id="results">running</pre>
+<script>
+const workspaces = {
+  'i-home': { folder: '/home/dan', sessions: [{ id: 'ses_homeseat01', title: 'Lead seat' }] },
+  'i-quick': { folder: '/mnt/e/repos/quick-worker', sessions: [
+    { id: 'ses_visible001', title: '[ap:AAAAAA]-001 ▸ ⚡ quick helper · visible' },
+    { id: 'ses_parent0001', title: '[ap:AAAAAA]-001 ▸ ⚡ quick worker · parent', children: [{ id: 'ses_child00001', title: 'subagent child' }] },
+    { id: 'ses_far0000001', title: '[ap:BBBBBB]-001 ▸ ⚡ quick helper · far away', unloaded: true },
+  ] },
+};
+let activeWs = 'i-home';
+const ui = { active: {}, expanded: new Set(), search: {}, rowClass: 'session-item-select', tabClass: 'tab-base' };
+function render() {
+  const tabs = document.getElementById('tabs'); tabs.replaceChildren();
+  for (const [id, ws] of Object.entries(workspaces)) {
+    tabs.insertAdjacentHTML('beforeend', `<div class="tab-draggable" data-app-tab-id="instance:${id}"><div class="group">
+      <button class="${ui.tabClass} ${id === activeWs ? 'tab-active' : 'tab-inactive'}" role="tab" aria-selected="${id === activeWs}" title="${ws.folder}" data-ws="${id}">
+      <span class="tab-label">${ws.folder.split('/').pop()}</span></button></div></div>`);
+  }
+  const shells = document.getElementById('shells'); shells.replaceChildren();
+  for (const [id, ws] of Object.entries(workspaces)) {
+    const query = ui.search[id], searching = typeof query === 'string';
+    const rows = [];
+    const row = (s, child) => `<div class="session-list-item"><div class="session-item-base ${child ? 'session-item-nested' : ''} ${ui.active[id] === s.id ? 'session-item-active' : 'session-item-inactive'}" data-session-id="${s.id}">
+      ${s.children ? `<button type="button" class="session-item-expander" aria-expanded="${ui.expanded.has(s.id)}" data-expand="${s.id}">›</button>` : '<span class="session-item-expander session-item-expander--spacer"></span>'}
+      <button type="button" class="${ui.rowClass}" data-select="${s.id}"><span class="session-item-title">${s.title}</span></button></div></div>`;
+    for (const s of ws.sessions) {
+      if (s.unloaded && !(searching && query && s.title.toLowerCase().includes(query.toLowerCase()))) continue;
+      if (searching && query && !s.title.toLowerCase().includes(query.toLowerCase())) continue;
+      rows.push(row(s, false));
+      if (s.children && ui.expanded.has(s.id)) for (const c of s.children) rows.push(row(c, true));
+    }
+    shells.insertAdjacentHTML('beforeend', `<div class="shell ${id === activeWs ? '' : 'hidden'}" data-shell="${id}">
+      <div class="session-sidebar-header-actions"><button class="icon-toggle" aria-label="Search sessions" title="Search sessions" aria-pressed="${searching}" data-toggle="${id}">🔍</button></div>
+      <div class="session-list-container">${searching ? `<div class="p-3"><input type="text" class="form-input pl-9" data-search="${id}" placeholder="Search sessions…" aria-label="Search sessions"></div>` : ''}
+        ${rows.join('')}</div>
+      ${ui.active[id] ? `<div class="message-stream-container" data-stream-active="true" data-session-id="${ui.active[id]}" data-instance-id="${id}">stream</div>` : ''}</div>`);
+    if (searching) { const input = shells.querySelector(`[data-search="${id}"]`); input.value = query; }
+  }
+}
+// Solid-style delegation: one listener on the document reads the clicked control.
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.ws) { activeWs = t.dataset.ws; render(); }
+  else if (t.dataset.select) { ui.active[activeWs] = t.dataset.select; render(); }
+  else if (t.dataset.expand) { ui.expanded.add(t.dataset.expand); render(); }
+  else if (t.dataset.toggle) { const id = t.dataset.toggle; if (typeof ui.search[id] === 'string') delete ui.search[id]; else ui.search[id] = ''; render(); }
+});
+document.addEventListener('input', (e) => { const id = e.target.dataset.search; if (id) { ui.search[id] = e.target.value; setTimeout(render, 150); } });
+render();
+
+// The scripted pane server: one current request, claims and reports, as transcription-pane/codenomad_focus.py.
+const pane = { request: null, reports: [], claims: [] };
+window.fetch = async (url, options = {}) => {
+  const base = 'http://127.0.0.1:9911/api/focus-request';
+  const reply = (data) => ({ ok: true, json: async () => data });
+  const body = options.body ? JSON.parse(options.body) : null;
+  if (url.startsWith(base + '?watcherId=')) return reply({ schemaVersion: 1, request: pane.request && { ...pane.request } });
+  if (url === base + '/claim') {
+    pane.claims.push(body);
+    if (pane.request?.nonce === body.nonce && pane.request.state === 'pending') { pane.request.state = 'claimed'; pane.request.claimedBy = body.watcherId; return reply({ claimed: true }); }
+    return reply({ claimed: false });
+  }
+  if (url === base + '/report') {
+    pane.reports.push(body);
+    if (body.code !== 'no-tab' && pane.request?.nonce === body.nonce) pane.request.state = body.code;
+    return reply({ accepted: true });
+  }
+  throw new Error('No real network allowed: ' + url);
+};
+const checks = [];
+function check(ok, label) { checks.push({ label, ok: !!ok }); if (!ok) throw new Error(label); }
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+let n = 0;
+async function ask(sessionId, directory, extra = {}, settle = (r) => r.state !== 'pending' && r.state !== 'claimed') {
+  pane.request = { nonce: 'nonce-' + String(++n).padStart(4, '0'), sessionId, directory, state: 'pending', ...extra };
+  for (let i = 0; i < 200 && !settle(pane.request); i++) await wait(100);
+  return pane.request;
+}
+const report = (r) => pane.reports.filter((x) => x.nonce === r.nonce).at(-1);
+const visibleStream = () => [...document.querySelectorAll('.message-stream-container[data-stream-active="true"]')].find((el) => el.getClientRects().length)?.dataset.sessionId;
+</script>
+<script src="../session-focus.js"></script>
+<script>
+(async () => {
+  try {
+    let r = await ask('ses_visible001', '/mnt/e/repos/quick-worker', { title: '[ap:AAAAAA]-001 ▸ ⚡ quick helper · visible' });
+    check(r.state === 'done', 'a loaded row in another workspace: done (' + JSON.stringify(report(r)) + ')');
+    check(activeWs === 'i-quick' && visibleStream() === 'ses_visible001', 'the quick-worker tab and then the row were clicked');
+
+    r = await ask('ses_far0000001', '/mnt/e/repos/quick-worker/sub/folder', { title: '[ap:BBBBBB]-001 ▸ ⚡ quick helper · far away' });
+    check(r.state === 'done' && visibleStream() === 'ses_far0000001', 'a row not loaded is found by the session search (subfolder → its workspace)');
+    check(ui.search['i-quick'] === undefined, 'the search box is put back as it was (closed)');
+
+    r = await ask('ses_child00001', '/mnt/e/repos/quick-worker', { title: 'subagent child', parentId: 'ses_parent0001' });
+    check(r.state === 'done' && visibleStream() === 'ses_child00001', "a subagent's row is reached through its parent's expander");
+
+    r = await ask('ses_homeseat01', 'E:\\..\\home\\dan', { title: 'x' }, (q) => !!report(q));
+    check(report(r).code === 'no-tab' && pane.request.state === 'pending', 'an unmatched folder (bad spelling) is no-tab, not a claim');
+    r = await ask('ses_newws00001', '/mnt/e/repos/manager-sessions', { title: 'manager' }, (q) => !!report(q));
+    check(report(r).code === 'no-tab' && report(r).folders.length === 2 && !pane.claims.some((c) => c.nonce === r.nonce), 'a missing workspace tab: no-tab with the open folders, no claim');
+    // Dan opens the tab now: the same pending request completes by itself.
+    workspaces['i-mgr'] = { folder: '/mnt/e/repos/manager-sessions', sessions: [{ id: 'ses_newws00001', title: 'manager' }] }; render();
+    for (let i = 0; i < 100 && pane.request.state !== 'done'; i++) await wait(100);
+    check(pane.request.state === 'done' && activeWs === 'i-mgr' && visibleStream() === 'ses_newws00001', 'opening the missing tab completes the waiting request');
+
+    ui.rowClass = 'session-row-select'; render();
+    r = await ask('ses_visible001', '/mnt/e/repos/quick-worker', { title: 'no such title anywhere' });
+    check(r.state === 'failed' && /pinned to CodeNomad 0\.20\.1/.test(report(r).message), 'a renamed row control fails visibly, naming the pinned version');
+    ui.rowClass = 'session-item-select'; ui.tabClass = 'tab-renamed'; render();
+    r = await ask('ses_visible001', '/mnt/e/repos/quick-worker', { title: 'x' }, (q) => !!report(q));
+    check(report(r).code === 'no-tab' && /pinned to CodeNomad 0\.20\.1/.test(report(r).message), 'a renamed tab control says CodeNomad changed, not "open the tab"');
+    check(!document.querySelector('textarea, [contenteditable]'), 'no prompt control was created or touched');
+    document.body.dataset.testPassed = 'true';
+  } catch (e) {
+    document.body.dataset.testPassed = 'false';
+    checks.push({ label: 'error: ' + e.message, ok: false });
+  }
+  document.body.dataset.testResults = JSON.stringify(checks);
+  document.getElementById('results').textContent = JSON.stringify(checks, null, 1);
+})();
+</script>

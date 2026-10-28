@@ -1,0 +1,129 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/deepseek/deepseek-v4.1-flash-1017",
+  "mcp": {
+    "timeout": {
+      "catalog": 3600000,
+      "execution": 3600000
+    },
+    "servers": {
+      "workflowy": {
+        "type": "remote",
+        "codemode": false,
+        "url": "http://172.18.176.1:8766/mcp",
+        "headers": {
+          "Authorization": "Bearer {file:/mnt/c/Users/danie/AppData/Local/workflowy-mcp/broker_token}"
+        }
+      },
+      "ssh-a100": {
+        "type": "local",
+        "codemode": false,
+        "command": [
+          "/home/daniel347x/.local/bin/ssh-mcp",
+          "--host=150.136.89.245",
+          "--port=22",
+          "--user=ubuntu",
+          "--key=/mnt/e/__daniel347x/__Catbox/Dan/data/misc/.ssh/Current/daniel347x-003-rsa",
+          "--timeout=3600000",
+          "--maxChars=none",
+          "--disableApproval",
+          "--group=dev"
+        ]
+      }
+    }
+  },
+  "plugins": [],
+  "warming": false,
+  "websearch": { "provider": "exa" },
+  "compaction": {
+    "auto": false
+  },
+  "tool_output": {
+    "max_lines": 1000000,
+    "max_bytes": 16777216
+  },
+  "permissions": [
+    { "action": "*", "resource": "*", "effect": "allow" },
+    { "action": "question", "resource": "*", "effect": "deny" }
+  ],
+  "providers": {
+    "anthropic": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/v1",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      }
+    },
+    "openai": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/openai/v1",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      },
+      "models": {
+        "gpt-6.1-sol": { "limit": { "context": 872000, "input": 872000, "output": 128000 } },
+        "gpt-6.1-sol-fast": { "limit": { "context": 872000, "input": 872000, "output": 128000 } },
+        "gpt-6-astra": { "limit": { "context": 872000, "input": 872000, "output": 128000 } },
+        "gpt-6-sol": { "limit": { "context": 872000, "input": 872000, "output": 128000 } },
+        "gpt-6-luna": { "limit": { "context": 872000, "input": 872000, "output": 128000 } }
+      }
+    },
+    "google": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/google/v1beta",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      }
+    },
+    "xai": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/xai/v1",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      }
+    },
+    "moonshotai": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/moonshotai/v1",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      }
+    },
+    "openrouter": {
+      "settings": {
+        "baseURL": "http://127.0.0.1:4097/openrouter/api/v1",
+        "headerTimeout": 3600000,
+        "chunkTimeout": 3600000
+      },
+      "models": {
+        "deepseek/deepseek-v4.1-flash-1017": {
+          "body": {
+            "provider": {
+              "order": ["together", "modal", "novita", "deepseek"],
+              "allow_fallbacks": true,
+              "ignore": ["fireworks"]
+            }
+          }
+        },
+        "moonshotai/kimi-k3": {
+          "body": {
+            "provider": {
+              "order": ["sail-research", "parasail", "baseten"],
+              "allow_fallbacks": false
+            }
+          }
+        },
+        "z-ai/glm-5.3-flashx": {
+          "body": {
+            "reasoning": { "effort": "max" }
+          }
+        },
+        "z-ai/glm-5.3-flash": {
+          "body": {
+            "reasoning": { "effort": "max" }
+          }
+        }
+      }
+    }
+  }
+}

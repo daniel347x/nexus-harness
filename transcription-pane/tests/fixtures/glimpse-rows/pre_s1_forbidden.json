@@ -1,0 +1,30 @@
+{
+ "source": "NEXUS 8e6e320 tests/fixtures/glimpse-include-rows/edge_outputs.json (captured by S1 from archived pre-S1 0c56c96 server.py a225702518284d179e886847ebd82129a8bffc4f7172ef455aae8fbb89c182c0)",
+ "source_sha256": "837640cd5edf34531955e50dccb7f1eaeb37bf7dd0a4fe6c215d2bb28089fc18",
+ "forbidden_run": {
+  "success": false,
+  "operation": "glimpse.run",
+  "error": {
+   "code": "forbidden_parameter",
+   "message": "forbidden parameter 'include_rows'; allowed parameters: ['root_handle', 'group_handle', 'render_spec', 'allow_anchor_dock', 'as_markdown', 'headings_only', 'full_uuids', 'repository_view', 'sort_by', 'sort_direction', 'recent', 'recent_by', 'output_file', 'push_to_modal', 'target_tab', 'match_scope', 'descend_policy', 'recursive', 'include_archives', 'ancestor_notes']",
+   "describe_hint": {
+    "tool": "glimpse",
+    "verb": "describe",
+    "of": "run"
+   }
+  }
+ },
+ "forbidden_dock": {
+  "success": false,
+  "operation": "anchor.dock.render",
+  "error": {
+   "code": "forbidden_parameter",
+   "message": "forbidden parameter 'include_rows'; allowed parameters: ['dock_handle', 'sort_by', 'sort_direction', 'recent', 'recent_by', 'headings_only', 'full_uuids', 'as_markdown', 'output_file', 'push_to_modal', 'include_archives', 'recursive', 'descend_policy', 'target_tab', 'ancestor_notes']",
+   "describe_hint": {
+    "tool": "anchor",
+    "verb": "describe",
+    "of": "dock.render"
+   }
+  }
+ }
+}

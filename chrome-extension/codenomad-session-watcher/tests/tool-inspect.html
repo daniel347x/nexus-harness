@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Offline CodeNomad header inspection regression</title>
+<link rel="stylesheet" href="../tool-previews.css">
+<link rel="stylesheet" href="../tool-inspect.css">
+<style>
+  body { font: 13px monospace; --text-primary: #111827; --text-secondary: #334155; }
+  .fixture { margin: 12px 0; border: 1px solid #888; width: 360px; }
+  .session-cache-pane[aria-hidden="true"] { display: none; }
+  .tool-call-header { display: flex; align-items: center; color: var(--text-primary); }
+  .tool-call-header:hover { background-color: rgba(0,0,0,.03); }
+  .tool-call-header-toggle { display: flex; flex: 1; min-width: 0; width: 100%; gap: 6px;
+    color: inherit; font: inherit; border: 0; background: transparent; padding: 6px; }
+  .tool-call-summary { display: inline-flex; min-width: 0; flex: 1 1 0%; align-items: center; text-align: start; gap: 8px; }
+  .tool-call-summary-type { flex: 0 0 auto; }
+  .tool-call-summary-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tool-call-header-status { display: inline-flex; margin-inline-start: auto; flex: 0 0 auto; white-space: nowrap; }
+  .action { flex: 0 0 auto; }
+  .native-output { white-space: pre-wrap; max-height: 40px; overflow: auto; }
+</style>
+<body>
+<h1>Isolated tool headers — all requests mocked</h1>
+<input id="focus-target" aria-label="Unrelated draft focus">
+<div id="pane" class="session-cache-pane" data-instance-id="instance" data-session-id="session"
+  data-session-active="true" aria-hidden="false"></div>
+<pre id="testResults">Waiting…</pre>
+<script>
+  // File fixture only. Production has no test hook; Node tests exercise its origin gate.
+  const xhr = new XMLHttpRequest(); xhr.open('GET', '../tool-inspect.js', false); xhr.send();
+  const inspectSource = xhr.responseText, posts = [], requests = [], checks = [];
+  const pane = document.querySelector('#pane');
+  const output = '<img src=x onerror=alert(1)>\n' + 'literal full output\n'.repeat(1000);
+  let nativeToggles = 0, directHits = 0, copies = 0, otherActions = 0;
+  const nativeExpansion = new WeakMap();
+  let sourceOffline = false, relayOffline = false, gate = null, observedMutations = 0;
+  const wait = () => new Promise(resolve => setTimeout(resolve, 240));
+  const header = row => row.querySelector('.tool-call-header');
+  const inspect = row => row.querySelector('.tool-call-header-toggle');
+  const toggle = row => row.querySelector('.opc-tool-toggle');
+  const selected = row => header(row).dataset.inspectSelected === 'true';
+  const state = row => header(row).dataset.inspectState;
+  function check(ok, label) { checks.push({ label, ok: !!ok }); if (!ok) throw new Error(label); }
+  function mount(part = 'part', parent = pane, ids = {}) {
+    const row = document.createElement('div'); row.className = 'fixture tool-call';
+    Object.assign(row.dataset, { instanceId: 'instance', sessionId: 'session', messageId: 'message', partId: part, toolName: 'bash' }, ids);
+    row.innerHTML = `<div class="tool-call-header"><button type="button" class="tool-call-header-toggle" aria-expanded="false">
+      <span class="disclosure-chevron" aria-hidden="true">▸</span><span class="tool-call-summary"><span class="tool-call-summary-type">bash</span>
+      <span class="tool-call-summary-title">Native title</span><span class="tool-call-header-status">Done</span></span>
+      </button><button type="button" class="action">Copy</button><button type="button" class="other-action">More</button></div>
+      <pre class="native-output"></pre>`;
+    row.querySelector('.native-output').textContent = output;
+    inspect(row).onclick = () => directHits++;
+    nativeExpansion.set(inspect(row), false);
+    row.querySelector('.other-action').onclick = () => otherActions++;
+    parent.append(row); return row;
+  }
+  // Native direct handlers above AND Solid-style document bubble delegation below.
+  // A single Toggle should reach each native path once; inspection must reach neither.
+  document.addEventListener('click', event => {
+    const native = event.target.closest('.tool-call-header-toggle');
+    if (native) { nativeToggles++; const expanded = !nativeExpansion.get(native); nativeExpansion.set(native, expanded); native.setAttribute('aria-expanded', String(expanded)); }
+    if (event.target.closest('.action')) copies++;
+  });
+  const telemetry = new MutationObserver(records => { observedMutations += records.length; });
+  telemetry.observe(document.documentElement, { subtree: true, childList: true, attributes: true });
+  const knownParts = ['part', 'next', 'arrival', 'middle', 'last', 'light', 'dark'];
+  window.fetch = async (url, options = {}) => {
+    requests.push({ url, method: options.method || 'GET' });
+    if (url === 'http://127.0.0.1:9911/api/tool-selection') {
+      posts.push(JSON.parse(options.body)); if (relayOffline) throw new Error('offline'); return new Response('{}');
+    }
+    const workspace = /^\/api\/workspaces\/([^/]+)$/.exec(url);
+    if (workspace) {
+      if (gate) { const held = gate; gate = null; await held; }
+      if (sourceOffline) throw new Error('offline');
+      return new Response(JSON.stringify({ id: decodeURIComponent(workspace[1]), name: 'Fixture', proxyPath: `/workspaces/${workspace[1]}/instance` }));
+    }
+    const session = /^\/workspaces\/([^/]+)\/instance\/api\/session\/([^/]+)$/.exec(url);
+    if (session) return new Response(JSON.stringify({ data: { id: decodeURIComponent(session[2]), title: 'Fixture',
+      time: { created: 101 }, location: { directory: '/fixture' } } }));
+    const message = /^\/workspaces\/([^/]+)\/instance\/api\/session\/([^/]+)\/message\/([^/]+)$/.exec(url);
+    if (message) return new Response(JSON.stringify({ data: { id: decodeURIComponent(message[3]), time: { created: 202, completed: 303 },
+      content: knownParts.map(id => ({ id, type: 'tool', name: 'bash', callID: 'call-' + id,
+        state: { status: 'completed', input: { command: 'literal <img onerror=alert(1)> ' + 'long input '.repeat(100) }, output } })) } }));
+    throw new Error('No live requests allowed: ' + url);
+  };
+  let row = mount(), next = mount('next');
+  new Function('location', inspectSource)({ origin: 'http://127.0.0.1:9899' });
+  function pixel(background, overlay) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = background; ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = overlay; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+  }
+  function luminance(rgb) { return rgb.map(v => v / 255).map(c => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4)
+    .reduce((sum, c, i) => sum + c * [.2126, .7152, .0722][i], 0); }
+  function contrast(a, b) { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); }
+</script>
+<script src="../tool-record-text.js"></script>
+<script src="../tool-preview-core.js"></script>
+<script src="../tool-previews.js"></script>
+<script>
+  (async () => {
+    try {
+      await wait();
+      check(posts.length === 0, 'mount and preview reads never select');
+      check(toggle(row).previousElementSibling === inspect(row) && !inspect(row).querySelector('button'), 'Toggle is a sibling, never nested');
+      check(toggle(row).textContent === 'Toggle' && toggle(row).title === 'Toggle expanded state'
+        && toggle(row).getAttribute('aria-label') === 'Toggle expanded state', 'compact label and accessible wording');
+      check(inspect(row).tagName === 'BUTTON' && toggle(row).tagName === 'BUTTON' && inspect(row).tabIndex === 0 && toggle(row).tabIndex === 0, 'both actions retain native keyboard button semantics');
+      check(!inspect(row).hasAttribute('aria-expanded') && toggle(row).getAttribute('aria-expanded') === 'false', 'only Toggle exposes disclosure semantics, not the inspection button');
+      document.querySelector('#focus-target').focus();
+      row.querySelector('.opc-tool-argument-preview').click(); await wait();
+      check(posts.length === 1 && nativeToggles === 0 && directHits === 0 && selected(row), 'preview click inspects once, bypasses both native click paths');
+      check(posts[0].association.directory === '/fixture' && posts[0].partId === 'part', 'full identity and immutable source witness relayed');
+      check(document.activeElement.id === 'focus-target', 'relay does not steal unrelated draft focus');
+      check(row.querySelector('.native-output').textContent === output && output.length > 10000 && !row.querySelector('img'), 'native >10k output unchanged and unsafe text remains literal');
+      check(getComputedStyle(row.querySelector('.opc-tool-argument-preview')).webkitLineClamp === '3', 'three-line preview preserved');
+      check(row.querySelector('.opc-tool-sizes').textContent.includes('KiB') && next.querySelector('.opc-tool-sizes').textContent.includes('KiB'), 'independent input/output sizes on selected and unselected rows');
+      toggle(row).click(); await wait();
+      check(nativeToggles === 1 && directHits === 1 && posts.length === 1, 'Toggle invokes native direct and delegated handlers exactly once, never inspects');
+      check(toggle(row).getAttribute('aria-expanded') === 'true' && header(row).dataset.nativeExpanded === 'true', 'Toggle expansion state mirrors native state');
+      check(getComputedStyle(inspect(row).querySelector('.disclosure-chevron')).transform !== 'none', 'native disclosure chevron still reflects expansion');
+      toggle(row).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); await wait();
+      check(nativeToggles === 2 && posts.length === 1 && toggle(row).getAttribute('aria-expanded') === 'false', 'keyboard-style Toggle activation collapses only');
+      inspect(next).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })); await wait();
+      check(posts.length === 2 && nativeToggles === 2 && selected(next) && !selected(row), 'keyboard-style inspect activation moves only selection');
+      row.querySelector('.action').click(); row.querySelector('.other-action').click(); await wait();
+      check(copies === 1 && otherActions === 1 && posts.length === 2 && selected(next), 'native copy and other controls stay independent');
+      header(row).click(); await wait();
+      check(posts.length === 3 && nativeToggles === 2 && selected(row) && !selected(next), 'header gap inspects and clears previous highlight');
+      header(row).click(); await wait(); check(posts.length === 4 && selected(row), 'repeat deliberate selection relays exactly once');
+      const beforeMount = posts.length; row.remove(); next.remove(); row = mount(); next = mount('next'); const arrival = mount('arrival'); await wait();
+      check(selected(row) && !selected(next) && !selected(arrival) && posts.length === beforeMount, 'whole-row replacement plus new arrival rehydrates identity without relay');
+      const saved = row; row.remove(); await wait(); check(!selected(next), 'unmounted selection does not transfer to another call');
+      pane.append(saved); await wait(); check(selected(saved) && posts.length === beforeMount, 'scroll-back/remount reattaches held same-session identity');
+      row.dataset.partId = 'next'; await wait(); check(!selected(row), 'reused row identity clears stale highlight');
+      row.dataset.partId = 'part'; await wait(); check(selected(row), 'restored full identity rehydrates');
+      pane.setAttribute('aria-hidden', 'true'); await wait(); check(!selected(row), 'unknown transient scope hides highlight');
+      pane.setAttribute('aria-hidden', 'false'); await wait(); check(selected(row), 'same scope returns without losing identity');
+      const ambiguous = pane.cloneNode(false); document.body.append(ambiguous); await wait();
+      check(!selected(row), 'ambiguous visible scope refuses highlight'); ambiguous.remove(); await wait(); check(selected(row), 'resolved ambiguity restores held identity');
+      pane.dataset.sessionId = 'other'; await wait(); pane.dataset.sessionId = 'session'; await wait();
+      check(!selected(row) && posts.length === beforeMount, 'known session switch clears permanently without changing the relay mailbox');
+      inspect(row).click(); await wait(); pane.dataset.instanceId = 'other-instance'; await wait(); pane.dataset.instanceId = 'instance'; await wait();
+      check(!selected(row), 'known instance switch also clears, even with identical session/part ids');
+      const beforeEmpty = posts.length; pane.replaceChildren(); pane.dataset.sessionId = 'empty'; await wait(); pane.dataset.sessionId = 'session'; pane.append(row); await wait();
+      check(!selected(row) && posts.length === beforeEmpty, 'empty session switch has a scope independent of mounted tool rows');
+      sourceOffline = true; inspect(row).click(); await wait();
+      check(state(row) === 'source-error' && selected(row) && posts.at(-1).sourceError && !posts.at(-1).association, 'source error reaches pane, bounded error receipt stays marked');
+      sourceOffline = false; relayOffline = true; inspect(row).click(); await wait();
+      check(state(row) === 'failed' && !selected(row) && inspect(row).title.includes('retry'), 'failed relay cannot claim selection and exposes retry on large target');
+      const beforeQuiet = posts.length, quietMutations = observedMutations; await wait(); await wait();
+      check(posts.length === beforeQuiet && observedMutations === quietMutations, 'settled observers neither loop nor retry/heartbeat');
+      relayOffline = false; let release; gate = new Promise(resolve => { release = resolve; }); inspect(row).click(); await wait();
+      row.dataset.partId = 'middle'; inspect(row).click(); row.dataset.partId = 'last'; inspect(row).click(); release(); await wait();
+      check(posts.length === beforeQuiet + 1 && posts.at(-1).partId === 'last' && selected(row), 'stale preparation discarded, intermediate clicks coalesced, latest wins');
+      check(posts.every((p, i) => !i || p.sequence > posts[i - 1].sequence), 'relay sequence remains strictly ordered');
+      for (const [name, primary, secondary, surface] of [['light', '#111827', '#334155', '#ffffff'], ['dark', '#cfd4dc', '#999999', '#1a1a1a']]) {
+        const themed = mount(name); themed.style.cssText = `color-scheme:${name};--text-primary:${primary};--text-secondary:${secondary};background:${surface};color:${primary}`;
+        await wait(); inspect(themed).click(); await wait();
+        const tint = getComputedStyle(header(themed)).backgroundColor, bg = pixel(surface, tint);
+        const foreground = pixel(surface, getComputedStyle(themed.querySelector('.opc-tool-argument-preview')).color);
+        check(selected(themed) && tint !== 'rgba(0, 0, 0, 0)' && bg.join() !== pixel(surface, 'transparent').join(), `${name} selected background is visibly theme-aware`);
+        check(contrast(bg, foreground) >= 4.5, `${name} preview text contrast remains at least 4.5:1`);
+        check(getComputedStyle(header(themed)).boxShadow !== 'none', `${name} persistent edge marker present`);
+        check(themed.querySelector('.other-action').getBoundingClientRect().right <= themed.getBoundingClientRect().right, `${name} narrow header keeps native actions visible`);
+        const sizeBox = themed.querySelector('.opc-tool-sizes').getBoundingClientRect();
+        check(sizeBox.right <= themed.getBoundingClientRect().right && sizeBox.top >= themed.querySelector('.other-action').getBoundingClientRect().bottom, `${name} sizes sit lower-right without colliding with controls`);
+        const labels = [...themed.querySelectorAll('.opc-tool-size')];
+        for (const count of [null, 0, 16*1024, 64*1024, 256*1024, 1024*1024, 8*1024*1024]) {
+          for (const [i, label] of labels.entries()) { label.textContent = `${i ? 'Out' : 'In'}: ${opcToolText.size(count)}`; opcToolText.emphasizeToolSize(label, count); }
+          const colors = labels.map(label => getComputedStyle(label).color);
+          check(labels.every((label, i) => parseFloat(getComputedStyle(label).fontSize) >= 15 && parseFloat(getComputedStyle(label).fontSize) <= 19 && contrast(bg, pixel(surface, colors[i])) >= 4.5), `${name} ${count} size contrast >=4.5:1 with 15–19px readable font`);
+          const box = themed.querySelector('.opc-tool-sizes').getBoundingClientRect();
+          check(box.left >= themed.getBoundingClientRect().left && box.right <= themed.getBoundingClientRect().right && box.top >= themed.querySelector('.other-action').getBoundingClientRect().bottom, `${name} ${count} exact sizes fit narrow row below controls`);
+        }
+        themed.remove();
+      }
+      const beforeSizeClick = posts.length, beforeSizeToggle = nativeToggles;
+      row.querySelector('.opc-tool-sizes').dispatchEvent(new MouseEvent('click', {bubbles:true})); await wait();
+      check(posts.length === beforeSizeClick + 1 && nativeToggles === beforeSizeToggle && selected(row), 'size label region remains a header inspection target');
+      check(requests.every(r => r.method === 'GET' || r.url === 'http://127.0.0.1:9911/api/tool-selection'), 'no source writes or arbitrary relay destinations');
+      document.body.dataset.testPassed = 'true';
+    } catch (error) { document.body.dataset.testPassed = 'false'; checks.push({ error: String(error) }); }
+    document.querySelector('#testResults').textContent = JSON.stringify(checks, null, 2);
+    telemetry.disconnect();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><title>Actual two-editor Send target regression</title>
+<style>iframe{width:1000px;height:650px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="editor-a"></iframe><iframe id="editor-b"></iframe><iframe id="standalone"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],sleep=ms=>new Promise(r=>setTimeout(r,ms)),check=(name,passed)=>{checks.push({name,passed:!!passed});if(!passed)throw new Error(name);};
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,app,defaults,refineCore,sessions,viewer,css]=await Promise.all(['index.html','app.js','refine-defaults.js','refine-core.js','sessions.js','sessions.html','sessions.css'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async n=>(await fetch(new URL(n,sharedBase))).text()));
+    const safe=s=>s.replace(/<\/script/gi,'<\\/script'),ref=c=>c.repeat(32),env=d=>({schemaVersion:1,backend:'claude',...d});
+    const uuid='11111111-1111-4111-8111-111111111111';
+    window.inert={errors:[],requests:[],target:env({targetRef:ref('T'),storeRef:ref('S'),sessionRef:ref('J'),scopeRef:ref('M'),leafRef:ref('L'),fileEpoch:ref('E'),
+      uuid,leafUuid:null,source:'host',scope:'main',title:'Fixture Manager',executionId:'cc-'+uuid,generation:1,role:'Manager',capabilities:{nativeInput:true,controls:true}})};
+    inert.row=()=>({...inert.target,state:'ready',scopes:[{label:'main',scopeRef:inert.target.scopeRef}]});
+    inert.transport=async url=>{
+      inert.requests.push(String(url));const t=inert.target;
+      if(String(url).startsWith('/api/claude/sessions'))return new Response(JSON.stringify(env({sessions:[inert.row()],diagnostics:[],hasMore:false})));
+      if(String(url)==='/api/pins')return new Response(JSON.stringify({schemaVersion:1,pins:{}}));
+      if(/^\/api\/claude\/(events|target)\?/.test(String(url)))return new Response(JSON.stringify(env({...t,targetInfo:t,status:'complete',events:[],branches:[],diagnostics:[],deltaCursor:ref('D'),change:'snapshot',hasMore:false})));
+      throw new Error('No native input or live network allowed: '+url);
+    };
+    const mock=`window.fixture={errors:[],store:new Map()};addEventListener('error',e=>{fixture.errors.push(e.message);top.inert.errors.push(e.message)});
+      window.fetch=(url)=>top.inert.transport(url);Object.defineProperty(window,'localStorage',{value:{getItem:k=>fixture.store.get(k)??null,setItem:(k,v)=>fixture.store.set(k,String(v)),removeItem:k=>fixture.store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{}}});window.confirm=()=>true;`;
+    const owner=app.replace(/main\(\);\s*$/,'')+'\nfixture.api={state,initializeTargetState,acceptClaudeTarget,renderTarget,blockClaudeTarget,reselectCurrentManager,wire};wire();initializeTargetState();';
+    const ownerHTML=html.replace('<head>',`<head><base href="${base.href}">`).replace(/  <script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(owner)}<\/script></body>`);
+    for(const id of ['editor-a','editor-b']){const frame=document.getElementById(id),ready=new Promise(r=>frame.onload=r);frame.srcdoc=ownerHTML;await ready;}
+    const a=document.getElementById('editor-a').contentWindow,b=document.getElementById('editor-b').contentWindow;
+    const apiA=a.fixture.api,apiB=b.fixture.api;a.document.getElementById('transcript').value='dictation in this pane 😀';b.document.getElementById('transcript').value='other pane dictation';
+    const component=sessions.replace("if(typeof document!=='undefined'", "if(false && typeof document!=='undefined'")+ '\nfixture.api=opcClaudeHistory.create();fixture.api.list();';
+    const viewHTML=viewer.replace(/<link[^>]+>/,'<style>'+css+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>${safe(component)}<\/script></body>`);
+    const child=a.document.getElementById('claude-sessions-frame');let ready=new Promise(r=>child.onload=r);child.srcdoc=viewHTML;await ready;
+    const w=child.contentWindow,api=w.fixture.api;await api.browse(inert.row());
+    check('two actual editors have distinct page identity',apiA.state.editorId!==apiB.state.editorId);
+    check('browse alone never retargets either actual editor',apiA.state.claudeTarget===null&&apiB.state.claudeTarget===null);
+    api.useTarget();
+    // Actual BroadcastChannel discovery receives both page owners; target authority
+    // travels only through the child's actual WindowProxy to editor A.
+    await sleep(1700);
+    check('target lands in actual parent editor only with another pane open',apiA.state.claudeTarget?.executionId===inert.target.executionId&&apiB.state.claudeTarget===null);
+    check('duplicate pane warning is visible with explicit applied ACK',/another pane tab is open; target applied here only/.test(w.document.getElementById('target-status').textContent));
+    check('both dictation drafts survive target delivery',a.document.getElementById('transcript').value==='dictation in this pane 😀'&&b.document.getElementById('transcript').value==='other pane dictation');
+    check('registered Manager Send enabled here only',!a.document.getElementById('send-btn').disabled&&apiB.state.backend==='opencode');
+    const standalone=document.getElementById('standalone');ready=new Promise(r=>standalone.onload=r);standalone.srcdoc=viewHTML;await ready;
+    await standalone.contentWindow.fixture.api.browse(inert.row());standalone.contentWindow.fixture.api.useTarget();await sleep(50);
+    check('standalone actual sessions explicitly refuses retargeting integrated editors',/standalone sessions is read-only/.test(standalone.contentWindow.document.getElementById('target-status').textContent)&&apiB.state.claudeTarget===null&&apiA.state.targetRevision===1);
+    inert.target={...inert.target,leafRef:ref('F'),leafUuid:'22222222-2222-4222-8222-222222222222'};
+    await apiA.acceptClaudeTarget(inert.target.targetRef,apiA.state.targetRevision,()=>true,true);
+    check('leaf replaced after selection preserves host session Send authority',apiA.state.claudeTarget.targetRef===ref('T')&&!a.document.getElementById('send-btn').disabled);
+    await apiA.blockClaudeTarget(new Error('host generation changed from 1 to 2'));
+    check('precise failure visible in status and one-click recovery offered',a.document.getElementById('status').textContent.includes('generation changed from 1 to 2')&&!a.document.getElementById('claude-reselect').hidden);
+    inert.target={...inert.target,targetRef:ref('N'),generation:2,sessionRef:ref('K')};
+    a.document.getElementById('claude-reselect').click();await sleep(100);
+    check('one click reselects same execution current generation with draft intact',apiA.state.claudeTarget?.generation===2&&apiA.state.claudeTarget.executionId==='cc-'+uuid&&a.document.getElementById('transcript').value==='dictation in this pane 😀');
+    check('recovery never writes to native process, OpenCode, or another pane',inert.requests.every(u=>!u.includes('/send')&&!u.includes('/control'))&&apiB.state.claudeTarget===null);
+    check('actual-markup regression has no browser errors',inert.errors.length===0);
+  } catch(e){checks.push({name:e.stack||e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.every(x=>x.passed));
+})();
+</script>

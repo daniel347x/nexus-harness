@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "CodeNomad Session Watcher (opencode-companion)",
+  "version": "0.1.13",
+  "description": "Follows CodeNomad sessions, preserves paragraph spacing, previews tool arguments, selects calls for inspection, and opens a session on request from the Transcription Pane (clicks its tab and row only). Never changes stored messages, sends prompts or switches models.",
+  "content_scripts": [
+    {
+      "matches": ["http://127.0.0.1:9899/*", "http://localhost:9899/*"],
+      "js": ["watcher.js", "tool-record-text.js", "tool-preview-core.js", "tool-previews.js", "tool-inspect.js", "session-focus.js"],
+      "css": ["message-format.css", "tool-previews.css", "tool-inspect.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

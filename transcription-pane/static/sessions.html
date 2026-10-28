@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Managers and stored history · Manager App</title><link rel="stylesheet" href="/sessions.css"><link rel="stylesheet" href="/read-aloud.css"></head>
+<body>
+<header><h1>Managers and stored history</h1><a href="/" target="pane-editor">Open the existing editor</a>
+<p>In the integrated pane, selecting a validated OpenCode Manager or live/reconnectable Claude Manager targets Send/Refine automatically. Workers and subagents stay read-only. Browsing never launches/resumes a process; Inspect never changes the target.</p></header>
+<main>
+<aside aria-label="Session inventory">
+<div class="side-top">
+<section id="claude-new-manager-row" class="new-manager" aria-label="Start a new Manager" hidden>
+<div class="new-manager-buttons"><button id="claude-new-manager" title="Start a fresh, named Manager conversation and select it for Send; its default first message goes out as soon as it is ready. The current Manager keeps running untouched.">＋ New Manager</button><button id="claude-new-sub" title="New sub-session of the newest Manager-Session (the next letter): its first message, with room for the reason, then Send starts it">↳ Sub-session</button></div>
+<div id="claude-new-manager-form" hidden>
+<!-- Runtime, model and thinking: one set of controls, shown in whichever box is open (＋ New Manager or ↳ Sub-session). -->
+<div id="claude-new-choices-slot" class="manager-choices-slot"><div id="manager-new-choices">
+<label>runtime <select id="manager-new-runtime"><option value="claude">Native Claude</option><option value="opencode">OpenCode (GPT and other models)</option></select></label>
+<label>model <input id="claude-new-model" type="text" list="claude-new-models" value="claude-opus-5-5" maxlength="128" spellcheck="false" title="Any Claude model the host accepts: claude-‹family›-N (e.g. claude-opus-5-5, or a newer release) or a family alias (opus, fable). Paid-context/provider routes are refused by the host."><datalist id="claude-new-models"><option value="claude-opus-5-5">Opus 5.5</option><option value="claude-fable-5-1">Fable 5.1</option><option value="claude-sonnet-5-5">Sonnet 5.5</option><option value="claude-haiku-5-5">Haiku 5.5</option></datalist></label>
+<label>thinking <select id="claude-new-effort"><option value="high">high</option><option value="xhigh" selected>xhigh</option><option value="max">max</option><option value="medium">medium</option><option value="low">low</option></select></label>
+<div id="opencode-new-settings" hidden><label>persona <select id="opencode-new-agent"></select></label><label>model <select id="opencode-new-model"></select></label><label>thinking <select id="opencode-new-variant"><option value="">Default</option></select></label></div>
+</div></div>
+<label>name <input id="claude-new-name" type="text" maxlength="80" spellcheck="false" placeholder="Manager-Session-NNN"></label>
+<label class="new-manager-check"><input type="checkbox" id="claude-new-opening" checked> send its first message (Default first messages, below) when it is ready</label>
+<div class="new-manager-actions"><button id="claude-new-launch">Launch &amp; select</button><button id="claude-new-cancel">Close</button></div>
+<details id="claude-first-messages"><summary>Default first messages</summary>
+<label>new Manager <textarea id="claude-first-manager" rows="6" spellcheck="false"></textarea></label>
+<label>new sub-session <textarea id="claude-first-sub" rows="6" spellcheck="false"></textarea></label>
+<p class="new-manager-hint">{N} is the Manager-Session number, {letter} the sub-session letter, {name} the whole name. One saved copy for desktop and phone; an empty box saves as the built-in default.</p>
+<div class="new-manager-actions"><button id="claude-first-save">Save</button><button id="claude-first-restore">Restore defaults</button></div>
+</details>
+</div>
+<div id="claude-new-sub-form" hidden>
+<strong id="claude-new-sub-title">New sub-session</strong>
+<textarea id="claude-new-sub-text" rows="8" spellcheck="true" aria-label="The sub-session's first message: add the reason at the end"></textarea>
+<div id="claude-new-sub-choices-slot" class="manager-choices-slot"></div>
+<div class="new-manager-actions"><button id="claude-new-sub-send" title="Start this sub-session on the runtime, model and thinking chosen here (the same choices as ＋ New Manager) and send this text as its first message">Send</button><button id="claude-new-sub-cancel">Close</button></div>
+</div>
+<div id="claude-new-status" role="status"></div>
+</section>
+<div id="quota-bar" class="quota-bar" role="button" tabindex="0" aria-label="Subscription allotments used (Claude, ChatGPT); activate to read the providers now" title="Subscription allotments used · click to read the providers now"></div>
+<div class="side-bar"><select id="sessions-role" aria-label="Show sessions of one role" title="Show only sessions of one role, across the whole list"><option value="all">Show: every session</option><option value="manager">Managers only</option><option value="conductor">Conductors only</option><option value="lead-seat">Lead seats only</option><option value="quick-worker">Quick workers only</option><option value="helper">Helpers only</option><option value="worker">Workers only</option><option value="subagent">Native subagents only</option><option value="base">Base sessions only</option><option value="history">Other history only (no known role)</option><option value="unknown">Unknown host role only</option></select>
+<button id="sessions-collapse" class="icon" data-next="collapse" title="Close every program and freestanding tree (what is inside them stays as it was) and fold the home sections; Running now stays open. Click again for only what is running" aria-label="Collapse programs and home sections">⊟</button>
+<button id="sessions-expand" class="icon" title="Expand every program and the sessions under it" aria-label="Expand all programs">⊞</button>
+<button id="sessions-refresh" class="icon" title="Reload the whole session list now (it also refreshes itself every 10 s)" aria-label="Reload the session list">⟳</button></div>
+<div class="side-bar"><select id="sessions-view" aria-label="Live session universe"><option value="week">Last 7 days</option><option value="month">30 days</option><option value="all">Everything live</option><option value="history">📦 History</option></select></div>
+<p id="sessions-host-load" role="status" aria-live="off" hidden></p>
+<p id="sessions-freshness" role="status">Loading current activity…</p>
+<p id="sessions-notice" role="status" hidden></p>
+<div id="sessions-pinned" hidden></div>
+</div>
+<div id="sessions-scroll">
+<details class="mini-more" id="sessions-info"><summary>list info · key to the telemetry</summary><p id="sessions-status" role="status"></p><p id="sessions-filter-status"></p><div id="telemetry-key" class="tele-key"></div></details>
+<details id="sessions-native-history" class="mini-more"><summary>Stored native history</summary><p>Host sessions above include ended programs. Unmanaged transcripts load only here, not during activity refresh.</p><button id="sessions-load-history" class="link">Load / refresh stored transcripts</button></details>
+<div id="sessions-list"></div>
+</div>
+<section id="subagents-block" class="session-children" aria-label="Selected parent subagents" hidden><div id="subagents-list" class="child-list"></div>
+<div class="children-foot"><span id="subagents-status" role="status"></span><button id="subagents-refresh" class="link" title="Refresh subagents: return to the first page and resume automatic discovery" hidden>refresh</button><button id="subagents-more" class="link" disabled hidden>more</button></div></section>
+</aside>
+<div id="sessions-divider" class="side-divider" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Session list width" title="Drag (or focus and use Left/Right, Home/End) to widen or narrow the session list; remembered in this browser"></div>
+<section id="history" aria-label="Stored conversation" data-pane="conversation">
+<!-- The conversation column's two panes: the conversation, or View (glimpse.html, loaded on first use) over it in place.
+     The conversation stays laid out underneath, so 💬 brings it back exactly as it was left, Following included. -->
+<div id="history-switch" class="pane-switch" role="tablist" aria-label="Conversation or View">
+<button id="pane-conversation" type="button" role="tab" aria-selected="true" title="The conversation, exactly as you left it">💬 Conversation</button>
+<button id="pane-view" type="button" role="tab" aria-selected="false" title="View: NEXUS documents and their history. A handle clicked anywhere in the Manager App opens here">📄 View</button>
+</div>
+<div id="desktop-view" class="desktop-view" role="tabpanel" aria-label="View" hidden><iframe id="desktop-view-frame" title="View: NEXUS documents" allow="fullscreen"></iframe></div>
+<div id="history-topbar"><span id="context-gauge" class="context-gauge" data-known="false" role="img" aria-label="Context gauge: unknown" title="Context: no figure known yet"></span>
+<span id="history-session-name" hidden></span>
+<div id="history-activity" role="status" aria-live="off">Choose a session</div>
+<div id="history-halt" role="status" hidden></div></div>
+<div id="oc-header" class="oc-header" aria-label="OpenCode conversation" hidden></div>
+<details id="history-more-info"><summary><span class="more-label">more info &amp; options</span><span class="more-alert" title="A status line below reports a problem">●</span></summary>
+<div class="more-body">
+<h2 id="history-title">Choose a session to browse</h2>
+<p id="history-source"></p>
+<p id="history-capabilities">Select a live Manager for Send, or a main history target for Refine.</p>
+<p id="history-observation" role="status">Choose a session; unknown is not idle.</p>
+<details id="history-evidence"><summary>Host state / incidents / settings evidence</summary><pre id="history-live">Choose a session; unknown is not idle.</pre></details>
+<div class="controls"><label>Scope / trace <select id="history-scope"></select></label><label>Main leaf <select id="history-leaf"></select></label>
+<button id="history-target" disabled>Use as Send / Refine target</button></div>
+<p id="target-status" role="status">No target action. Open one editor tab on this same origin.</p>
+<div class="controls"><button id="history-older" disabled title="Same as scrolling to the top: loads the messages just before the oldest one shown">Load earlier messages</button><button id="history-more" disabled title="Same as scrolling to the bottom: loads the messages just after the newest one shown">Load later messages</button>
+<button id="history-latest" disabled>Jump to latest</button><label><input type="checkbox" id="history-tools"> Tools only</label>
+<label>Preview lines <select id="history-density"><option value="3">3</option><option value="5">5</option></select></label></div>
+<p id="history-status" role="status"></p><p id="inspect-status" role="status">Inspect selects one held call in the existing editor.</p>
+<p id="history-window">History is paged; this page is not an archive or a second editor.</p>
+</div></details>
+<div id="history-ribbon" role="toolbar" aria-label="Conversation controls">
+<button id="history-follow" type="button" aria-pressed="true" title="Follow: keep the newest turn in view. Scrolling up pauses it; scrolling back to the bottom resumes."><span class="follow-dot"></span><span id="history-follow-label">Following</span></button>
+<button id="nav-start" type="button" title="Go to the very first message of this conversation (loads its start; scroll down or use ↓ to read on)">⤒ First</button>
+<span class="ribbon-group" aria-label="Jump between your messages"><span class="ribbon-caption you">You</span><button id="nav-user-prev" class="nav" type="button" title="Previous message of yours (loads earlier messages when needed)">↑</button><button id="nav-user-next" class="nav" type="button" title="Next message of yours (loads later messages when needed)">↓</button></span>
+<span class="ribbon-group" aria-label="Jump between final answers"><span class="ribbon-caption final">Answers</span><button id="nav-final-prev" class="nav" type="button" title="Previous final answer (loads earlier messages when needed)">↑</button><button id="nav-final-next" class="nav" type="button" title="Next final answer (loads later messages when needed)">↓</button></span>
+<button id="ribbon-thinking" class="chip" type="button" aria-pressed="false" title="Open or close every thinking block on screen">Thinking</button>
+<button id="ribbon-tools" class="chip" type="button" aria-pressed="false" title="Show only turns with tool calls (same as Tools only under more info)">Tools only</button>
+<button id="ribbon-subagents" class="chip" type="button" aria-pressed="true" title="Show or fold subagent activity">Subagents</button>
+<button id="history-reload" class="chip" disabled title="Read this conversation again from the server and land on its newest turn, Following">Reload</button>
+<button id="history-successor" hidden>Select live Manager</button>
+<span id="ribbon-session" class="ribbon-session"></span>
+<button id="ribbon-reconnect" type="button" title="Reconnect / reload: read this conversation again from the server with fresh handles and land on its newest turn, Following. With nothing selected it opens the newest Manager. Use it whenever the view says it stopped updating (e.g. after the pane server restarted).">⟳ Reconnect</button>
+</div>
+<div id="running-tools" class="running-tools" aria-label="Current running tools" hidden></div>
+<div id="history-viewport" tabindex="0" aria-label="Scrollable stored events"><div id="history-events"></div><div id="history-edge" role="status" hidden></div><div id="history-latest-dock"><button id="history-latest-badge" type="button" hidden>↓ Latest</button></div></div>
+</section>
+</main>
+<script src="/tool-record-text.js"></script><script src="/tool-preview-core.js"></script>
+<script src="/vendor/marked.umd.js"></script><script src="/vendor/purify.min.js"></script><script src="/message-markdown.js"></script><script src="/tool-reading.js"></script><script src="/seen-latest.js"></script><script src="/quota-halt.js"></script><script src="/manager-order.js"></script><script src="/refine-defaults.js"></script><script src="/refine-core.js"></script><script src="/read-aloud.js"></script><script src="/sessions.js"></script><script src="/sessions-quota.js"></script><script src="/handle-links.js"></script>
+</body></html>

@@ -1,0 +1,104 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone page: a real tap at the end of a long draft puts the caret there</title>
+<style>body{margin:0}iframe{display:block;width:390px;height:844px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+// Dan: a long draft scrolled to its end; a tap at the very end of its text opened the keyboard, the thumb strip came, the
+// box narrowed and the caret landed lines up. run_tap_browser.cjs answers window.tapAt with a REAL click (CDP
+// Input.dispatchMouseEvent): the browser itself focuses the box and places the caret from the finger's point, as a tap
+// does on the phone. iOS places that caret after the focus event, possibly a task or more later, against the layout as
+// it is then, so the decisive checks here are that nothing under the finger changes at any point: the box's text column
+// keeps its width (sampled at the focus, after the shell came on, after a blur, and every resize a ResizeObserver sees),
+// its text keeps its height and scroll, and the box keeps its place on the screen; the same for the maximized editor.
+// Chrome resolves the click before the relayout and cannot show the jump itself; it stands in for Safari with its scroll
+// anchoring off on the box (Safari has none). ?app=PATH / ?css=PATH load another m.js / m.css (a before/after
+// comparison; the default is the actual one), ?caret=N leaves the caret at N before the tap, ?trace=1 lists the trace.
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok});
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const query=new URLSearchParams(location.search),appPath=query.get('app')||'m.js',cssPath=query.get('css')||'m.css';
+    const [html,css,marked,purify,markdown,defaults,core,app,reading,refineView,previews,records,seenLatest,highlighter,diffView,statusToastCss,statusToast]=await Promise.all([
+      'm.html',cssPath,'vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js','refine-defaults.js','refine-core.js',appPath,'tool-reading.js','refine-view.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-preview-core.js','../../chrome-extension/codenomad-session-watcher/tool-record-text.js','seen-latest.js',
+      'vendor/highlight.min.js','diff-view.js','status-toast.css','status-toast.js'].map(read));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    window.caretFixture={errors:[]};
+    const mock=`
+      const fixture=parent.caretFixture;
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,getItem:k=>store.get(k)??null,
+        setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      window.fetch=async url=>{
+        if(!String(url).startsWith('/api/claude/sessions'))throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify({schemaVersion:1,backend:'claude',sessions:[],hasMore:false,status:'complete'}),{headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    const frame=document.getElementById('phone');
+    // Safari has no scroll anchoring; Chrome's would quietly re-scroll the box as it rewraps and hide what Dan sees. iOS's
+    // page scrollbar overlays the page (no width); a desktop one would come and go with the shell's locked document.
+    const safari='#m-draft{overflow-anchor:none}html{scrollbar-width:none}';
+    frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+safari+'</style><style>'+statusToastCss+'</style></head>')
+      .replace(/  <script src="[^"]+"><\/script>/g,'').replace('</body>',()=>[mock,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,statusToast,app].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);await sleep(300);
+    const w=frame.contentWindow,d=w.document,box=d.getElementById('m-draft'),strip=d.getElementById('m-thumb');
+    // Forty paragraphs, then the one Dan appends to.
+    const words='Dictated words of an ordinary paragraph that wraps over several lines of the phone text box. ';
+    const text=Array.from({length:40},(_,i)=>'Paragraph '+i+'. '+words.repeat(2)).join('\n\n')+'\n\nLAST_PARAGRAPH where dictation should land: '+words;
+    box.value=text;box.dispatchEvent(new w.Event('input',{bubbles:true}));await sleep(50);
+    const caret=query.get('caret');
+    if(caret)box.setSelectionRange(+caret,+caret);
+    box.scrollTop=box.scrollHeight;await sleep(50);
+    const lastStart=text.lastIndexOf('LAST_PARAGRAPH'),f=frame.getBoundingClientRect();
+    // What lies under the finger: the text column (the box less its padding), the text's height and scroll, the box on the screen.
+    const column=()=>{const s=w.getComputedStyle(box);return box.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight);};
+    const trace=[],note=kind=>{const at={column:column(),height:box.scrollHeight,scroll:box.scrollTop,top:Math.round(box.getBoundingClientRect().top*10)/10,
+      shell:d.body.dataset.thumb||'',caret:box.selectionStart};trace.push(kind+' '+JSON.stringify(at));return at;};
+    const same=(a,b)=>!!a&&!!b&&Math.abs(a.column-b.column)<.5&&a.height===b.height&&Math.abs(a.scroll-b.scroll)<=1&&Math.abs(a.top-b.top)<=1;
+    // Every width the box's text column takes, in order, as the browser's own ResizeObserver sees it.
+    const widths=[];new w.ResizeObserver(entries=>{for(const e of entries){const v=Math.round(e.contentRect.width*10)/10;if(widths.at(-1)!==v)widths.push(v);}}).observe(box);
+    let atFocus=null;box.addEventListener('focus',()=>{atFocus=note('focus');});d.addEventListener('selectionchange',()=>note('selectionchange'));
+    const tap=async(x,y)=>{window.tapped=false;window.tapAt={x:Math.round(f.left+x),y:Math.round(f.top+y)};for(let i=0;i<200&&!window.tapped;i++)await sleep(25);return window.tapped===true;};
+    const lineHeight=parseFloat(w.getComputedStyle(box).lineHeight)||22,lastLine=r=>r.bottom-parseFloat(w.getComputedStyle(box).paddingBottom)-lineHeight/2-1;
+    await sleep(50);const r=box.getBoundingClientRect(),unfocused=note('before');
+    record('the long draft overflows its box, scrolled to its end, not focused',box.scrollHeight>box.clientHeight*3&&box.scrollHeight-box.clientHeight-box.scrollTop<2&&d.activeElement!==box&&
+      r.bottom<=w.innerHeight);
+    record('the phone layout keeps that box a fixed three-line window and scrolls the whole draft inside it ['+Math.round(r.height)+' px]',
+      r.height>=76&&r.height<=95&&box.scrollHeight>box.clientHeight*5);
+    // The tap: on the last line of the box, at the end of the text.
+    record('the driver tapped the box for real',await tap(r.left+60,lastLine(r)));
+    const atTap={start:box.selectionStart,end:box.selectionEnd};
+    await sleep(200);
+    record('the tap focused the box and the caret sits in the last paragraph, where the finger was ['+JSON.stringify({caret:atTap,lastStart,length:text.length,
+      before:JSON.stringify(text.slice(Math.max(0,atTap.start-30),atTap.start))})+']',d.activeElement===box&&atTap.start===atTap.end&&atTap.start>lastStart);
+    record('nothing under the finger moved as the box took focus: the shell came on at once, the text column, its height and scroll and the box\'s place on the screen as before the tap ['+
+      JSON.stringify({unfocused,atFocus})+']',atFocus?.shell==='on'&&same(atFocus,unfocused));
+    const shellOn=note('shell');
+    record('the keyboard shell is on (the strip beside a box narrowed by its room), the caret unmoved, the text column still the one it had before the tap ['+JSON.stringify(shellOn)+']',
+      d.body.dataset.thumb==='on'&&strip.getClientRects().length>0&&box.selectionStart===atTap.start&&box.getBoundingClientRect().width<r.width-20&&
+      box.getBoundingClientRect().right<=strip.getBoundingClientRect().left&&same(shellOn,unfocused));
+    record('the box still shows its end, the caret’s line in view ['+[box.scrollTop,box.scrollHeight,box.clientHeight]+']',box.scrollHeight-box.clientHeight-box.scrollTop<2);
+    // A tap on the strip hides the keyboard: the shell goes, and the box's text column stays as it was.
+    const sr=strip.getBoundingClientRect();
+    record('the driver tapped the strip for real',await tap(sr.left+sr.width/2,sr.top+sr.height/2));await sleep(150);
+    const blurred=note('blurred');
+    record('a tap on the strip hides the keyboard: the shell goes, the text column and its height unchanged ['+JSON.stringify(blurred)+']',d.activeElement!==box&&!d.body.dataset.thumb&&
+      !strip.getClientRects().length&&Math.abs(blurred.column-unfocused.column)<.5&&blurred.height===unfocused.height);
+    // The maximized editor: its own margin, no shell; a tap into it places the caret with nothing changing either.
+    d.getElementById('m-draft-max').click();await sleep(150);box.scrollTop=box.scrollHeight;await sleep(50);
+    const mr=box.getBoundingClientRect(),maxBefore=note('maximized');atFocus=null;
+    record('the driver tapped the maximized editor for real',await tap(mr.left+60,lastLine(mr)));await sleep(200);
+    const maxShell=note('maximized-focused');
+    record('maximized: the tap focused it with the caret in the last paragraph, no shell, and nothing under the finger moved, at the focus or after ['+JSON.stringify({maxBefore,atFocus,maxShell})+']',
+      d.activeElement===box&&box.selectionStart>lastStart&&!strip.getClientRects().length&&same(atFocus,maxBefore)&&same(maxShell,maxBefore));
+    d.getElementById('m-draft-max').click();await sleep(150);
+    record('the box\'s text column took exactly two widths through all of it, as the ResizeObserver saw it: the combined view\'s (keyboard or not) and the maximized editor\'s ['+widths+']',
+      widths.length===3&&widths[0]===widths[2]&&widths[0]!==widths[1]&&Math.abs(widths[0]-unfocused.column)<.5);
+    record('the actual scripts had no uncaught errors ['+caretFixture.errors.join('; ')+']',caretFixture.errors.length===0);
+    if(query.get('trace'))record('trace: '+trace.join(' | '),true);
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

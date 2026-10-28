@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Isolated Refine chat-history / draft-context browser fixture — inert provider and history</title>
+<style>iframe { width: 900px; height: 900px; border: 0; } pre { white-space: pre-wrap; }</style>
+<iframe id="pane" title="Actual pane markup, inert transport"></iframe><pre id="results">running…</pre>
+<script>
+(async () => {
+  const checks = [], check = (name, ok) => { checks.push({name, passed:!!ok}); if (!ok) throw new Error(name); };
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  try {
+    const base = new URL('../static/', location.href), read = async name => (await fetch(new URL(name, base))).text();
+    const [html, app, defaults, refineCore] = await Promise.all(['index.html', 'app.js', 'refine-defaults.js', 'refine-core.js'].map(read));
+    const mock = `
+      window.fixture = {errors:[], requests:[], copies:[], deferProvider:false, pending:null};
+      addEventListener('error', e => fixture.errors.push(e.message));
+      const store = new Map([['refine_provider','openrouter'],['refine_openrouter_api_key','offline-fixture-not-a-key']]);
+      Object.defineProperty(window, 'localStorage', {value:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator, 'clipboard', {value:{writeText:async text=>fixture.copies.push(text)}});
+      Object.defineProperty(navigator, 'sendBeacon', {value:()=>true});
+      window.fetch = async (url, options) => {
+        let data;
+        if (url === 'https://openrouter.ai/api/v1/chat/completions') {
+          fixture.requests.push(JSON.parse(options.body));
+          fixture.runningStatus = document.getElementById('status').textContent;
+          data = {choices:[{finish_reason:'stop',message:{content:'Cleaned selection.'}}]};
+          if (fixture.deferProvider) await new Promise((resolve, reject) => {
+            fixture.pending = {signal:options.signal, release:resolve};
+            options.signal.addEventListener('abort', () => reject(new DOMException('Aborted','AbortError')), {once:true});
+          });
+        } else if (url.startsWith('/oc/api/session/ses_offline/message')) data = {data:[
+          {type:'assistant',content:[{type:'text',text:'Earlier answer.'},{type:'tool',input:'EXCLUDED_TOOL_INPUT'}]},
+          {type:'user',text:'Earlier question.'}
+        ]};
+        else throw new Error('No real network permitted: '+url);
+        return new Response(JSON.stringify(data), {headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    const safe = text => text.replace(/<\/script/gi, '<\\/script');
+    const frame = document.getElementById('pane');
+    frame.srcdoc = html.replace('<head>', `<head><base href="${base.href}">`)
+      .replace(/  <script src="[^"]+"><\/script>/g, '')
+      .replace('</body>', () => `<script>${safe(mock)}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(app.replace(/main\(\);\s*$/, '') + '\nfixture.api={state,readOriginals,refine}; wire(); state.target={id:"ses_offline"};')}<\/script></body>`);
+    await new Promise(resolve => { frame.onload = resolve; });
+    const w = frame.contentWindow, d = w.document, el = id => d.getElementById(id), box = el('transcript');
+    check('actual app initializes with inert storage and transport', w.fixture.errors.length === 0 && !!w.fixture.api);
+    // Anthropic now carries the user message as cacheable text blocks; their concatenation is the same text.
+    const contentText = content => typeof content === 'string' ? content : content.map(part => part.text).join('');
+    const block = (user, tag) => contentText(user).match(new RegExp(`<${tag}>\\n([\\s\\S]*?)\\n</${tag}>`))?.[1] ?? null;
+    const history = '[USER]\nEarlier question.\n\n---\n\n[ASSISTANT]\nEarlier answer.';
+    for (const entry of ['button', 'r', 'R', 'start', 'end', 'whitespace', 'whole-widget']) {
+      const prefix = entry === 'start' || entry === 'whole-widget' ? '' : entry === 'whitespace' ? ' \n\t' : 'Earlier draft. 😀\n\n';
+      const suffix = entry === 'end' || entry === 'whole-widget' ? '' : entry === 'whitespace' ? '\n\t ' : '\n\nLater refined draft. 🐈';
+      box.value = prefix + 'raw selected words' + suffix; box.focus();
+      box.setSelectionRange(prefix.length, prefix.length + 'raw selected words'.length);
+      if (entry === 'whole-widget') box.setSelectionRange(4, 4);
+      const full = box.value, oldCount = w.fixture.requests.length;
+      if (entry === 'button') {
+        el('refine-btn').focus(); el('refine-btn').click();
+      } else box.dispatchEvent(new w.KeyboardEvent('keydown', {key:entry === 'R' ? 'R' : 'r', altKey:true, shiftKey:entry === 'R', bubbles:true, cancelable:true}));
+      for (let i = 0; i < 100 && w.fixture.api.state.refineAbort; i++) await sleep(10);
+      check(entry + ': exactly one complete provider request', w.fixture.requests.length === oldCount + 1 && w.fixture.api.state.refineAbort === null);
+      const user = contentText(w.fixture.requests.at(-1).messages.at(-1).content);
+      check(entry + ': chat history is its own block, never mixed with the draft', block(user, 'chat-history') === history);
+      check(entry + ': draft before the selection is separate or absent at the edge', block(user, 'draft-before') === (prefix.trim() ? prefix : null));
+      check(entry + ': draft after the selection is separate or absent at the edge', block(user, 'draft-after') === (suffix.trim() ? suffix : null));
+      check(entry + ': only selected text is the transcription', block(user, 'transcription') === (entry === 'whole-widget' ? full : 'raw selected words'));
+      check(entry + ': blocks follow draft order (chat, before, transcription, after)', user.indexOf('</chat-history>') < user.indexOf('===== TRANSCRIPTION TO CLEAN') && user.indexOf('</draft-before>') < user.indexOf('===== TRANSCRIPTION TO CLEAN') && (user.indexOf('===== DRAFT AFTER') === -1 || user.indexOf('===== DRAFT AFTER') > user.indexOf('</transcription>')));
+      check(entry + ': exact surrounding text survives replacement and full original is recoverable', box.value === prefix + 'Cleaned selection.' + suffix && w.fixture.api.readOriginals()[0].text === full);
+      check(entry + ': final anti-injection fence stays last and tool input stays out', user.indexOf('===== FINAL INSTRUCTION') > user.indexOf('</transcription>') && user.indexOf('===== FINAL INSTRUCTION') > user.indexOf('</draft-after>') && !user.includes('EXCLUDED_TOOL_INPUT'));
+      check(entry + ': selection status reports chat and draft sizes separately, whole-widget status stays unchanged', /chat history [0-9.]+ KB · draft before [0-9.]+ KB · after [0-9.]+ KB/.test(w.fixture.runningStatus) === (entry !== 'whole-widget'));
+    }
+    check('all calls are inert and no page errors occurred', w.fixture.errors.length === 0 && w.fixture.requests.length === 7);
+    // Use the real browser interval and real +30s button, not the inert VM timers/countdown alone.
+    const f = w.fixture;
+    f.deferProvider = true; box.value = 'deadline original'; box.setSelectionRange(0, 0);
+    const extended = f.api.refine();
+    for (let i = 0; i < 100 && !f.pending; i++) await sleep(10);
+    check('deadline case has one real running provider request', !!f.pending && !!f.api.state.refineAbort && f.requests.length === 8);
+    const originalDeadline = f.api.state.refineTimeoutEnd; // PC still starts at two minutes.
+    check('PC deadline starts two minutes ahead', originalDeadline > w.Date.now() + 118000);
+    // Advance only the core's clock, leaving the browser's setInterval running normally.
+    const realNow = w.Date.now; let clock = originalDeadline - 1000;
+    w.Date.now = () => clock;
+    el('plus30-btn').click();
+    check('+30s moves the existing deadline by exactly 30000 ms', f.api.state.refineTimeoutEnd === originalDeadline + 30000);
+    clock = originalDeadline + 1000; await sleep(1100);
+    check('same request survives past the original deadline after +30s', !f.pending.signal.aborted && !!f.api.state.refineAbort && f.requests.length === 8 && box.value === 'deadline original');
+    f.pending.release(); await extended; f.pending = null;
+    check('extended request completes and retains the full original', box.value === 'Cleaned selection.' && f.api.readOriginals()[0].text === 'deadline original');
+    w.Date.now = realNow;
+    // Control: the same live deadline really does abort when not extended; partial text is never applied.
+    box.value = 'timeout original'; box.setSelectionRange(0, 0);
+    const timedOut = f.api.refine();
+    for (let i = 0; i < 100 && !f.pending; i++) await sleep(10);
+    check('timeout control reaches the provider', !!f.pending && f.requests.length === 9);
+    f.api.state.refineTimeoutEnd = w.Date.now() - 1;
+    await timedOut;
+    check('browser interval enforces the live deadline and keeps the original', f.pending.signal.aborted && f.api.state.refineAbort === null && box.value === 'timeout original' && /timed out/.test(el('status').textContent) && f.requests.length === 9);
+    check('deadline cases have no page errors', f.errors.length === 0);
+    // A Refine completed at xhigh or max: a red reminder beneath its status line (max costs real money); high and below, nothing.
+    f.deferProvider = false;
+    const thinkAt = async level => { w.localStorage.setItem('refine_think_level', level); box.value = 'reminder original'; box.setSelectionRange(0, 0);
+      await f.api.refine(); return el('status').querySelector('.think-warn'); };
+    check('a Refine at medium adds no reminder', !(await thinkAt('medium')) && /refined ✓/.test(el('status').textContent));
+    const maxWarn = await thinkAt('max'), warnStyle = w.getComputedStyle(maxWarn || d.body);
+    check('a Refine completed at max: beneath its “refined ✓” status, a red “Reminder: you are currently set to max” [' + [maxWarn?.textContent, warnStyle.color] + ']',
+      maxWarn?.textContent === 'Reminder: you are currently set to max' && el('status').firstChild?.textContent.startsWith('✨ refined ✓') && warnStyle.display === 'block' &&
+      warnStyle.color === 'rgb(255, 107, 107)' && f.requests.at(-1).reasoning?.effort === 'max');
+    check('at xhigh it reads “… extra high”, one line only', (await thinkAt('xhigh'))?.textContent === 'Reminder: you are currently set to extra high' &&
+      el('status').querySelectorAll('.think-warn').length === 1 && f.requests.at(-1).reasoning?.effort === 'xhigh');
+    check('at high, nothing', !(await thinkAt('high')) && /refined ✓/.test(el('status').textContent) && f.errors.length === 0);
+  } catch (e) { checks.push({name:e.message, passed:false}); }
+  window.testResults = {passed:checks.filter(x=>x.passed).length, failed:checks.filter(x=>!x.passed).length, checks};
+  document.body.dataset.testPassed = String(testResults.failed === 0);
+  document.getElementById('results').textContent = JSON.stringify(testResults, null, 2);
+})();
+</script>

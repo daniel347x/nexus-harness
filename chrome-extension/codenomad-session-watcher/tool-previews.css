@@ -1,0 +1,49 @@
+/* Keep native title/status/actions, reserving the flexible middle of the row for arguments. */
+.tool-call-summary.opc-tool-preview-summary > .tool-call-summary-title {
+  flex: 0 1 auto;
+  max-width: 30%;
+}
+.tool-call-summary > .opc-tool-argument-preview {
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  max-height: 4.05em;
+  text-align: start;
+  font-family: var(--font-family-mono, monospace);
+  font-size: calc(1em - 1pt);
+  font-weight: normal;
+  color: var(--text-secondary, inherit);
+}
+.tool-call-summary > .opc-tool-argument-preview[hidden] {
+  display: none;
+}
+.tool-call-header:has(> .opc-tool-sizes) {
+  position: relative;
+  padding-block-end: 30px; /* Reserve the maximum label height, so live growth does not move controls. */
+}
+.tool-call-header > .opc-tool-sizes {
+  position: absolute;
+  inset-inline-end: 6px;
+  inset-block-end: 2px;
+  max-width: calc(100% - 12px);
+  color: var(--text-secondary, inherit);
+  font: 15px/1.3 var(--font-family-mono, monospace);
+  text-align: end;
+  white-space: nowrap;
+  cursor: pointer; /* Ordinary header inspection owns this text; its size tooltip remains hoverable. */
+}
+.opc-tool-size {
+  color: color-mix(in srgb, light-dark(#b91c2c, #ff8080) var(--tool-size-warmth, 0%), light-dark(#59616e, #a6adb9));
+  font-size: calc(15px + var(--tool-size-lift, 0px));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+@media (forced-colors: active) {
+  .opc-tool-size { color: CanvasText; }
+}

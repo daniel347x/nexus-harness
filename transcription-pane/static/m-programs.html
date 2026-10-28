@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-glare-follow>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Programs and sessions · Phone</title>
+  <link rel="stylesheet" href="/sessions.css">
+  <link rel="stylesheet" href="/m-programs.css">
+  <link rel="stylesheet" href="/glare.css">
+  <script src="/glare.js"></script>
+</head>
+<body class="phone-programs" data-view="programs">
+  <h1 class="phone-sr">Programs and sessions (the desktop sidebar, read-only)</h1>
+  <main>
+    <aside aria-label="Program and session inventory">
+      <div class="side-top">
+        <div class="side-bar">
+          <select id="sessions-role" aria-label="Show sessions of one role">
+            <option value="all">Show: every session</option><option value="manager">Managers only</option>
+            <option value="conductor">Conductors only</option><option value="lead-seat">Lead seats only</option>
+            <option value="quick-worker">Quick workers only</option><option value="helper">Helpers only</option>
+            <option value="worker">Workers only</option><option value="subagent">Native subagents only</option>
+            <option value="base">Base sessions only</option><option value="history">Other history only</option>
+            <option value="unknown">Unknown host role only</option>
+          </select>
+          <button id="sessions-cycle" type="button" data-next="collapse">Collapse</button>
+          <button id="sessions-refresh" class="icon" title="Refresh the session list" aria-label="Refresh the session list">⟳</button>
+        </div>
+        <div class="side-bar"><select id="sessions-view" aria-label="Live session universe"><option value="week">Last 7 days</option><option value="month">30 days</option><option value="all">Everything live</option><option value="history">📦 History</option></select></div>
+        <p id="sessions-host-load" role="status" aria-live="off" hidden></p>
+        <p id="sessions-freshness" role="status">Loading current activity…</p>
+        <p id="sessions-notice" role="status" hidden></p>
+        <div id="sessions-pinned" hidden></div>
+      </div>
+      <div id="sessions-scroll">
+        <details class="mini-more"><summary>list info · key to the telemetry</summary><p id="sessions-status" role="status"></p><p id="sessions-filter-status"></p><div id="telemetry-key" class="tele-key"></div></details>
+        <details id="sessions-native-history" class="mini-more"><summary>Stored native history</summary><p>Host sessions above include ended programs. Unmanaged transcripts load only here, not during activity refresh.</p><button id="sessions-load-history" class="link">Load / refresh stored transcripts</button></details>
+        <div id="sessions-list"></div>
+      </div>
+    </aside>
+  </main>
+  <script src="/tool-record-text.js"></script>
+  <script src="/tool-preview-core.js"></script>
+  <script src="/tool-reading.js"></script>
+  <script src="/quota-halt.js"></script>
+  <script src="/manager-order.js"></script>
+  <script src="/sessions.js"></script>
+  <script src="/handle-links.js"></script>
+</body>
+</html>

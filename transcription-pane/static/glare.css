@@ -1,0 +1,129 @@
+/* ------------------------------------------------------------------ outdoor glare mode (phone pages)
+   One switch (glare.js: data-glare="on" on <html>, the ☀ button on /m) for reading in the sun: every dim grey
+   turns bright, near white, and the small print grows; backgrounds, layout and colour meanings stay as they are.
+   Loaded after the phone pages' own sheets: /m (m.css), its Programs frame (sessions.css + m-programs.css) and the
+   View page (glimpse.css, standalone or in /m's View frame).
+   1 · the colours: both sheets' own theme variables, so every widget that uses them follows (the frame's sidebar
+       is themed entirely through variables, sessions.css :root);
+   2 · the few greys and the small print /m sets literally (m.css), selector by selector;
+   3 · the Programs sidebar's small print, its faded (opacity) controls and its glance. */
+
+/* 1 · colours: the theme variables of m.css and sessions.css (names they share take one value) */
+:root[data-glare="on"] {
+  color: #fff;
+  /* shared */
+  --link: #c9e0ff; --line: #56627a; --halt-text: #ffe3e3; --halt-border: #ff7a7a;
+  --you-label: #a6f5c4; --final-label: #ffc2bc; --mid-label: #ffd0ab;
+  --tool-accent: rgba(150,190,250,.75); --tool-title: #d6e6ff; --tool-preview: #f1f4f9;
+  --thinking-header: #d3dae5; --thinking-text: #f4f6fa; --running-text: #ffe6b0; --size-cold: #d3dae5;
+  /* m.css (/m) */
+  --dim: #f1f4f9; --faint: #d3dae5; --control-border: #8796ad;
+  /* sessions.css (the Programs sidebar) */
+  --text: #fff; --text-2: #f1f4f9; --text-dim: #dbe1ea; --text-faint: #c3cbd7; --line-strong: #8796ad; --error-text: #ffd0d0;
+  --side-label: #fff; --side-meta: #e3e8ef; --side-meta-color: #eef1f6; --side-group: #ccd4df; --side-child-label: #f4f6fa;
+  --section-heading-color: #c9d2ff; --stub-text: #f0dfae; --note-color: #dbe1ea; --meta-color: #c3cbd7; --copy-color: #dbe1ea;
+  --flag-color: #c3cbd7; --flag-mark: #ecc978; --more-color: #d3dae5; --thinking-note: #c3cbd7;
+  --program-title: #fff; --program-meta: #e3e8ef; --program-name-faded: #b9c2cf;
+  --program-meter-text: #eef1f6; --program-meter-block: #c4d6ee; --program-meter-yellow: #ecc978;
+  --program-age-today: #fff; --program-age-yesterday: #eef1f6; --program-age-recent: #dbe1ea; --program-age-old: #c3cbd7;
+  --badge-manager: #6ff0a0; --badge-conductor: #d2b5ff; --badge-quick: #a9cdff; --badge-helper: #7fe0d6; --badge-worker: #e2e6ec;
+  --badge-other: #c3cbd7; --badge-lead: #f5d48f; --backend-claude: #dcc4ff; --backend-opencode: #98efe2;
+  --quota-text: #eef1f6; --quota-provider: #ccd4df; --waiting-text: #ffe6b0; --edge-behind-text: #ffe6b0;
+  --tree-line: #4b576c; --glance-border: #56627a; --label-quiet: 1; --model-dim: .8;
+  /* the sidebar's type scale (sessions.css), the smallest sizes lifted most */
+  --fs-small: 13.5px; --fs-tiny: 12.5px; --fs-micro: 12.5px; --badge-fs: 11.5px; --quota-fs: 12px; --program-meter-fs: 11.5px;
+  --meta-fs: 12px; --flag-fs: 12px; --copy-fs: 12px; --more-fs: 12px; --size-fs: 13px;
+  --section-heading-fs: 16px; --section-heading-toggle-fs: 13px;
+}
+
+/* 2 · /m: its literal greys, then its small print (the large controls and the 16px inputs keep their size) */
+:root[data-glare="on"] :is(.m-io-label, #m-extras summary, .m-extra-toggle, .m-extra-head) { color: #f4f6fa; }
+:root[data-glare="on"] :is(.m-section, .rv-cap strong, .m-tune-label) { color: #dde3ec; }
+:root[data-glare="on"] #m-tune-model-name { color: #fff; }
+:root[data-glare="on"] .m-tool-preview .m-k { color: #c9d1dc; }
+:root[data-glare="on"] :is(.m-prose, .m-io .inspector-md-rendered) blockquote { color: #eef3fb; }
+:root[data-glare="on"] .opc-chess figcaption { opacity: 1; }
+:root[data-glare="on"] .m-dot[data-life="sleeping"] { box-shadow: inset 0 0 0 1.5px #d3dae5; }
+:root[data-glare="on"] :is(.account-quota-reset, .account-quota-note, .account-quota-foot, .account-hint, .m-account-status) { color: #f4f6fa; font-size: 14px; }
+:root[data-glare="on"] .gpt-help { color: #f4f6fa; font-size: 14px; }
+:root[data-glare="on"] .gpt-help summary { color: #dde9ff; }
+:root[data-glare="on"] .m-prose { font-size: 16.5px; }
+:root[data-glare="on"] :is(.m-head, .m-copy, .m-speak) { font-size: 13.5px; }
+/* A tool bar: its name a little larger, its › marker held beside it; the sizes keep their size (now bright), so even
+   mcp__workflowy__node still fits beside them on a 390 px phone. */
+:root[data-glare="on"] .m-tool-line { position: relative; padding-left: 12px; font-size: 14px; }
+:root[data-glare="on"] .m-tool-line::before { position: absolute; left: 0; }
+:root[data-glare="on"] .m-tool-preview { font-size: 13.5px; }
+:root[data-glare="on"] .running-tools { font-size:14px; }
+:root[data-glare="on"] :is(.m-tool-top, .m-io-head, .m-modes button, .m-io, .rv-cap, .rv-text, .m-tune-hint, #m-more-menu small) { font-size: 13.5px; }
+:root[data-glare="on"] .m-io-caption { font-size: 13px; }
+:root[data-glare="on"] .m-diff-note { font-size: 13.5px; }
+:root[data-glare="on"] .m-io .inspector-document-index { font-size: 12px; }
+:root[data-glare="on"] .m-io .inspector-md-mode { font-size: 12.5px; }
+:root[data-glare="on"] .m-io .inspector-md-head { font-size: 12.5px; }
+:root[data-glare="on"] .m-io .inspector-md-rendered { font-size: 14.5px; }
+:root[data-glare="on"] .m-thinking > summary { font-size: 14px; }
+:root[data-glare="on"] .m-thinking pre { font-size: 15px; }
+:root[data-glare="on"] :is(.m-small, .m-lines, .m-caption, #m-latest, .m-section, .rv-whole, #m-tune-for,
+  .m-meter-sub, .m-meter-amount, .m-note, .m-usage-foot, #m-new-form label, #m-new-status, #m-new-options summary) { font-size: 14px; }
+:root[data-glare="on"] .m-meters:empty::before { font-size: 14px; }
+:root[data-glare="on"] .m-viewer-role { font-size: 13px; }
+:root[data-glare="on"] :is(#m-status, #m-release, #m-tune-note, #m-tune-status) { font-size: 14.5px; }
+:root[data-glare="on"] :is(#m-readonly, #m-extras p, #m-setup-status) { font-size: 15px; }
+
+/* 3 · the Programs sidebar (the frame's page): its row text, the sizes it sets literally, its faded controls, its glance */
+:root[data-glare="on"] body.phone-programs { --side-fs: 15px; }
+:root[data-glare="on"] .phone-programs :is(.backend-chip, .waiting-flag, .rollup-badge) { font-size: 11px; line-height: 15px; }
+:root[data-glare="on"] .phone-programs :is(.section-active, .program-fold) { font-size: 12.5px; }
+:root[data-glare="on"] .phone-programs :is(.tree-toggle, .section-toggle) { font-size: 12px; }
+:root[data-glare="on"] .phone-programs .child-list > button { font-size: 13.5px; }
+:root[data-glare="on"] .phone-programs :is(.session-read, .glance-read, .glance-large-open) { font-size: 13.5px; color: #d6e6ff; border-color: #7d9fd6; }
+:root[data-glare="on"] .phone-programs :is(.session-note, .session-crumb, .session-bg, .child-times, .session-twin, .rollup-badge, .oc-unavailable,
+  .program-fold, .section-toggle, .section-active, .conductor-fold, .oc-glance-chip, .session-glance-chip) { opacity: 1; }
+/* The glance (a row's 💬: the newest messages and the running or latest tool call): bright and larger; two more
+   lines per message keep about the same text in view at the larger size. */
+:root[data-glare="on"] :is(.oc-glance, .claude-glance) { font-size: 14px; line-height: 1.45; }
+:root[data-glare="on"] .glance-text { color: #fff; -webkit-line-clamp: 8; }
+:root[data-glare="on"] .glance-who { color: #d3dae5; }
+:root[data-glare="on"] :is(.glance-msg, .glance-call) { border-left-width: 3px; }
+:root[data-glare="on"] .glance-call-name { font-size: 14.5px; }
+:root[data-glare="on"] .glance-call-preview { font-size: 13px; color: #f1f4f9; }
+
+/* Shared diff reader: all dim text / gutters / comments and its 14px type scale. */
+:root[data-glare="on"] .opc-diff { --diff-fg: #fff; --diff-dim: #eef3fb; --diff-comment: #e1e9f5; --diff-border: #8796ad; --diff-green: #c0ffd0; --diff-red: #ffd0d0; font-size: 15px; }
+:root[data-glare="on"] .opc-diff-cell { font-size: 15px; }
+
+/* 4 · the View page (glimpse.html): its small print, and the document container's base text. The shared renderer's
+   own rules and the document's HTML are not restyled; its row list's text is lifted here, its layout kept. */
+:root[data-glare="on"] :is(#g-asof, #g-catalog-errors, #g-status, #g-count, #g-more, .g-pick-body label, #g-options legend) { font-size: 14.5px; }
+:root[data-glare="on"] #g-doc { color: #fff; font-size: 16.5px; }
+/* The row list: brighter, larger rows and labels; the painter's small grey day labels are inline styles, hence !important. */
+:root[data-glare="on"] :is(#g-rows-box > summary, #g-rows-box > summary small, #g-rows-more) { font-size: 14.5px; }
+:root[data-glare="on"] #g-rows-box > summary small { color: var(--faint); }
+:root[data-glare="on"] #g-rows .glimpse-md-dock-row { color: #fff; font-size: 14px; }
+:root[data-glare="on"] #g-rows .glimpse-md-dock-marker { color: #a9d4ff; }
+:root[data-glare="on"] #g-rows .glimpse-md-dock-daysep-label { color: #e1e9f5 !important; font-size: 12px !important; }
+:root[data-glare="on"] #g-rows .glimpse-md-dock-daysep > span:last-child { border-top-color: rgba(225,233,245,.6) !important; }
+/* The two pickers: brighter names and section headers, the dimmed AP-IDs readable. */
+:root[data-glare="on"] :is(.g-picker-count, .g-picker > summary small) { color: #d3dae5; font-size: 14px; }
+:root[data-glare="on"] .g-pleaf { color: #fff; }
+:root[data-glare="on"] :is(.g-pap, .g-psynth, .g-pdup) { color: #c3cbd7; }
+:root[data-glare="on"] .g-pexp:not(.g-psynth, .g-pdup) { color: #ffe6b0; }
+/* View's history: the strip, the sheet and the root's pop-up */
+:root[data-glare="on"] :is(.g-hcard, #g-now, .g-pos-line, .g-pos-program) { color: #fff; font-size: 15.5px; }
+:root[data-glare="on"] :is(.g-hcard-sub, .g-hcard-source, .g-hcard-n, #g-hist-count, .g-pos-status, .g-pos-more, .g-pos-hint, .g-pos-here) { color: #e1e9f5; font-size: 14px; }
+:root[data-glare="on"] .g-pos-handle { color: #c9e0ff; font-size: 14.5px; }
+:root[data-glare="on"] #g-hist-list .g-hcard[data-ahead="true"] { opacity: .8; }
+/* Recent roots: the row, the cards' small print and the notes, the maximize button */
+:root[data-glare="on"] :is(#g-roots-open, #g-roots-count, #g-max) { color: #fff; font-size: 15.5px; }
+:root[data-glare="on"] :is(#g-roots-foot, #g-roots-status) { color: #e1e9f5; font-size: 14px; }
+:root[data-glare="on"] .g-rcard-note { color: #ffe6b0; font-size: 15.5px; }
+:root[data-glare="on"] .g-rdepth { color: #fff; font-size: 13.5px; }
+/* The Controls bar: still thin, but readable in the sun. */
+:root[data-glare="on"] #g-ctl-toggle { color: #d3dae5; font-size: 13.5px; }
+:root[data-glare="on"] #g-ctl-toggle::after { background: #8796ad; }
+/* The images: the contact sheet's captions, and the lightbox's caption, file line and position (glimpse-lightbox.css). */
+:root[data-glare="on"] #g-doc .glimpse-lb-tile figcaption { color: #fff; }
+:root[data-glare="on"] .glimpse-lb :is(.glimpse-lb-caption) { font-size: 17px; color: #fff; }
+:root[data-glare="on"] .glimpse-lb :is(.glimpse-lb-title, .glimpse-lb-file, .glimpse-lb-wait) { font-size: 14.5px; color: #f1f4f9; }
+:root[data-glare="on"] .glimpse-lb :is(.glimpse-lb-pos, .glimpse-lb-chip) { font-size: 16px; }

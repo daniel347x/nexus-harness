@@ -1,0 +1,374 @@
+<!doctype html><meta charset="utf-8"><title>The desktop View pane — actual Manager App page (Claude and OpenCode mode), actual sidebar page, actual View page, inert transport</title>
+<style>body{margin:0}#pane{width:1400px;height:1000px;border:0;display:block}pre{white-space:pre-wrap}</style>
+<iframe id="pane" title="Actual pane markup, inert transport"></iframe><pre id="results">running…</pre>
+<script src="view-roots-fake.js"></script>
+<script>
+// The actual index.html (app.js) at 1400 px in Claude mode, its sessions frame holding the actual sessions.html
+// (sessions.js, handle-links.js) and, in that page's conversation column, the actual glimpse.html (view-history.js,
+// glimpse.js, handle-links.js) in desktop-view-frame; then OpenCode mode's sheet over the editor page, the same View
+// page in its own desktop-view-frame. Only fetch, localStorage, the clipboard and the two View frames' navigation are
+// replaced (a frame given src gets the same page as srcdoc, its query inlined, as view-history.html does). Handles in
+// the conversation and the sidebar are pressed at their own on-screen boxes, through handle-links.js.
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait',n=900)=>{for(let i=0;i<n;i++){try{if(fn())return true;}catch(_){}await sleep(10);}throw new Error(what+' did not settle');};
+  const fx=window.fx={requests:[],unknown:[],viewSrcs:[],viewStore:new Map(),renders:[],errors:[],copies:[],mail:{epoch:'mail',revision:0,selection:null},channels:[]};
+  fx.roots=viewRootsFake();
+  // ?shot=turn|view-open|popup|socket|reveal|sheet stops the run there, leaving that state on screen for a Chrome screenshot
+  // (chrome --headless=new --window-size=1400,1000 --screenshot=… …/desktop-view.html?shot=turn).
+  const SHOT=new URLSearchParams(location.search).get('shot'),shot=name=>{if(SHOT===name)throw Object.assign(new Error('stopped for the '+name+' screenshot'),{shot:true});};
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,app,defaults,refineCore,refineView,inspector,reading,historyHTML,historyJS,historyCSS,linksJS,glimpseHTML,glimpseJS,accountsJS]=await Promise.all(
+      ['index.html','app.js','refine-defaults.js','refine-core.js','refine-view.js','tool-inspector.js','tool-reading.js','sessions.html','sessions.js','sessions.css',
+         'handle-links.js','glimpse.html','glimpse.js','account-switch.js'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,preview]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async n=>(await fetch(new URL(n,sharedBase))).text()));
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script'),env=x=>({schemaVersion:1,backend:'claude',...x}),ref=c=>c.repeat(32);
+    // ---- the inventory: a Manager with a 140-row conversation, and a freestanding quick worker with a socket
+    const t={schemaVersion:1,backend:'claude',targetRef:ref('T'),storeRef:ref('S'),sessionRef:ref('J'),scopeRef:ref('M'),leafRef:ref('L'),fileEpoch:ref('E'),
+      scope:'main',source:'host',uuid:'11111111-1111-4111-8111-111111111111',leafUuid:null,title:'Manager-Session-185',sessionLabel:'Manager-Session-185',role:'Manager',generation:1,
+      executionId:'cc-11111111-1111-4111-8111-111111111111',contextIdentity:ref('C'),capabilities:{history:true,nativeInput:false,controls:false}};
+    const manager={...t,displayRole:'manager',cwd:'fixture only',status:'ready',lifecycle:'live',createdAt:1000,scopes:[{scopeRef:t.scopeRef,label:'main'}]};
+    const qw={source:'host',role:'worker',displayRole:'quick-worker',uuid:'22222222-2222-4222-8222-222222222222',executionId:'cc-22222222-2222-4222-8222-222222222222',generation:1,
+      targetRef:ref('U'),sessionRef:ref('K'),scopes:[{scopeRef:ref('N'),label:'main'}],title:'⚡ quick worker · the desktop View pane',createdAt:1100,lifecycle:'live',
+      capabilities:{},liveState:{},socket:'[ap:SOCKQW]',managerSession:'210',lineage:{program:null,kind:'seat',quick:true,managerSession:'210',title:'⚡ quick worker · the desktop View pane'}};
+    const N=140,TAIL=100,TIME=1792300000;
+    const CALL=ref('Q');  // row 137's tool call, the one the inspector holds
+    const ev=n=>({recordRef:'r'+n,uuid:'uuid-'+n,seq:n,time:TIME+n*60,kind:n%2?'assistant':'user',status:'stored',
+      calls:n===137?[{id:'toolu_137',block:0,callRef:CALL,name:'Bash',status:'completed',time:TIME+n*60,resultTime:TIME+n*60+2,inputBytes:12,outputBytes:34,previewData:{command:'ls'}}]:[],
+      text:n===131?'Read [ap:TURN31] before the next step.':n===5?'An early handle [ap:EARLY5].':'row '+n+' text',
+      ...(n===135?{thinking:[{blockIndex:0,availability:'stored',text:'thinking about [ap:THINK1] here'}]}:{})});
+    const page=(from,count=40,q=t)=>{const events=[];if(q===t)for(let n=from;n<Math.min(N,from+count);n++)events.push(ev(n));const more=q===t && from+count<N;
+      return env({...t,sessionRef:q.sessionRef,scopeRef:q.scopeRef,events,branches:[],diagnostics:[],traces:[],status:'complete',change:'snapshot',hasMore:more,
+        ...(more?{nextCursor:'c'+(from+count)}:{}),deltaCursor:ref('D'),targetInfo:t,liveState:{status:'ready'}});};
+    fx.accountPosts=[];fx.accountCancels=[];fx.accountOperation=null;fx.accountPhase='waiting';
+    fx.transport=async(url,opts={})=>{
+      fx.requests.push(String(url));const u=new URL(String(url),'http://inert'),q=Object.fromEntries(u.searchParams),body=opts.body?JSON.parse(opts.body):null;let d;
+      if(u.pathname==='/api/claude/accounts')d=env({available:true,selected:{label:fx.accountSelected||'personal',identity:{email:'personal@fixture.invalid',plan:'Max'}},
+        accounts:[{label:'personal',enrolled:true},{label:'work',enrolled:true}],operation:fx.accountOperation});
+      else if(u.pathname==='/api/usage'){
+        const work=q.account==='work',now=Date.now()/1000;
+        if(!['personal','work'].includes(q.account))throw new Error('account quota must be explicitly labelled');
+        d={schemaVersion:1,backend:'usage',ageSeconds:42,now,refreshing:false,claude:{ok:true,account:{label:q.account},windows:[
+          {label:'five-hour',percent:work?72:41,resets_at:now+(work?3600:9060)},
+          {label:'weekly',percent:work?81:45,resets_at:now+(work?172800:50400)},
+          {label:'Fable weekly',percent:work?63:40,resets_at:now+(work?259200:50400)}]}};
+      }
+      else if(u.pathname==='/api/claude/account-switch'&&opts.method==='POST'){
+        fx.accountPosts.push(body);d=env({operation:fx.accountOperation={id:body.operationId,account:body.account,phase:fx.accountPhase,canCancel:fx.accountPhase==='waiting'}});
+      }
+      else if(u.pathname==='/api/claude/account-switch/cancel'){
+        fx.accountCancels.push(body);d=env({operation:fx.accountOperation={...fx.accountOperation,phase:'cancelled',canCancel:false,detail:'Switch cancelled; Personal stays active.'}});
+      }
+      else if(u.pathname==='/api/claude/account-switch')d=env({operation:fx.accountOperation});
+      else if(u.pathname==='/api/claude/sessions')d=env({sessions:[manager,qw],status:'complete',hasMore:false});
+      else if(u.pathname==='/api/pins')d={schemaVersion:1,pins:{}};
+      else if(u.pathname==='/api/claude/events'){
+        if(q.sessionRef!==t.sessionRef)d=page(0,40,{sessionRef:q.sessionRef,scopeRef:q.scopeRef});
+        else if(q.cursor===ref('D'))d=page(N);  // the live tail's delta: nothing new
+        else if(q.fromSeq!==undefined)d=page(Number(q.fromSeq));
+        else if(q.cursor && /^c\d+$/.test(q.cursor))d=page(Number(q.cursor.slice(1)));
+        else d=page(TAIL);
+      }
+      else if(u.pathname==='/api/opencode/programs')d={schemaVersion:1,backend:'opencode',status:'complete',error:null,sessions:[]};
+      else if(u.pathname==='/api/tool-selection')d=fx.mail;
+      else if(u.pathname==='/api/claude/launch-defaults')d=env({name:'Manager-Session-211',model:'claude-opus-5-5',effort:'high'});
+      else if(u.pathname==='/api/active-session')d={sessionId:'ses_fixture',title:'CodeNomad',age_s:0,revision:1};
+      else if(u.pathname==='/oc/api/session/ses_fixture')d={data:{title:'CodeNomad',agent:'manager'}};
+      else if(u.pathname.startsWith('/api/claude/context')){const text='[USER]\nprose\n\n---\n\n[ASSISTANT]\nreply';d=env({...t,text,bytes:text.length,turns:2,users:1,readAt:Date.now(),targetRevision:Number(q.targetRevision),status:'stored'});}
+      else {fx.unknown.push(String(url));return new Response(JSON.stringify({error:'fixture: no route'}),{status:404});}
+      return new Response(JSON.stringify(d));
+    };
+    const mock=owner=>`
+      window.fixture={errors:[],owner:${JSON.stringify(owner)}};addEventListener('error',e=>fixture.errors.push(String(e.message||e.target?.src||'resource error')));
+      addEventListener('unhandledrejection',e=>fixture.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+      const fx=top.fx;window.fetch=(...args)=>fx.transport(...args);
+      Object.defineProperty(window,'localStorage',{value:{getItem:k=>fixture.store?.get(k)??null,setItem:(k,v)=>(fixture.store||=new Map()).set(k,String(v)),removeItem:k=>fixture.store?.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>fx.copies.push(text)}});
+      window.BroadcastChannel=class{constructor(){fx.channels.push(this);}postMessage(data){for(const other of fx.channels)if(other!==this)queueMicrotask(()=>other.onmessage?.({data}));}close(){}};`;
+    // A View frame given src (the code's own lazy load) gets the actual View page as srcdoc, its query inlined.
+    const viewDouble=`(()=>{const vf=document.getElementById('desktop-view-frame');if(!vf)return;let src=null;
+      const go=url=>{src=String(url);top.fx.viewSrcs.push([window.fixture.owner,src]);vf.srcdoc=top.fx.viewPage(src);};
+      Object.defineProperty(vf,'src',{configurable:true,get:()=>src||'',set:go});
+      const get=vf.getAttribute.bind(vf),set=vf.setAttribute.bind(vf);vf.getAttribute=n=>n==='src'?src:get(n);vf.setAttribute=(n,v)=>n==='src'?go(v):set(n,v);})();`;
+    // The View page's own transport: the catalog and the daemon's render (a node's Markdown starts with its full name).
+    const viewMock=`
+      const fx=top.fx;
+      addEventListener('error',e=>fx.errors.push('view: '+String(e.message||e.target?.src||'resource error')));
+      addEventListener('unhandledrejection',e=>fx.errors.push('view rejection: '+String(e.reason?.message||e.reason)));
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return fx.viewStore.size;},key:i=>[...fx.viewStore.keys()][i]??null,
+        getItem:k=>fx.viewStore.has(k)?fx.viewStore.get(k):null,setItem:(k,v)=>fx.viewStore.set(k,String(v)),removeItem:k=>fx.viewStore.delete(k)}});
+      const realFetch=window.fetch.bind(window),json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+      window.fetch=async(url,options={})=>{
+        const u=new URL(String(url),top.location.href);
+        if(u.pathname.startsWith('/nexus-md/'))return realFetch(url,options);
+         if(u.pathname==='/api/glimpse/catalog')return json(200,{schemaVersion:1,docks:[],groups:[],errors:[]});
+         if(u.pathname==='/api/view/roots'){const r=fx.roots.handle(options.method||'GET',options.body?JSON.parse(options.body):null);return json(r.status,r.body);}
+        if(u.pathname==='/api/glimpse/render'){const body=JSON.parse(options.body);fx.renders.push(body);const v=body.value||{},h=v.node||v.subtree||v.dock||'spec';
+          const markdown='# '+h+' 📋 The node called '+h+'\\n\\nBody of '+h+' links [ap:LINKA1].\\n';
+          return json(200,{schemaVersion:1,markdown,bytes:new TextEncoder().encode(markdown).length,renderedAt:'2026-10-23T09:00:00Z',request:body});}
+        throw new Error('No real transport permitted: '+url);
+      };`;
+    fx.viewPage=url=>{
+      const search=url.includes('?')?url.slice(url.indexOf('?')):'';
+      let out=glimpseHTML.replace('<script>',()=>'<script>'+safe(viewMock)+'<\/script>\n  <script>');
+      if(search){const js=glimpseJS.replace("globalThis.location?.search || ''",()=>JSON.stringify(search));if(js===glimpseJS)throw new Error('glimpse.js no longer reads location.search');
+        out=out.replace(/<script src="\/glimpse\.js"[^>]*><\/script>/,()=>'<script>'+safe(js)+'<\/script>');}
+      return out.replace(/(src|href)="\/((?:glimpse|glare|handle-links|view-history|view-pickers)\.(?:js|css))"/g,(_,a,f)=>a+'="/transcription-pane/static/'+f+'"');
+    };
+    // ---- the editor page in Claude mode, then the sidebar page in its frame
+    const frame=document.getElementById('pane');
+    frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/  <script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock('editor'))}<\/script><script>${safe(viewDouble)}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(refineView)}<\/script><script>${safe(accountsJS)}<\/script><script>${safe(app.replace(/main\(\);\s*$/,'')+'\nfixture.api={state,setBackend,wire,initializeTargetState};wire();initializeTargetState();')}<\/script><script>${safe(shared)}<\/script><script>${safe(reading)}<\/script><script>${safe(inspector)}<\/script></body>`);
+    await new Promise(r=>frame.onload=r);await sleep(80);
+    const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id);
+    w.fixture.api.setBackend('claude');
+    {
+      const root=el('claude-account'),a=sel=>root.querySelector(sel),personal=a('[data-account="personal"]'),work=a('[data-account="work"]');
+      const details=a('[data-account-details]'),switcher=a('[data-account-switch]'),cancel=a('[data-account-cancel]');
+      const quotas=()=>[...a('[data-account-quotas]').querySelectorAll('.account-quota')],accountApi=w.OCAccounts.get(root);
+      await until(()=>quotas().length===3,'initial account quota');
+      const ring=w.getComputedStyle(personal).outlineColor;
+      check('desktop: the account quota sheet starts folded; Personal has the active green ring, independently of the view',!details.open&&
+        personal.dataset.active==='true'&&work.dataset.active==='false'&&personal.getAttribute('aria-pressed')==='true'&&
+        w.getComputedStyle(personal).outlineStyle==='solid'&&ring==='rgb(76, 217, 100)'&&fx.accountPosts.length===0);
+      work.click();await until(()=>quotas()[0]?.querySelector('.m-meter-percent').textContent==='72% used','Work quota');
+      check('desktop: one Work tap opens its actual quota sheet with all three own percentages/reset times, says NOT active, makes no POST, and leaves Personal ringed green',
+        details.open&&a('[data-account-viewing]').textContent==='Viewing Work · NOT active; Personal stays active'&&
+        quotas().map(n=>n.querySelector('.m-meter-percent').textContent).join('|')==='72% used|81% used|63% used'&&
+        quotas().map(n=>n.querySelector('.m-meter-sub').textContent.split(' · ')[0]).join('|')==='Resets in 1h 0m|Resets in 2d 0h|Resets in 3d 0h'&&
+        work.getAttribute('aria-pressed')==='true'&&personal.getAttribute('aria-pressed')==='false'&&personal.dataset.active==='true'&&work.dataset.active==='false'&&
+        w.getComputedStyle(personal).outlineColor===ring&&w.getComputedStyle(work).outlineStyle!=='solid'&&fx.accountPosts.length===0&&
+        switcher.textContent==='Switch to Work'&&!switcher.disabled&&fx.requests.some(u=>u==='/api/usage?account=work'));
+      switcher.click();switcher.click();await until(()=>root.dataset.phase==='waiting'&&!cancel.hidden&&!accountApi.state.submitting,'waiting switch');const posted=fx.accountPosts[0];
+      check('desktop: explicit Switch sends exactly one labelled request with persisted ID; waiting explains the quiet host restart and offers Cancel',
+        fx.accountPosts.length===1&&Object.keys(posted).sort().join('|')==='account|backend|operationId|schemaVersion'&&
+        posted.account==='work'&&posted.backend==='claude'&&posted.schemaVersion===1&&typeof posted.operationId==='string'&&posted.operationId.length>10&&
+        JSON.parse(w.sessionStorage.getItem('pane_claude_account_switch_v1')).id===posted.operationId&&switcher.disabled&&!cancel.hidden&&
+        /Running sessions keep their original login; Manager readiness will be reported separately/.test(a('[data-account-status]').textContent)&&
+        w.getComputedStyle(a('[data-account-status]')).whiteSpace==='normal');
+      personal.click();await until(()=>quotas()[0]?.querySelector('.m-meter-percent').textContent==='41% used','Personal while waiting');
+      work.click();await until(()=>quotas()[0]?.querySelector('.m-meter-percent').textContent==='72% used','Work while waiting');
+      check('desktop: both account views remain usable while waiting, with no additional switch and no active-account change',!personal.disabled&&!work.disabled&&
+        fx.accountPosts.length===1&&personal.dataset.active==='true'&&!cancel.hidden&&switcher.disabled);
+      cancel.click();await until(()=>root.dataset.phase==='cancelled'&&!switcher.disabled,'cancelled switch');
+      check('desktop: Cancel uses the same ID, is terminal and re-enables immediately, with Personal still active',fx.accountCancels.length===1&&
+        Object.keys(fx.accountCancels[0]).sort().join('|')==='backend|operationId|schemaVersion'&&fx.accountCancels[0].operationId===posted.operationId&&
+        fx.accountCancels[0].backend==='claude'&&fx.accountCancels[0].schemaVersion===1&&cancel.hidden&&root.dataset.busy==='false'&&
+        personal.dataset.active==='true'&&work.dataset.active==='false'&&a('[data-account-current]').textContent==='Personal'&&!w.sessionStorage.getItem('pane_claude_account_switch_v1'));
+      fx.accountPhase='switching';switcher.click();await until(()=>root.dataset.phase==='switching','host stopping');
+      check('desktop: stopping/restarting offers no Cancel and explains it is too late; viewing still works',cancel.hidden&&switcher.disabled&&!personal.disabled&&!work.disabled&&
+        /stopping admission won; host exit and replacement readiness are not yet proved. Too late to cancel/.test(a('[data-account-status]').textContent)&&fx.accountPosts.length===2&&
+        fx.accountPosts[1].operationId!==posted.operationId&&personal.dataset.active==='true');
+      const observe=async phase=>{fx.accountOperation={...fx.accountOperation,...phase,canCancel:false};accountApi.state.pendingId=null;await accountApi.refresh(false);};
+      await observe({phase:'unknown',detail:'Evidence pending; query this same ID.'});
+      check('desktop: unknown remains query-only after rehydration, with no second POST',root.dataset.phase==='unknown'&&fx.accountPosts.length===2&&switcher.disabled&&cancel.hidden);
+      await observe({phase:'starting',detail:'Personal replacement starting; Manager pending; notice pending.'});
+      check('desktop: viable replacement says starting, never failed/ready/resumed',root.dataset.phase==='starting'&&/Replacement starting; not ready yet.*Manager pending/.test(a('[data-account-status]').textContent)&&personal.dataset.active==='true');
+      await observe({phase:'restored',detail:'Switch failed; personal service restored. Manager pending; notice scheduled.'});
+      const oldRestore={...fx.accountOperation};
+      check('desktop: failed switch/old service restored keeps Personal ringed and Manager/notice pending honest',root.dataset.phase==='restored'&&/Switch failed; personal service restored.*Manager pending; notice scheduled/.test(a('[data-account-status]').textContent)&&personal.dataset.active==='true'&&work.dataset.active==='false');
+      fx.accountSelected='work';await observe({id:oldRestore.id+'-later',phase:'starting',detail:'Work selected; replacement starting. Manager pending; notice pending.'});
+      check('desktop: Work selection alone rings Work but does not claim operation active',work.dataset.active==='true'&&personal.dataset.active==='false'&&root.dataset.phase==='starting');
+      await observe({phase:'active',detail:'Work host ready. Manager pending; notice scheduled.'});
+      check('desktop: ready Work host does not claim a resumed Manager or delivered notice',/Work host ready. Manager pending; notice scheduled/.test(a('[data-account-status]').textContent)&&root.dataset.phase==='active');
+      await observe(oldRestore);
+      check('desktop: historical old-restore receipt never repaints today\'s selected Work ring',work.dataset.active==='true'&&personal.dataset.active==='false'&&fx.accountPosts.length===2);
+      fx.accountSelected='personal';
+      // Synthetic-operation teardown only; no native host exists in this fixture.
+      w.clearTimeout(accountApi.state.timer);accountApi.state.pendingId=null;accountApi.state.operation=null;fx.accountOperation=null;
+      w.sessionStorage.removeItem('pane_claude_account_switch_v1');await accountApi.refresh();details.open=false;
+    }
+    const inner=el('claude-sessions-frame');
+    const markup=historyHTML.replace(/<link[^>]+>/,'<style>'+historyCSS+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock('sessions'))}<\/script><script>${safe(viewDouble)}<\/script><script>${safe(shared)}<\/script><script>${safe(preview)}<\/script><script>${safe(historyJS.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script><script>${safe(linksJS)}<\/script></body>`);
+    inner.srcdoc=markup;await new Promise(r=>inner.onload=r);await sleep(80);
+    const hw=inner.contentWindow,hd=hw.document,he=id=>hd.getElementById(id),api=hw.fixture.api;
+    // A session's row: in the list, or pinned above it (the selected Manager).
+    const rowOpen=text=>[...hd.querySelectorAll('#sessions-pinned .session-open, #sessions-list .session-open')].find(b=>b.textContent.includes(text));
+    await until(()=>rowOpen('Manager-Session-185'),'the Manager row');
+    rowOpen('Manager-Session-185').click();
+    await until(()=>he('history-events').querySelectorAll('article.history-event').length===40,'the conversation tail');
+    const box=n=>n.getBoundingClientRect(),inside=(a,b)=>a.top>=b.top-1&&a.bottom<=b.bottom+1&&a.left>=b.left-1&&a.right<=b.right+1;
+    check('Claude mode at 1400 px: the conversation column starts on 💬 Conversation, View not loaded; the switch sits above the conversation',
+      he('history').dataset.pane==='conversation'&&he('pane-conversation').getAttribute('aria-selected')==='true'&&he('pane-view').getAttribute('aria-selected')==='false'&&
+      he('desktop-view').hidden&&fx.viewSrcs.length===0&&box(he('history-switch')).bottom<=box(he('history-topbar')).top+1&&box(he('history-switch')).height<=30);
+    // ---- a handle in the conversation (a real press on its box): View comes forward, rooted at that turn
+    const rowOf=seq=>[...api.state.rows.values()].find(r=>r.seq===seq);
+    api.setFollow(false,{byScroll:true});
+    const viewport=he('history-viewport');viewport.scrollTop+=box(rowOf(131).node).top-box(viewport).top-200;await sleep(40);
+    const leftAt=viewport.scrollTop;
+    const at=(doc,el,token)=>{const walker=doc.createTreeWalker(el,doc.defaultView.NodeFilter.SHOW_TEXT);
+      for(let n=walker.nextNode();n;n=walker.nextNode()){const i=n.data.indexOf(token);if(i<0)continue;const r=doc.createRange();r.setStart(n,i);r.setEnd(n,i+token.length);const b=r.getClientRects()[0];return {x:b.left+b.width/2,y:b.top+b.height/2};}
+      throw new Error('no '+token+' on screen');};
+    const press=(win,p)=>{const doc=win.document,target=doc.elementFromPoint(p.x,p.y);
+      for(const type of ['pointerdown','pointerup'])target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,clientX:p.x,clientY:p.y,pointerId:7,isPrimary:true,pointerType:'mouse',button:0,buttons:type==='pointerdown'?1:0}));
+      target.dispatchEvent(new win.MouseEvent('click',{bubbles:true,cancelable:true,clientX:p.x,clientY:p.y}));};
+    press(hw,at(hd,rowOf(131).node,'[ap:TURN31]'));
+    await until(()=>he('desktop-view-frame').contentWindow?.opcGlimpseView?.history()?.root()?.kind==='turn','the View page rooted at the turn');
+    let gw=he('desktop-view-frame').contentWindow,gd=gw.document,g=id=>gd.getElementById('g-'+id),view=gw.opcGlimpseView,hist=view.history();
+    await until(()=>!view.state.busy,'the root name rendered');
+    await until(()=>!view.state.busy&&hist.root().name,'the first render');
+    const src=fx.viewSrcs[0]?.[1]||'',turnQ=JSON.parse(new URLSearchParams(src.slice(src.indexOf('?'))).get('turn')||'null');
+    check('the first handle loads View in the conversation column with the handle, where it came from and its turn (seq, uuid, kind, the session) in the URL',
+      fx.viewSrcs.length===1&&fx.viewSrcs[0][0]==='sessions'&&src.startsWith('/glimpse.html?handle=%5Bap%3ATURN31%5D')&&/&from=outside&where=the\+conversation&turn=/.test(src)&&
+      turnQ.seq===131&&turnQ.uuid==='uuid-131'&&turnQ.kind==='assistant'&&turnQ.session.kind==='manager'&&turnQ.session.title==='Manager-Session-185'&&
+      turnQ.session.descriptor.identity==='host:'+t.executionId);
+    const vbox=box(he('desktop-view')),hbox=box(he('history'));
+    const geo=JSON.stringify({v:[vbox.top,vbox.left,vbox.right,vbox.bottom].map(Math.round),h:[hbox.top,hbox.left,hbox.right,hbox.bottom].map(Math.round),
+      sw:Math.round(box(he('history-switch')).bottom),vp:[box(viewport).top,box(viewport).bottom].map(Math.round),inert:[viewport.inert,he('history-topbar').inert,he('history-switch').inert]});
+    check('📄 View is on: the pane covers the conversation from just below the switch, full column width; the conversation underneath is inert, the switch is not '+geo,
+      he('history').dataset.pane==='view'&&!he('desktop-view').hidden&&he('pane-view').getAttribute('aria-selected')==='true'&&
+      vbox.top>=box(he('history-switch')).bottom&&vbox.top<=box(he('history-switch')).bottom+6&&Math.abs(vbox.left-hbox.left)<2&&Math.abs(vbox.right-hbox.right)<2&&Math.abs(vbox.bottom-hbox.bottom)<2&&
+      vbox.width>400&&inside(box(viewport),vbox)&&viewport.inert===true&&he('history-topbar').inert===true&&!he('history-switch').inert);
+    const clock=new Date((TIME+131*60)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    check('the View page knows it is the desktop\'s (data-view-embed="desktop", history key …:desktop) and its root is the turn: 💬 Manager-Session-185 · assistant · time',
+      gd.documentElement.dataset.viewEmbed==='desktop'&&fx.viewStore.has('pane_view_history_v1:desktop')&&hist.state.entries.length===1&&
+      g('root').querySelector('.g-hcard-title').textContent.startsWith('[ap:TURN31] 📋')&&g('root').querySelector('.g-hcard-sub').textContent.includes('💬 Manager-Session-185 · assistant · '+clock));
+    await hist.settled();hist.openRoots();await sleep(20);
+    const recent=g('roots-list').querySelector('.g-rcard'),rt=recent.querySelector('.g-hcard-title'),rd=recent.querySelector('.g-hcard-sub'),rs=recent.querySelector('.g-hcard-source');
+    check('desktop Recent roots: real node name first, its description smaller on the second line, Manager source and handle third',
+      rt.textContent.startsWith('[ap:TURN31] 📋')&&rd.textContent.startsWith('Body of [ap:TURN31]')&&rs.textContent.includes('💬 Manager-Session-185')&&rs.textContent.includes('[ap:TURN31]')&&
+      rt.getBoundingClientRect().top<rd.getBoundingClientRect().top&&rd.getBoundingClientRect().top<rs.getBoundingClientRect().top&&
+      parseFloat(gw.getComputedStyle(rd).fontSize)<parseFloat(gw.getComputedStyle(rt).fontSize));
+    check('desktop Recent roots: card contains every child; description and source are single lines, source shares the action row',
+      [...recent.querySelectorAll('*')].every(n=>!n.getClientRects().length||inside(box(n),box(recent)))&&
+      gw.getComputedStyle(rd).whiteSpace==='nowrap'&&gw.getComputedStyle(rs).whiteSpace==='nowrap'&&rs.parentElement.classList.contains('g-rcard-foot'));
+    hist.closeRoots();
+    const bar=box(g('ctl-toggle')),strip=box(g('hist')),shown=()=>!g('ctl-body').hidden;
+    check('the desktop layout: the history rows at the top, one thin Controls bar ('+Math.round(bar.height)+' px) under them, folded (a root from outside never opens it), then the document',
+      !gd.querySelector('header,#g-cache,#g-catalog-status')&&!shown()&&strip.top<=12&&bar.height<=20&&bar.top>=strip.bottom&&bar.top-strip.bottom<=8&&
+      box(g('scroll')).top-bar.bottom<=10&&!g('bar').getClientRects().length);
+    shot('turn');
+    g('ctl-toggle').click();await sleep(20);
+    check('desktop density: the bar opens the controls; they are mouse-sized (Refresh '+Math.round(box(g('refresh')).height)+' px), the document reads at 13 px, no sideways page; kept for the desktop',
+      shown()&&box(g('refresh')).height>0&&box(g('refresh')).height<=36&&box(g('bar')).top>=box(g('pick')).bottom&&gw.getComputedStyle(g('doc')).fontSize==='13px'&&
+      gd.documentElement.scrollWidth<=gd.documentElement.clientWidth+1&&fx.viewStore.get('pane_view_controls_open_v1:desktop')==='1');
+    shot('view-open');
+    g('ctl-toggle').click();await sleep(20);
+    // ---- 💬 brings the conversation back exactly as it was left; Following survives a trip to View too
+    he('pane-conversation').click();await sleep(30);
+    check('💬: View goes, the conversation is exactly where it was left (scrollTop '+leftAt+'), still Paused, no longer inert; View stays loaded',
+      he('history').dataset.pane==='conversation'&&he('desktop-view').hidden&&viewport.scrollTop===leftAt&&!api.state.follow&&!viewport.inert&&fx.viewSrcs.length===1);
+    api.setFollow(true);await sleep(60);he('pane-view').click();await sleep(30);
+    api.reconcile([{recordRef:'live1',uuid:'uuid-live1',kind:'assistant',status:'stored',text:'a later reply while View was up',calls:[]}],'delta',t.fileEpoch);await sleep(30);
+    he('pane-view').click();await sleep(10);he('pane-conversation').click();await sleep(30);
+    check('Following survives View: a reply that arrived meanwhile is at the bottom, still Following',api.state.follow&&viewport.scrollHeight-viewport.scrollTop-viewport.clientHeight<24&&
+      he('history-follow').getAttribute('aria-pressed')==='true'&&fx.viewSrcs.length===1);
+    // ---- Show in conversation: the turn is not on screen (⤒ First moved the window): read from its position, scrolled to, flashed
+    he('nav-start').click();
+    await until(()=>api.state.order.length&&api.state.rows.get(api.state.order[0]).seq===0&&!api.state.loading,'⤒ First');
+    check('⤒ First moved the conversation to its start: row 131 is not on screen',!rowOf(131));
+    he('pane-view').click();await sleep(20);
+    g('root').click();
+    check('the turn root\'s pop-up offers Show in conversation and says where it was tapped',!g('pos').hidden&&!g('pos-turn').hidden&&
+      g('pos-body').textContent.includes('tapped in the Manager\'s conversation · its assistant'));
+    shot('popup');
+    const reads=fx.requests.length;g('pos-turn').click();
+    await until(()=>rowOf(131)?.node.classList.contains('reveal-flash'),'the turn shown again');
+    check('Show in conversation: 💬 comes forward, the window around the turn is read from its position (fromSeq=111), the turn sits in view, flashed, Paused',
+      he('history').dataset.pane==='conversation'&&he('desktop-view').hidden&&g('pos').hidden&&fx.requests.slice(reads).some(u=>/\/api\/claude\/events\?.*fromSeq=111/.test(u))&&
+      inside(box(rowOf(131).node),box(viewport))&&!api.state.follow);
+    // ---- a thinking turn: its thinking opens again
+    const think=rowOf(135).thinking[0].node;think.open=true;rowOf(135).node.scrollIntoView({block:'center'});await sleep(20);
+    press(hw,at(hd,think,'[ap:THINK1]'));
+    await until(()=>hist.root()?.handle==='[ap:THINK1]'&&!view.state.busy,'the thinking root');
+    check('a handle in thinking: a fresh root, the turn\'s kind thinking; the frame already loaded is told, not reloaded',hist.root().kind==='turn'&&hist.root().turn.kind==='thinking'&&
+      fx.viewSrcs.length===1&&he('history').dataset.pane==='view'&&g('root').querySelector('.g-hcard-title').textContent.startsWith('[ap:THINK1] 📋')&&g('root').querySelector('.g-hcard-sub').textContent.includes(' · thinking · '));
+    he('pane-conversation').click();think.open=false;he('pane-view').click();g('root').click();g('pos-turn').click();
+    await until(()=>think.classList.contains('reveal-flash')||rowOf(135).node.classList.contains('reveal-flash'),'the thinking turn shown');
+    check('Show in conversation for a thinking turn opens its thinking again and flashes the turn',think.open&&inside(box(rowOf(135).node),box(viewport))&&he('history').dataset.pane==='conversation');
+    // ---- the sidebar: a session row's socket is a Programs root; a card's line is shown in the sidebar while View stays
+    await until(()=>hd.querySelector('#sessions-list')?.textContent.includes('[ap:SOCKQW]'),'the quick worker row');
+    const qwRow=[...hd.querySelectorAll('#sessions-list .session-open')].find(b=>b.textContent.includes('[ap:SOCKQW]'));
+    qwRow.scrollIntoView({block:'center'});await sleep(20);
+    press(hw,at(hd,qwRow,'[ap:SOCKQW]'));
+    await until(()=>hist.root()?.handle==='[ap:SOCKQW]'&&hist.root().kind==='socket'&&!view.state.busy,'the socket root');
+    check('a session row\'s socket in the sidebar: View comes forward, a Programs root with that session active (⌂ [ap:SOCKQW] · Quick worker); the conversation untouched',
+      he('history').dataset.pane==='view'&&hist.root().from==='programs'&&hist.root().active===qw.executionId&&
+      g('root').querySelector('.g-hcard-title').textContent.startsWith('[ap:SOCKQW] 📋')&&g('root').querySelector('.g-hcard-sub').textContent.includes('Quick worker')&&api.state.session?.executionId===t.executionId);
+    g('root').click();await sleep(10);
+    const leaf=g('pos-body').querySelector('.g-pos-leaf');
+    check('its pop-up: the sidebar\'s tree pruned to the socket (Quick workers and helpers, one card, you came from here), "show it in the sidebar"',
+      !!leaf&&g('pos-body').querySelector('.g-pos-program').textContent==='Quick workers and helpers'&&g('pos-body').querySelectorAll('.g-pos-card').length===1&&
+      !!g('pos-body').querySelector('.g-pos-here')&&g('pos-body').textContent.includes('Tap a line: show it in the sidebar.'));
+    shot('socket');
+    // Scroll the list away first, so the reveal has to bring the row back into view.
+    he('sessions-scroll').scrollTop=he('sessions-scroll').scrollHeight;
+    leaf.querySelector('.g-pos-name').click();
+    await until(()=>[...hd.querySelectorAll('#sessions-list .reveal-flash')].some(n=>n.textContent.includes('[ap:SOCKQW]')),'the sidebar flash');
+    const flashed=[...hd.querySelectorAll('#sessions-list .reveal-flash')].find(n=>n.textContent.includes('[ap:SOCKQW]'));
+    check('Select in sidebar: View stays on screen (pop-ups closed), the row is scrolled into the list and flashes, no glance, no conversation change',
+      he('history').dataset.pane==='view'&&!he('desktop-view').hidden&&g('pos').hidden&&inside(box(flashed),box(he('sessions-scroll')))&&
+      !hd.querySelector('#sessions-list .glance')&&api.state.session?.executionId===t.executionId);
+    shot('reveal');
+    // ---- entries, and a deliberate open from the sidebar brings the conversation forward
+    press(gw,at(gd,g('doc'),'[ap:LINKA1]'));
+    await until(()=>hist.state.entries.length===2&&!view.state.busy,'entry 2');
+    check('a handle in View\'s document adds an entry (kept in the desktop\'s store)',hist.state.cursor===1&&JSON.parse(fx.viewStore.get('pane_view_history_v1:desktop')).entries.length===2);
+    rowOpen('Manager-Session-185').click();await sleep(30);
+    check('opening a session from the sidebar (its row) brings 💬 forward',he('history').dataset.pane==='conversation'&&he('desktop-view').hidden);
+    // ---- the editor around: a handle in the inspector, and the header's 📄 View
+    w.opcOpenInView('[ap:INSP01]',{node:el('inspector-output')});
+    await until(()=>hist.root()?.handle==='[ap:INSP01]'&&!view.state.busy,'the inspector root');
+    check('a handle in the inspector (the editor page) opens in the conversation column\'s View, "tapped in the inspector"; no tab, no sheet',
+      he('history').dataset.pane==='view'&&hist.root().where==='the inspector'&&el('view-sheet').hidden&&fx.viewSrcs.length===1&&(g('root').click(),true)&&
+      g('pos-body').textContent.includes('tapped in the inspector'));
+    g('pos-close').click();he('pane-conversation').click();
+    // ---- the inspector holding a call: its handles root View at that call's turn, remembered when the row is paged away
+    await until(()=>rowOf(137)?.calls[0]?.node,'row 137\'s tool bar');
+    const bar137=()=>rowOf(137).calls[0].node;bar137().click();  // a deliberate Inspect (the fixture never ACKs it)
+    fx.mail={epoch:'mail',revision:1,selection:{backend:'claude',callRef:CALL,fileEpoch:t.fileEpoch,toolName:'Bash',identity:{}}};
+    await until(()=>w.opcToolInspector.heldCallRef()===CALL,'the inspector holds row 137\'s call');
+    he('nav-start').click();
+    await until(()=>api.state.order.length&&api.state.rows.get(api.state.order[0]).seq===0&&!api.state.loading&&!rowOf(137),'⤒ First (row 137 paged away)');
+    w.opcOpenInView('[ap:INSP02]',{node:el('inspector-output')});
+    await until(()=>hist.root()?.handle==='[ap:INSP02]'&&!view.state.busy,'the inspector\'s turn root');
+    const clock137=new Date((TIME+137*60)*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    check('a handle in the inspector holding a call roots View at that call\'s turn (remembered at Inspect, its row paged away): 💬 Manager-Session-185 · Bash call · time',
+      he('history').dataset.pane==='view'&&hist.root().kind==='turn'&&hist.root().turn.seq===137&&hist.root().turn.kind==='tool'&&hist.root().turn.call==='toolu_137'&&
+      g('root').querySelector('.g-hcard-title').textContent.startsWith('[ap:INSP02] 📋')&&g('root').querySelector('.g-hcard-sub').textContent.includes('💬 Manager-Session-185 · Bash call · '+clock137)&&fx.viewSrcs.length===1);
+    const inspects=fx.requests.filter(u=>u.includes('/api/claude/inspect')).length;
+    g('root').click();g('pos-turn').click();
+    await until(()=>rowOf(137)?.calls[0]?.node.classList.contains('reveal-flash'),'the tool turn shown');
+    check('its Show in conversation: 💬 comes forward on that call\'s row, read from its position, the tool bar in view and flashed; never a new Inspect',
+      he('history').dataset.pane==='conversation'&&inside(box(bar137()),box(viewport))&&fx.requests.filter(u=>u.includes('/api/claude/inspect')).length===inspects);
+    w.opcOpenInView('[ap:INSP03]',{node:el('inspector-output')});
+    await until(()=>hist.root()?.handle==='[ap:INSP03]'&&!view.state.busy,'the on-screen inspector root');
+    check('with the call\'s row on screen the inspector\'s handle roots at the same turn',hist.root().turn?.seq===137&&hist.root().turn?.uuid==='uuid-137');
+    he('pane-conversation').click();
+    el('glimpse-link').click();await sleep(20);
+    check('the header\'s 📄 View (a button now) shows the View pane in Claude mode',el('glimpse-link').tagName==='BUTTON'&&he('history').dataset.pane==='view'&&el('view-sheet').hidden);
+    // ---- OpenCode mode: no conversation column, View is a sheet over the editor page, with Close
+    w.fixture.api.setBackend('opencode');await sleep(40);
+    el('glimpse-link').click();
+    const sheetFrame=()=>el('desktop-view-frame');
+    await until(()=>sheetFrame().contentWindow?.opcGlimpseView?.history()?.root()&&!sheetFrame().contentWindow.opcGlimpseView.state.busy,'the sheet\'s View');
+    const sw=sheetFrame().contentWindow,sview=sw.opcGlimpseView,sbox=box(el('view-sheet'));
+    check('OpenCode mode: 📄 View opens the sheet over the whole editor page, loaded once (no handle), the desktop history taken up from its store',
+      !el('view-sheet').hidden&&el('claude-viewer').hidden&&sbox.width>=d.documentElement.clientWidth-1&&sbox.height>=d.documentElement.clientHeight-1&&
+      fx.viewSrcs.length===2&&fx.viewSrcs[1][0]==='editor'&&fx.viewSrcs[1][1]==='/glimpse.html'&&sw.document.documentElement.dataset.viewEmbed==='desktop'&&
+      sview.history().root().handle==='[ap:INSP03]');
+    w.opcOpenInView('[ap:OCMODE]',{node:el('transcript')});
+    await until(()=>sview.history().root()?.handle==='[ap:OCMODE]'&&!sview.state.busy,'the sheet root');
+    check('a handle clicked in OpenCode mode reroots the sheet\'s View ("tapped in the editor"), the frame told, not reloaded',
+      !el('view-sheet').hidden&&sview.history().root().where==='the editor'&&fx.viewSrcs.length===2);
+    shot('sheet');
+    el('view-sheet-close').click();
+    check('Close takes the sheet away and gives dictation its focus back',el('view-sheet').hidden&&d.activeElement===el('transcript'));
+    el('glimpse-link').click();await sleep(10);
+    d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+    check('Escape closes the sheet too',el('view-sheet').hidden);
+    // ---- back in Claude mode: the conversation column's View takes up the history the sheet changed
+    w.fixture.api.setBackend('claude');await sleep(40);
+    he('pane-conversation').click();he('pane-view').click();
+    await until(()=>hist.root()?.handle==='[ap:OCMODE]'&&!view.state.busy,'the pane resumes');
+    check('the two desktop Views share one history: shown again, the conversation column\'s View takes up the sheet\'s newer root and renders it',
+      hist.state.entries.length===1&&fx.renders.at(-1).value.node==='[ap:OCMODE]'&&fx.viewSrcs.length===2);
+    check('no page errors ['+[...w.fixture.errors,...hw.fixture.errors,...fx.errors].join('; ')+']',!w.fixture.errors.length&&!hw.fixture.errors.length&&!fx.errors.length);
+  }catch(e){if(e.shot)checks.push({name:e.message,passed:true});else if(!checks.some(c=>!c.passed))checks.push({name:'fixture: '+e.message,passed:false});}
+  window.testResults={passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks};
+  document.body.dataset.testPassed=String(testResults.failed===0&&checks.length>0);document.getElementById('results').textContent=JSON.stringify(testResults,null,2);
+})();
+</script>

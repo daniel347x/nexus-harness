@@ -1,0 +1,28 @@
+{
+  "default": {"system_prompt_mode": "append", "tools": "default", "disable_skills": false},
+  "Manager": {
+    "system_prompt_mode": "replace",
+    "tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "TaskStop", "Agent", "SendMessage"],
+    "disable_skills": true
+  },
+  "conductor": {
+    "system_prompt_mode": "replace",
+    "tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "TaskStop"],
+    "disable_skills": true
+  },
+  "worker": {
+    "system_prompt_mode": "append",
+    "tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "TaskStop"],
+    "disable_skills": true
+  },
+  "helper": {
+    "system_prompt_mode": "append",
+    "tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "TaskStop"],
+    "disable_skills": true
+  },
+  "base": {
+    "system_prompt_mode": "append",
+    "tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "TaskStop"],
+    "disable_skills": true
+  }
+}

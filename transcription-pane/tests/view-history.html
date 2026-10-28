@@ -1,0 +1,355 @@
+<!doctype html><meta charset="utf-8"><title>View history and the root widget — actual View page in /m's frame, inert transport, a scripted page around</title>
+<style>body{margin:0}iframe{width:390px;height:844px;border:0;display:block}pre{white-space:pre-wrap}</style>
+<iframe id="m-glimpse-frame" title="Actual View page, framed as /m frames it"></iframe><pre id="results">running…</pre>
+<script src="view-roots-fake.js"></script>
+<script>
+// The actual static/glimpse.html with view-history.js, glimpse.js and handle-links.js, in a frame whose id is /m's (so it
+// keys its history as the phone's). This page plays the page around it (m.js's role): it answers where a socket sits
+// (opcProgramPosition) and records "show it in Programs" (opcRevealSession). Only fetch and localStorage are replaced.
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<600;i++){try{if(fn())return true;}catch(_){}await sleep(5);}throw new Error(what+' did not settle');};
+  const KEY='pane_view_history_v1:phone';
+  const fx=window.historyFixture={renders:[],store:new Map(),sets:[],errors:[],positions:[],reveals:[],position:null,glare:false};
+  window.opcGlare=Object.freeze({on:()=>fx.glare});
+  // The page around: the sidebar's answer for a handle (scripted per test), and the reveal it would do.
+  // As the sidebar does: the session asked for is the active card, first.
+  window.opcProgramPosition=async(handle,active)=>{fx.positions.push([handle,active]);const p=typeof fx.position==='function'?fx.position(handle,active):fx.position;if(!p)return null;
+    const out=JSON.parse(JSON.stringify(p));out.cards.forEach(c=>c.active=c.id===active);out.cards.sort((a,b)=>Number(b.active)-Number(a.active));return out;};
+  window.opcRevealSession=key=>{fx.reveals.push(key);return true;};
+  // Recent roots: the pane server's store in memory; maximize asks the page around (/m) for the whole screen.
+  fx.roots=viewRootsFake({metadata:e=>e.handle==='[ap:OLDONE]'?{name:'Previously nameless report',description:'Backfilled description from cache'}:null});fx.max=[];window.opcViewMaximized=on=>{fx.max.push(on);return on;};
+  fx.turns=[];window.opcShowTurn=turn=>{fx.turns.push(turn);return Promise.resolve(true);};
+  const line=(id,role,handle,name,status='')=>({id,key:'s:'+id,role,handle,name,status});
+  const PROG={key:'p:TREE01',core:'TREE01',title:'MCI · single server',kind:'full',managerSession:'207',count:40,conductors:32};
+  // A lead seat resumed under a later Conductor: two sessions on one socket, the one tapped (under -031) first.
+  const TWO={handle:'[ap:SEAT01]',kind:'socket',program:null,total:2,cards:[
+    {id:'cc-seat-31',active:true,program:PROG,manager:'207',chain:[line('cc-cond-31','Conductor','[ap:TREE01]-031','',''),line('cc-seat-31','Lead seat','[ap:SEAT01]','RECON · Pre-pass · Waypoint 2','Claude Code · Opus 5.5')]},
+    {id:'cc-seat-32',active:false,program:PROG,manager:'207',chain:[line('cc-cond-32','Conductor','[ap:TREE01]-032','resumed',''),line('cc-seat-32','Lead seat','[ap:SEAT01]','RECON · Pre-pass · Waypoint 2','Claude Code · running now')]}]};
+  const FREE={handle:'[ap:FREE01]',kind:'socket',program:null,total:1,cards:[{id:'cc-free',active:false,program:{key:null,forest:true,title:'Quick workers and helpers'},manager:'208',
+    chain:[line('cc-free','Quick worker','[ap:FREE01]','View history + root widget','Claude Code · Opus 5.5')]}]};
+  const PROGRAM_ROOT={handle:'[ap:TREE01]',kind:'program',program:PROG,total:32,cards:Array.from({length:8},(_,i)=>({id:'cc-cond-'+(32-i),active:i===0,program:PROG,manager:'207',
+    chain:[line('cc-cond-'+(32-i),'Conductor','[ap:TREE01]-0'+(32-i),i===0?'resumed':'','')]}))};
+  const mdFor=body=>{const v=body.value||{},h=v.node||v.subtree||v.dock||v.group||'spec';
+    return '# '+h+' 📋 The node called '+h+' #prog-tag\n\nBody of '+h+' links [ap:LINKA1] and 3f3754e2 and [ap:LINKB2].\n';};
+  const mock=`
+    const fx=parent.historyFixture;
+    addEventListener('error',e=>fx.errors.push(String(e.message||e.target?.src||'resource error')));
+    addEventListener('unhandledrejection',e=>fx.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+    Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return fx.store.size;},key:i=>[...fx.store.keys()][i]??null,
+      getItem:k=>fx.store.has(k)?fx.store.get(k):null,setItem:(k,v)=>{fx.sets.push(k);fx.store.set(k,String(v));},removeItem:k=>fx.store.delete(k)}});
+    const realFetch=window.fetch.bind(window),json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+    window.fetch=async(url,options={})=>{
+      const u=new URL(String(url),parent.location.href);
+      if(u.pathname.startsWith('/nexus-md/'))return realFetch(url,options);
+       if(u.pathname==='/api/glimpse/catalog')return json(200,{schemaVersion:1,docks:[{handle:'[ap:DOCK01]',name:'🎙️ TRANSCRIPTION PANE #wfy-ns--fav',description:'Dictation and Manager conversations'}],groups:[{handle:'grp-1a2b3c4d',name:'opc · pane slice group',description:'The View source code'}],errors:[]});
+      if(u.pathname==='/api/glimpse/render'){const body=JSON.parse(options.body);fx.renders.push(body);const markdown=parent.historyFixture.md(body);
+        return json(200,{schemaVersion:1,markdown,bytes:new TextEncoder().encode(markdown).length,renderedAt:'2026-10-22T15:00:00Z',request:body});}
+      if(u.pathname==='/api/view/roots'){const r=fx.roots.handle(options.method||'GET',options.body?JSON.parse(options.body):null);return json(r.status,r.body);}
+      throw new Error('No real transport permitted: '+url);
+    };`;
+  fx.md=mdFor;
+  let w,d,api,hist;
+  try {
+    const base=new URL('../static/',location.href),html=await (await fetch(new URL('glimpse.html',base))).text();
+    const glimpseJs=await (await fetch(new URL('glimpse.js',base))).text();
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    // A srcdoc page has no query of its own: for a ?handle=… start, glimpse.js is inlined with the query it would read.
+    const page=(search='')=>{let out=html.replace('<script>',()=>'<script>'+safe(mock)+'<\/script>\n  <script>');
+      if(search){const js=glimpseJs.replace("globalThis.location?.search || ''",()=>JSON.stringify('?'+search));if(js===glimpseJs)throw new Error('glimpse.js no longer reads location.search');
+        out=out.replace(/<script src="\/glimpse\.js"[^>]*><\/script>/,()=>'<script>'+safe(js)+'<\/script>');}
+      return out.replace(/(src|href)="\/((?:glimpse|glare|handle-links|view-history|view-pickers)\.(?:js|css))"/g,(_,a,f)=>a+'="/transcription-pane/static/'+f+'"');};
+    const frame=document.getElementById('m-glimpse-frame');
+    const g=id=>d.getElementById('g-'+id),cs=(n,p)=>w.getComputedStyle(typeof n==='string'?d.querySelector(n):n)[p];
+    // Check every rendered descendant, not just scrollWidth: a shrunken grid row can overlap the next card vertically.
+    const containment=nodes=>nodes.flatMap((card,i)=>{
+      const b=card.getBoundingClientRect(),bad=[];
+      for(const child of card.querySelectorAll('*'))for(const c of child.getClientRects())if(c.width&&c.height&&
+        (c.top<b.top-1||c.bottom>b.bottom+1||c.left<b.left-1||c.right>b.right+1))
+        bad.push({card:i,child:child.className,box:[b.top,b.bottom],content:[c.top,c.bottom]});
+      if(i+1<nodes.length&&b.bottom>nodes[i+1].getBoundingClientRect().top+1)bad.push({card:i,overlapsNext:true});
+      return bad;
+    });
+    const load=async(search='')=>{const loaded=new Promise(r=>frame.onload=r);frame.srcdoc=page(search);await loaded;w=frame.contentWindow;d=w.document;
+      api=w.opcGlimpseView;await until(()=>api&&api.history()&&api.state.catalog,'View page');hist=api.history();};
+    const settled=()=>until(()=>!api.state.busy,'render');
+    const last=()=>fx.renders.at(-1),stored=()=>JSON.parse(fx.store.get(KEY));
+    // A tap as the browser delivers it: pointerdown, pointerup, then the click (which handle-links.js swallows).
+    const tapAt=(x,y)=>{const t=d.elementFromPoint(x,y);for(const type of ['pointerdown','pointerup'])t.dispatchEvent(new w.PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,pointerId:9,isPrimary:true,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1}));
+      t.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true,clientX:x,clientY:y}));};
+    const textBox=(el,text)=>{const walker=d.createTreeWalker(el,w.NodeFilter.SHOW_TEXT);for(let n=walker.nextNode();n;n=walker.nextNode()){const i=n.data.indexOf(text);
+      if(i>=0){const r=d.createRange();r.setStart(n,i);r.setEnd(n,i+text.length);const b=r.getBoundingClientRect();return {x:b.left+b.width/2,y:b.top+b.height/2};}}return null;};
+    await load();
+    check('the frame keys its history as the phone\'s (data-view-embed="phone"); no history yet: the strip is hidden, nothing rendered, nothing asked',
+      d.documentElement.dataset.viewEmbed==='phone'&&g('hist').hidden&&fx.renders.length===0&&fx.positions.length===0&&!fx.store.has(KEY));
+    // --- a Programs root: a session row's socket, its position worked out by the sidebar already
+    await api.openHandle('[ap:SEAT01]','node',{from:'programs',active:'cc-seat-31',where:'Programs',position:TWO});await settled();
+    check('a socket from Programs: one entry, the root, rendered as Node; its position came with it (no lookup)',hist.state.entries.length===1&&hist.state.cursor===0&&
+      JSON.stringify(last())==='{"kind":"parcel","value":{"node":"[ap:SEAT01]"},"options":{"headings_only":false,"include_rows":true}}'&&fx.positions.length===0&&
+      hist.root().kind==='socket'&&hist.root().active==='cc-seat-31');
+    check('the root widget leads with the node name, description before its program source; row 2 names the root; ⤢ 1',!g('hist').hidden&&
+      g('root').querySelector('.g-hcard-title').textContent==='[ap:SEAT01] 📋 The node called [ap:SEAT01] #prog-tag'&&g('root').querySelector('.g-hcard-sub').textContent.includes('Lead seat · 2 sessions · RECON · Pre-pass · Waypoint 2')&&
+      !g('hist-nav').hidden&&g('now').textContent.startsWith('1/1 · [ap:SEAT01] 📋')&&g('back').disabled&&g('fwd').disabled&&g('hist-count').textContent==='1'&&g('root').dataset.kind==='socket');
+    check('the history is stored under the phone\'s key with the root\'s kind, active session and cards',stored().entries[0].kind==='socket'&&stored().entries[0].active==='cc-seat-31'&&
+      stored().entries[0].position.cards.length===2&&stored().cursor===0);
+    // --- handles tapped in the document add entries; the entry is named from the reply's first heading
+    const doc=g('doc');
+    await until(()=>textBox(doc,'[ap:LINKA1]'),'document painted');
+    const a=textBox(doc,'[ap:LINKA1]');tapAt(a.x,a.y);await until(()=>hist.state.entries.length===2&&!api.state.busy,'entry 2');
+    check('a handle tapped in the document (a real tap through handle-links.js) adds entry 2 and renders it',hist.state.cursor===1&&last().value.node==='[ap:LINKA1]'&&
+      hist.state.entries[1].name==='[ap:LINKA1] 📋 The node called [ap:LINKA1] #prog-tag');
+    check('row 2 shows ‹ 2/2 · the full name, tags and all › before description/source, back enabled, forward not',!g('hist-nav').hidden&&g('now').textContent.startsWith('2/2 · [ap:LINKA1] 📋 The node called [ap:LINKA1] #prog-tag · Body of ')&&
+      !g('back').disabled&&g('fwd').disabled&&g('hist-count').textContent==='2');
+    await api.openFromPage('3f3754e2',{node:doc});await settled();
+    check('a short UUID is an entry too, its name from the reply',hist.state.entries.length===3&&hist.state.entries[2].handle==='3f3754e2'&&hist.state.entries[2].name.startsWith('3f3754e2 📋'));
+    const renders=fx.renders.length;
+    await api.openFromPage('3f3754e2',{node:doc});await settled();
+    check('the handle already shown is not a second entry (it renders again)',hist.state.entries.length===3&&fx.renders.length===renders+1);
+    // --- back re-renders without dropping; a new handle from there cuts the later ones
+    g('back').click();await settled();
+    check('‹ goes back to entry 2: rendered again, entry 3 kept, forward enabled',hist.state.cursor===1&&hist.state.entries.length===3&&last().value.node==='[ap:LINKA1]'&&!g('fwd').disabled&&
+      g('now').textContent.startsWith('2/3 · '));
+    g('hist-open').click();
+    const cards=()=>[...g('hist-list').querySelectorAll('.g-hcard')];
+    check('⤢ opens the sheet: every entry a card, the root first, the one showing marked, the one ahead dimmed',!g('hist-sheet').hidden&&cards().length===3&&
+      cards()[0].classList.contains('g-hroot')&&cards()[1].getAttribute('aria-current')==='true'&&cards()[2].dataset.ahead==='true'&&
+      cards()[1].querySelector('.g-hcard-n').textContent==='2 · showing'&&g('hist-title').textContent==='Inner history · 3');
+    check('the sheet and the strip are whole-card targets: a handle in them is not a handle (no decoration, no hit)',(()=>{const p=textBox(cards()[1],'[ap:LINKA1]');
+      return p&&!w.opcHandleLinks.handleAt(p.x,p.y)&&![...w.CSS.highlights.get('opc-handle')].some(r=>g('hist').contains(r.startContainer)||g('hist-sheet').contains(r.startContainer));})());
+    cards()[2].click();await settled();
+    check('a card in the sheet renders its entry and closes the sheet; nothing dropped',g('hist-sheet').hidden&&hist.state.cursor===2&&last().value.node==='3f3754e2'&&hist.state.entries.length===3);
+    g('back').click();await settled();
+    await api.openFromPage('[ap:LINKB2]',{node:doc});await settled();
+    check('a new handle opened from an earlier entry cuts the entries after it, then appends',hist.state.entries.map(e=>e.handle).join()==='[ap:SEAT01],[ap:LINKA1],[ap:LINKB2]'&&hist.state.cursor===2);
+    // --- the root's pop-up: the cards, the tapped session first; a handle there reroots; a line shows it in Programs
+    g('root').click();
+    const pos=g('pos'),posCards=()=>[...g('pos-body').querySelectorAll('.g-pos-card')];
+    check('tapping the root opens its pop-up: "Where [ap:SEAT01] sits · 2 sessions", Show, the shared program line once, two cards, the tapped one first with "you came from here"',!pos.hidden&&
+      g('pos-title').textContent==='Where [ap:SEAT01] sits · 2 sessions'&&g('pos-show').textContent==='Show [ap:SEAT01]'&&g('pos-body').querySelectorAll('.g-pos-program').length===1&&
+      posCards().length===2&&posCards()[0].classList.contains('g-pos-active')&&posCards()[0].querySelector('.g-pos-here').textContent==='● you came from here'&&!posCards()[1].querySelector('.g-pos-here'));
+    check('each card is its branch: Conductor [ap:TREE01]-031 → Lead seat [ap:SEAT01] with its name and status',posCards()[0].querySelectorAll('.g-pos-line').length===2&&
+      posCards()[0].querySelector('.g-pos-line').textContent==='Conductor [ap:TREE01]-031'&&posCards()[0].querySelector('.g-pos-leaf').textContent.startsWith('└ Lead seat [ap:SEAT01] RECON · Pre-pass · Waypoint 2')&&
+      posCards()[0].querySelector('.g-pos-leaf .g-pos-status').textContent==='Claude Code · Opus 5.5'&&g('pos-body').querySelector('.g-pos-program').textContent.startsWith('Program [ap:TREE01] MCI · single server'));
+    await until(()=>fx.positions.length===1,'pop-up refresh');
+    check('opening the pop-up asks the page around once for fresh cards (the snapshot may be old)',JSON.stringify(fx.positions[0])==='["[ap:SEAT01]","cc-seat-31"]');
+    const leaf=posCards()[1].querySelector('.g-pos-leaf');leaf.querySelector('.g-pos-name').click();
+    check('tapping a line (not its handle) shows that session in Programs (s:id) and closes the pop-up; View keeps its place',fx.reveals.join()==='s:cc-seat-32'&&pos.hidden&&hist.state.cursor===2);
+    g('root').click();
+    g('pos-show').click();await settled();
+    check('Show goes back to the root without dropping the entries',hist.state.cursor===0&&hist.state.entries.length===3&&last().value.node==='[ap:SEAT01]'&&pos.hidden);
+    g('root').click();await sleep(20);
+    const conductorLine=posCards()[1].querySelector('.g-pos-line'),h=textBox(conductorLine,'[ap:TREE01]');
+    check('the pop-up\'s handles are live: decorated and hit by handle-links',!!h&&w.opcHandleLinks.handleAt(h.x,h.y)?.handle==='[ap:TREE01]');
+    fx.position=PROGRAM_ROOT;tapAt(h.x,h.y);await until(()=>hist.state.entries.length===1&&hist.root().handle==='[ap:TREE01]'&&hist.root().kind==='program'&&!api.state.busy,'reroot at program');
+    check('a handle tapped in a card reroots there (the pop-ups close), its card\'s session the new root\'s active one; a program root asks the page around',
+      pos.hidden&&hist.root().active==='cc-cond-32'&&JSON.stringify(fx.positions.at(-1))==='["[ap:TREE01]","cc-cond-32"]'&&last().value.node==='[ap:TREE01]');
+    check('a program root\'s widget: real node name, program title and Conductor count secondary',g('root').querySelector('.g-hcard-title').textContent==='[ap:TREE01] 📋 The node called [ap:TREE01] #prog-tag'&&
+      g('root').querySelector('.g-hcard-sub').textContent.includes('Program · MCI · single server · 32 Conductors')&&g('root').dataset.kind==='program');
+    g('root').click();await sleep(10);
+    check('its pop-up: "Program [ap:TREE01] · 32 Conductors", 8 cards, "… 24 more Conductors"',g('pos-title').textContent==='Program [ap:TREE01] · 32 Conductors'&&posCards().length===8&&
+      g('pos-body').querySelector('.g-pos-more').textContent==='… 24 more Conductors in Programs');
+    const rootHandle=textBox(g('pos-body').querySelector('.g-pos-program'),'[ap:TREE01]');const before=fx.renders.length;tapAt(rootHandle.x,rootHandle.y);await settled();
+    check('the root\'s own handle in its pop-up shows the root again (no new root, nothing wiped)',hist.state.entries.length===1&&hist.root().handle==='[ap:TREE01]'&&fx.renders.length===before+1&&pos.hidden);
+    // --- a freestanding quick worker: the forest line, its Manager Session
+    await api.openHandle('[ap:FREE01]','node',{from:'programs',active:'cc-free',position:{...FREE,cards:[{...FREE.cards[0],active:true}]}});await settled();
+    g('root').click();
+    check('a freestanding quick worker: "Quick workers and helpers", its card, "for Manager-Session-208"',g('pos-body').querySelector('.g-pos-program').textContent==='Quick workers and helpers'&&
+      posCards().length===1&&posCards()[0].textContent.includes('for Manager-Session-208')&&g('root').querySelector('.g-hcard-title').textContent==='[ap:FREE01] 📋 The node called [ap:FREE01] #prog-tag');
+    g('pos-close').click();
+    // --- roots from elsewhere: a tap in Chat that is a socket, a plain Anchor Point, a pasted UUID, a Dock, a spec
+    fx.position=TWO;await api.openHandle('[ap:SEAT01]','node',{from:'outside',where:'Chat'});
+    await until(()=>hist.root().kind==='socket','lookup');await settled();
+    check('a socket tapped in Chat: a fresh root, its position looked up through the page around, no active card',hist.state.entries.length===1&&hist.root().from==='outside'&&
+      JSON.stringify(fx.positions.at(-1))==='["[ap:SEAT01]",null]'&&(g('root').click(),true)&&!g('pos-body').querySelector('.g-pos-active'));
+    g('pos-close').click();
+    fx.position=()=>null;
+    await api.openHandle('[ap:PLAIN1]','node',{from:'outside',where:'Chat'});await settled();await until(()=>hist.root().lookup==='done','plain lookup');
+    check('a plain Anchor Point from Chat: ⌂ its handle, its node\'s full name; the pop-up says tapped in Chat · not a listed session\'s socket',hist.root().kind==='node'&&
+      g('root').querySelector('.g-hcard-title').textContent==='[ap:PLAIN1] 📋 The node called [ap:PLAIN1] #prog-tag'&&g('root').querySelector('.g-hcard-sub').textContent.startsWith('Body of [ap:PLAIN1]')&&
+      (g('root').click(),true)&&g('pos-body').querySelector('.g-pos-status').textContent==='tapped in Chat · not a listed session\'s socket');
+    g('pos-close').click();
+    g('handle').value='3f3754e2-1111-4222-8333-444455556666';d.querySelector('[data-how="node"]').click();g('handle-render').click();await settled();
+    check('a pasted whole UUID: a fresh root named by the node, source handle shown as its 8 hex, "pasted"',hist.state.entries.length===1&&g('root').querySelector('.g-hcard-title').textContent.startsWith('3f3754e2-1111-4222-8333-444455556666 📋')&&
+      hist.root().from==='pasted'&&last().value.node==='3f3754e2-1111-4222-8333-444455556666');
+    g('dock-box').open=true;g('dock').querySelector('.g-pleaf').click();await settled();
+    check('a Dock picked in View: a fresh root saying what was chosen (⌂ Dock · its name), compact on the phone',hist.state.entries.length===1&&hist.root().kind==='pick'&&
+      g('root').querySelector('.g-hcard-title').textContent==='🎙️ TRANSCRIPTION PANE #wfy-ns--fav'&&g('root').querySelector('.g-hcard-sub').textContent.startsWith('Dictation and Manager conversations · picked in View · Dock')&&
+      JSON.stringify(last())==='{"kind":"parcel","value":{"dock":"[ap:DOCK01]"},"options":{"headings_only":true,"include_rows":true}}');
+    g('root').click();
+    check('its pop-up: Dock, its name, "chosen in View" with the handle; Show it',g('pos-title').textContent==='Dock'&&g('pos-show').textContent==='Show it'&&
+      g('pos-body').textContent.includes('chosen in View · {"dock":"[ap:DOCK01]"}'));
+    g('pos-close').click();
+    await api.openFromPage('[ap:LINKA1]',{node:doc});await settled();
+    g('spec-box').open=true;g('spec').value='{"tags":["opc-pane"],"root":"25a49a99"}';g('spec-render').click();await settled();
+    check('a spec sent as Parcel: a fresh root (the Dock\'s history wiped), the actual spec before its source',hist.state.entries.length===1&&g('root').querySelector('.g-hcard-title').textContent==='{"tags":["opc-pane"],"root":"25a49a99"}'&&
+      g('root').querySelector('.g-hcard-sub').textContent.startsWith('picked in View · Parcel'));
+    // --- a conversation turn: the handle tapped in a Manager's message roots the history at that turn
+    const TURN={session:{kind:'manager',executionId:'cc-mgr-208',title:'Manager-Session-208',label:'Manager'},seq:41,uuid:'u-41',role:'assistant',kind:'assistant',
+      call:null,tool:null,part:null,time:Date.UTC(2026,9,22,15,2)/1000};
+    fx.position=()=>null;await api.openHandle('[ap:TURN01]','node',{from:'outside',where:'Chat',turn:TURN});await settled();
+    const clock=new Date(TURN.time*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    check('a handle tapped in a conversation: the root is that turn — 💬 the session · assistant · its time, the handle and node name below',hist.root().kind==='turn'&&
+      g('root').querySelector('.g-hcard-title').textContent==='[ap:TURN01] 📋 The node called [ap:TURN01] #prog-tag'&&
+      g('root').querySelector('.g-hcard-sub').textContent.includes('💬 Manager-Session-208 · assistant · '+clock)&&g('root').dataset.kind==='turn');
+    await api.openFromPage('[ap:LINKA1]',{node:doc});await settled();
+    g('root').click();
+    check('its pop-up: Show in conversation, where it was tapped; later entries unchanged',!g('pos-turn').hidden&&g('pos-title').textContent.startsWith('💬 Manager-Session-208')&&
+      g('pos-body').textContent.includes('tapped in the Manager\'s conversation · its assistant')&&hist.state.entries.length===2);
+    g('pos-turn').click();
+    check('Show in conversation hands the turn back to the page around (session, position, kind) and closes the pop-up',fx.turns.length===1&&fx.turns[0].seq===41&&
+      fx.turns[0].session.executionId==='cc-mgr-208'&&fx.turns[0].uuid==='u-41'&&g('pos').hidden);
+    await load();await settled();
+    check('a reload keeps the turn root, name first and source retained',hist.root().kind==='turn'&&hist.root().turn.seq===41&&g('root').querySelector('.g-hcard-title').textContent.startsWith('[ap:TURN01] 📋')&&g('root').title.includes('💬 Manager-Session-208'));
+    // --- reload: the same history, the same entry shown again (one render), the root's kind kept
+    fx.position=TWO;await api.openHandle('[ap:SEAT01]','node',{from:'programs',active:'cc-seat-31',position:TWO});await settled();
+    await api.openFromPage('[ap:LINKA1]',{node:doc});await settled();await api.openFromPage('[ap:LINKB2]',{node:doc});await settled();
+    g('back').click();await settled();
+    const count=fx.renders.length;fx.positions.length=0;
+    await load();await until(()=>fx.renders.length===count+1&&!api.state.busy,'restored render');
+    check('a reload keeps the history: 3 entries, entry 2 current and rendered once, the root\'s kind, active session and cards',hist.state.entries.length===3&&hist.state.cursor===1&&
+      last().value.node==='[ap:LINKA1]'&&fx.renders.length===count+1&&hist.root().kind==='socket'&&hist.root().active==='cc-seat-31'&&
+      g('root').querySelector('.g-hcard-title').textContent==='[ap:SEAT01] 📋 The node called [ap:SEAT01] #prog-tag'&&g('now').textContent.startsWith('2/3 · [ap:LINKA1]')&&fx.positions.length===0);
+    // --- a handle tapped before the View page loaded: ?handle=…&from=…&active=… is a fresh root, its position looked up
+    fx.positions.length=0;await load('handle=%5Bap%3ASEAT01%5D&from=programs&active=cc-seat-32');await until(()=>hist.root()?.lookup==='done'&&!api.state.busy,'url root');
+    await hist.settled();await sleep(20);
+    check('?handle=…&from=programs&active=… starts a fresh root (the stored history replaced: the root shown), its position looked up with that session active, its earlier digging back ahead of it from Recent roots',
+      hist.state.cursor===0&&hist.root().handle==='[ap:SEAT01]'&&hist.state.entries.map(e=>e.handle).join()==='[ap:SEAT01],[ap:LINKA1],[ap:LINKB2]'&&
+      JSON.stringify(fx.positions[0])==='["[ap:SEAT01]","cc-seat-32"]'&&hist.root().active==='cc-seat-32'&&hist.root().from==='programs'&&stored().cursor===0&&!g('fwd').disabled);
+    // --- the bound: at most 50 entries, the root kept
+    for(let i=0;i<60;i++)hist.push('[ap:BULK'+String(i).padStart(2,'0')+']');
+    await settled();
+    check('at most 50 entries: the root kept, the oldest later entries dropped, the newest current',hist.state.entries.length===50&&hist.root().handle==='[ap:SEAT01]'&&
+      hist.state.entries[1].handle==='[ap:BULK11]'&&hist.state.cursor===49&&stored().entries.length===50&&fx.store.get(KEY).length<=w.opcViewHistory.STORE_MAX);
+    // --- a corrupt store is set aside, never a broken page
+    fx.store.set(KEY,'{"v":1,"entries":[{"id":"x"}]');await load();
+    check('an unreadable stored history: no root rows (Recent roots may still offer the list), no error, the page works',g('hist-row').hidden&&g('hist-nav').hidden&&!fx.errors.length&&(g('handle').value='[ap:AFTER1]',g('handle-render').click(),true));
+    await settled();check('… and the next root starts a fresh one',hist.state.entries.length===1&&stored().entries[0].handle==='[ap:AFTER1]');
+    // --- 390 px: no sideways page, thumb-sized strip controls; glare lifts the strip's small print
+    await api.openFromPage('[ap:LINKA1]',{node:doc});await settled();
+    const noSideways=()=>d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&d.body.scrollWidth<=d.body.clientWidth+1;
+    const strip=[g('root'),g('hist-open'),g('back'),g('now'),g('fwd'),g('max'),g('roots-open')];
+    check('at 390 px: no sideways page; root card and ⤢ ≥ 44 px, ‹ › the current entry, maximize and Recent roots ≥ 36 px; the strip is three rows ('+Math.round(g('hist').getBoundingClientRect().height)+' px)',
+      noSideways()&&strip.slice(0,2).every(b=>b.getBoundingClientRect().height>=44)&&strip.slice(2).every(b=>b.getBoundingClientRect().height>=36)&&g('hist').getBoundingClientRect().height<=140&&
+      g('max').getBoundingClientRect().right>=g('now').getBoundingClientRect().right&&g('roots').getBoundingClientRect().top>=g('hist-nav').getBoundingClientRect().bottom);
+    g('hist-open').click();
+    const sheet=g('hist-sheet').querySelector('.g-sheet-panel').getBoundingClientRect();
+    check('the sheet is near full screen over View',sheet.height>=w.innerHeight*0.85&&sheet.width>=w.innerWidth*0.9);
+    g('hist-close').click();
+    const normal=cs('.g-hcard-sub','fontSize');w.opcGlare.apply(true);await sleep(10);
+    check('glare: the strip\'s small print and the cards\' source line bright and larger ('+normal+' → '+cs('.g-hcard-sub','fontSize')+')',cs('.g-hcard-sub','fontSize')==='14px'&&cs('.g-hcard-sub','color')==='rgb(225, 233, 245)'&&
+      cs('.g-hcard-source','fontSize')==='14px'&&cs('.g-hcard-source','color')==='rgb(225, 233, 245)'&&cs('#g-now','fontSize')==='15.5px');
+    w.opcGlare.apply(false);
+    // --- Recent roots (the outer history): row 3 under ‹ ›, its list dropped down over the document, a card back to its root, a note
+    await hist.settled();await sleep(30);
+    const listed=fx.roots.db.roots.length,rcards=()=>[...g('roots-list').querySelectorAll('.g-rcard')];
+    check('row 3: 🕘 Recent roots · '+listed+' (every root this test opened, from the store)',listed>=5&&!g('roots').hidden&&g('roots-count').textContent==='· '+listed);
+    g('roots-open').click();await until(()=>!g('roots-panel').hidden&&rcards().length===listed,'Recent roots dropped down');
+    const panel=g('roots-panel').querySelector('.g-sheet-panel').getBoundingClientRect();
+    const rowBottom=g('roots').getBoundingClientRect().bottom,wide=Math.max(...rcards().map(c=>c.scrollWidth-c.clientWidth));
+    check('the list drops down from row 3 over the document (panel '+Math.round(panel.top)+'–'+Math.round(panel.bottom)+' px, row 3 ends at '+Math.round(rowBottom)+', the frame '+w.innerHeight+'), no sideways page or card ('+wide+')',
+      panel.top>=rowBottom&&panel.bottom<=w.innerHeight+1&&noSideways()&&wide<=1);
+    check('one card per root, the root on screen first and marked, its badge '+rcards()[0].querySelector('.g-rdepth')?.textContent+' = its '+hist.state.entries.length+' entries, a badge on each',
+      rcards()[0].getAttribute('aria-current')==='true'&&rcards()[0].querySelector('.g-rdepth').textContent===String(hist.state.entries.length)&&rcards().every(c=>c.querySelector('.g-rdepth')));
+    check('every Recent roots card contains all its children, with no overlap onto the next: '+JSON.stringify(containment(rcards())),!containment(rcards()).length);
+    const other=rcards()[1],key=other.dataset.key;other.querySelector('.g-hcard-title').click();
+    await until(()=>g('roots-panel').hidden&&w.opcViewHistory.rootKey(hist.root())===key&&!api.state.busy,'a card picked');
+    check('a card goes back to that root: the list folds, the root rendered at where it stood',g('roots-panel').hidden&&w.opcViewHistory.rootKey(hist.root())===key&&
+      fx.roots.log.at(-1).op==='open'&&fx.roots.log.at(-1).key===key);
+    g('roots-open').click();await until(()=>!g('roots-panel').hidden&&rcards().length,'the list again');
+    rcards()[0].querySelector('[data-act="note"]').click();
+    const area=g('roots-list').querySelector('textarea');
+    check('📝 Note opens its box inside the card, focused, at 16 px (no iOS zoom)',!!area&&d.activeElement===area&&cs(area,'fontSize')==='16px');
+    check('the note editor and its Save/Cancel buttons stay inside their card',!containment(rcards()).length);
+    area.value='the grouped screenshots';area.dispatchEvent(new w.Event('input',{bubbles:true}));
+    g('roots-list').querySelector('[data-act="save"]').click();
+    await until(()=>fx.roots.db.roots.find(r=>r.key===key)?.note==='the grouped screenshots'&&!g('roots-list').querySelector('textarea'),'note saved');
+    check('Save keeps the note with the root in the store and shows it on its card',rcards()[0].querySelector('.g-rcard-note')?.textContent==='📝 the grouped screenshots');
+    g('roots-filter').value='grouped';g('roots-filter').dispatchEvent(new w.Event('input',{bubbles:true}));
+    check('the filter finds a root by its note',rcards().length===1&&rcards()[0].dataset.key===key);
+    g('roots-close').click();
+    // --- maximize: only ‹ the current entry › and the document; the page around asked for the whole screen; the same button restores
+    const gone=sel=>cs(sel,'display')==='none';
+    g('max').click();await sleep(30);
+    check('maximize: the root widget, Recent roots and the Controls away, ‹ › kept and naming the root at the root, the document right under it; /m asked for the whole screen',
+      d.documentElement.dataset.viewMax==='true'&&gone('#g-hist-row')&&gone('#g-roots')&&gone('#g-ctl')&&!gone('#g-hist-nav')&&fx.max.at(-1)===true&&
+      g('max').getAttribute('aria-pressed')==='true'&&g('scroll').getBoundingClientRect().top-g('hist-nav').getBoundingClientRect().bottom<=12&&noSideways());
+    g('max').click();await sleep(30);
+    check('… and the same button, in the same place, brings everything back',d.documentElement.dataset.viewMax==='false'&&!gone('#g-hist-row')&&!gone('#g-roots')&&
+      fx.max.at(-1)===false&&g('max').getAttribute('aria-pressed')==='false');
+    // --- concise cards: a wrapping name, one description line and one source/action line, at most 256 characters each
+    const stripHeight=g('hist-row').getBoundingClientRect().height,longName='START '+ 'long root name '.repeat(60)+' END #tag';
+    fx.md=()=> '# '+longName+'\n\nDescription first '+ 'about this report '.repeat(40)+' LAST DESCRIPTION\n';
+    await api.openHandle('[ap:LONG01]','node',{from:'outside',where:'Chat',turn:TURN});await settled();await hist.settled();
+    g('roots-open').click();await sleep(20);
+    const named=rcards()[0],title=named.querySelector('.g-hcard-title'),desc=named.querySelector('.g-hcard-sub'),source=named.querySelector('.g-hcard-source');
+    check('Recent roots at 390×844: name and description ≤256 characters, smart middle ellipsis keeps both ends; description then conversation source',
+      w.innerWidth===390&&w.innerHeight===844&&Array.from(title.textContent).length<=256&&title.textContent.startsWith('START ')&&title.textContent.endsWith(' END #tag')&&title.textContent.includes('…')&&
+      title.scrollHeight<=title.clientHeight+1&&desc.textContent.startsWith('Description first')&&desc.textContent.endsWith('LAST DESCRIPTION')&&
+      Array.from(desc.textContent).length<=256&&desc.textContent.includes('…')&&cs(desc,'whiteSpace')==='nowrap'&&desc.getBoundingClientRect().height<=parseFloat(cs(desc,'lineHeight'))+1&&
+      source.textContent.includes('Manager-Session-208')&&source.textContent.includes('[ap:LONG01]')&&title.getBoundingClientRect().top<desc.getBoundingClientRect().top&&
+      desc.getBoundingClientRect().top<source.getBoundingClientRect().top&&parseFloat(cs(desc,'fontSize'))<parseFloat(cs(title,'fontSize'))&&noSideways());
+    check('source, digging, when/device share one truncated line beside Note/✕, full text retained on hover',
+      !named.querySelector('.g-rcard-at,.g-rcard-when')&&source.parentElement.classList.contains('g-rcard-foot')&&cs(source,'whiteSpace')==='nowrap'&&
+      source.title===source.textContent&&source.title.includes('phone')&&source.getBoundingClientRect().height<=parseFloat(cs(source,'lineHeight'))+1);
+    check('the strip has not grown taller for the long name and description',g('hist-row').getBoundingClientRect().height===stripHeight);
+    g('roots-close').click();g('hist-open').click();
+    const inner=cards()[0];check('inner-history root card: the same name, description, source order, wrapping allowed',
+      inner.querySelector('.g-hcard-title').textContent===title.textContent&&inner.querySelector('.g-hcard-sub').textContent===desc.textContent&&source.textContent.startsWith(inner.querySelector('.g-hcard-source').textContent));
+    g('hist-close').click();
+    fx.roots.handle('POST',{op:'visit',key:'node:ap:OLDONE',root:{id:1,handle:'[ap:OLDONE]',how:'node',root:true},device:'desktop'});
+    await hist.readOuter();await hist.metadataSettled();g('roots-open').click();await sleep(20);
+    g('roots-filter').value='Backfilled description';g('roots-filter').dispatchEvent(new w.Event('input',{bubbles:true}));
+    check('an old nameless card is backfilled and persisted without opening it; the filter matches its description',rcards().length===1&&
+      rcards()[0].querySelector('.g-hcard-title').textContent==='Previously nameless report'&&fx.roots.db.roots.find(r=>r.key==='node:ap:OLDONE').entries[0].metadataVersion===1);
+    // Stress the scrollers, not just one card: lots of long names, unbroken text, descriptions, sources, digging and a
+    // full saved note. The old grid rows fit the viewport by shrinking below their contents (reproduced in Chrome too).
+    g('roots-close').click();
+    for(let i=0;i<12;i++){
+      const handle='[ap:FIT'+String(i).padStart(3,'0')+']',root={id:1,root:true,handle,how:'node',metadataVersion:1,from:'outside',where:'a very long conversation source',
+        name:'START '+(i%2?'unbroken'.repeat(90):'recognizable root words '.repeat(35))+' END '+handle+' #root-tag',
+        description:'ABOUT '+ 'long description words '.repeat(12)+' DESCRIPTION END',turn:{...TURN,session:{...TURN.session,title:'Manager-Session-228 '+ 'long source words '.repeat(15)}}};
+      fx.roots.handle('POST',{op:'save',key:'node:ap:FIT'+String(i).padStart(3,'0'),entries:[root,{id:2,handle:'[ap:DIG001]',name:'digging '.repeat(80)},{id:3,handle:'[ap:DIG002]',name:'last '.repeat(120)}],cursor:2,device:'desktop'});
+      if(i===0)fx.roots.handle('POST',{op:'note',key:'node:ap:FIT000',note:'Your full note\n'+ 'unbroken-note'.repeat(140)+'\nLast line of the note'});
+    }
+    await hist.readOuter();hist.openRoots();await sleep(20);
+    const clearFilter=()=>{g('roots-filter').value='';g('roots-filter').dispatchEvent(new w.Event('input',{bubbles:true}));};clearFilter();
+    const caps=nodes=>nodes.every(c=>['.g-hcard-title','.g-hcard-sub'].every(sel=>!c.querySelector(sel)||Array.from(c.querySelector(sel).textContent).length<=256));
+    const oneLine=nodes=>nodes.every(c=>[...c.querySelectorAll('.g-hcard-sub,.g-hcard-source')].every(n=>cs(n,'whiteSpace')==='nowrap'&&n.getBoundingClientRect().height<=parseFloat(cs(n,'lineHeight'))+1));
+    const scrolls=id=>g(id).clientHeight>0&&g(id).scrollHeight>g(id).clientHeight;
+    check('containment stress really exceeds the Recent roots viewport (a few fitting cards cannot reproduce the old bug)',scrolls('roots-list'));
+    for(const glare of [false,true]){
+      w.opcGlare.apply(glare);await sleep(20);
+      const bad=containment(rcards());
+      check('390×844 '+(glare?'glare':'normal')+': every child inside every long Recent roots card, none overlaps the next ('+rcards().length+' cards): '+JSON.stringify(bad),
+        rcards().length>=12&&!bad.length&&caps(rcards())&&oneLine(rcards())&&noSideways());
+    }
+    const noted=rcards().find(c=>c.dataset.key==='node:ap:FIT000');
+    check('saved notes are whole, can make a card taller than the viewport, and scroll with the list (never clipped)',
+      noted.querySelector('.g-rcard-note').textContent.endsWith('Last line of the note')&&noted.getBoundingClientRect().height>w.innerHeight&&g('roots-list').scrollHeight>g('roots-list').clientHeight);
+    hist.startNote('node:ap:FIT001');await sleep(20);
+    check('long-card note editor and its action buttons contained too',!containment(rcards()).length);g('roots-list').querySelector('[data-act="cancel"]').click();
+    hist.closeRoots();w.opcGlare.apply(false);
+    for(let i=0;i<6;i++){await api.openFromPage('[ap:INNER'+i+']',{node:g('doc')});await settled();}
+    hist.openSheet();await sleep(20);
+    check('inner-history containment stress also exceeds its list viewport',scrolls('hist-list'));
+    for(const glare of [false,true]){
+      w.opcGlare.apply(glare);await sleep(20);const bad=containment(cards());
+      check('390×844 '+(glare?'glare':'normal')+': inner-history root and entries have natural containing boxes, 256 caps and one-line descriptions/sources: '+JSON.stringify(bad),
+        cards().length>=7&&!bad.length&&caps(cards())&&oneLine(cards())&&noSideways());
+    }
+    g('hist-close').click();w.opcGlare.apply(false);
+    // Same production rules at desktop width, with the actual desktop density overrides; desktop-view.html also
+    // exercises the real Manager App embed. Both strip rows must stay exactly their short-name height.
+    frame.style.width='900px';d.documentElement.dataset.viewEmbed='desktop';await sleep(20);hist.openRoots();await sleep(20);
+    check('desktop: every long Recent roots card contains its descendants, with 256 caps and single-line secondary text',scrolls('roots-list')&&!containment(rcards()).length&&caps(rcards())&&oneLine(rcards())&&noSideways());
+    hist.closeRoots();hist.openSheet();await sleep(20);
+    check('desktop: inner-history cards contain every child too',scrolls('hist-list')&&!containment(cards()).length&&caps(cards())&&oneLine(cards()));
+    g('hist-close').click();frame.style.width='390px';d.documentElement.dataset.viewEmbed='phone';await sleep(20);
+    check('both strip rows stay their short-name height after long names, descriptions, sources and many entries',g('hist-row').getBoundingClientRect().height===stripHeight&&g('hist-nav').getBoundingClientRect().height===36);
+    check('no page error ['+fx.errors.join('; ')+']',!fx.errors.length);
+  } catch(e) { if(!checks.some(c=>!c.passed))checks.push({name:'fixture: '+e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

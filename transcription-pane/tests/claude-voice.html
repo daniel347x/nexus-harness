@@ -1,0 +1,126 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Isolated history/context fixture — inert providers, no terminal input</title>
+<style>body{margin:0}iframe{width:420px;height:880px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="pane" title="Offline history/Refine pane"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const rows=[], frame=document.getElementById('pane'), sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const check=(name,passed)=>{rows.push({name,passed:!!passed});if(!passed)throw new Error(name);};
+  try {
+    const base=new URL('../static/',location.href), read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,app,defaults,refineCore,inspector]=await Promise.all(['index.html','app.js','refine-defaults.js','refine-core.js','tool-inspector.js'].map(read));
+    const reading=await read('tool-reading.js');const refineView=await read('refine-view.js');
+    const shared=await(await fetch(new URL('../../chrome-extension/codenomad-session-watcher/tool-record-text.js',base))).text();
+    const mock=`
+      window.fixture={providers:[],contextReads:0,targetReads:0,copied:[],errors:[],failContext:false,replaceSource:false,defer:false,release:null};
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const store=new Map([['refine_provider','anthropic'],['refine_anthropic_api_key','INERT-NOT-A-KEY']]);
+      fixture.store=store;
+      Object.defineProperty(window,'localStorage',{value:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async t=>fixture.copied.push(t)},configurable:true});
+      const ref=c=>c.repeat(32);
+      fixture.target={schemaVersion:1,backend:'claude',targetRef:ref('A'),storeRef:ref('S'),sessionRef:ref('J'),scopeRef:ref('M'),leafRef:ref('L'),fileEpoch:ref('E'),scope:'main',uuid:'11111111-1111-4111-8111-111111111111',leafUuid:'22222222-2222-4222-8222-222222222222',title:'Synthetic main history',source:'windows-history',bindingRef:null};
+      fixture.context='[USER]\\nload_rows [ap:ABC123]\\n\\n---\\n\\n[ASSISTANT]\\nGenuine prose 😀';
+      fixture.result='cleaned words 😀';
+      fixture.stream=()=>new Response([
+        {type:'message_start',message:{id:'fixture',type:'message',role:'assistant',content:[],stop_reason:null,usage:{input_tokens:10,output_tokens:0}}},
+        {type:'content_block_start',index:0,content_block:{type:'text',text:fixture.result}},
+        {type:'content_block_stop',index:0},
+        {type:'message_delta',delta:{stop_reason:'end_turn'},usage:{output_tokens:3}},
+        {type:'message_stop'}
+      ].map(e=>'event: '+e.type+'\\ndata: '+JSON.stringify(e)+'\\n\\n').join(''),{headers:{'Content-Type':'text/event-stream'}});
+      window.fetch=async(url,opts)=>{
+        if(url==='/api/tool-selection')return new Response(JSON.stringify({epoch:'inert-mailbox',revision:0,selection:null}));
+        if(url.startsWith('/api/claude/context?')){
+          fixture.contextReads++;
+          if(fixture.failContext)return new Response(JSON.stringify({error:'fixture outage'}),{status:502});
+          const q=new URL(url,'http://inert').searchParams;
+          return new Response(JSON.stringify({...fixture.target,status:'stored',targetRevision:Number(q.get('targetRevision')),text:fixture.context,bytes:new TextEncoder().encode(fixture.context).length,turns:2,users:1,readAt:Date.now()}));
+        }
+        if(url.startsWith('/api/claude/events?')){
+          fixture.targetReads++;
+          if(fixture.replaceSource)return new Response(JSON.stringify({error:'source replaced'}),{status:409});
+          return new Response(JSON.stringify({...fixture.target,status:'complete',targetInfo:fixture.target,events:[]}));
+        }
+        if(url==='https://api.anthropic.com/v1/messages'){
+          fixture.providers.push(JSON.parse(opts.body));
+          if(fixture.defer)return await new Promise(resolve=>fixture.release=()=>resolve(fixture.stream()));
+          return fixture.stream();
+        }
+        throw new Error('No OpenCode/live/provider network allowed: '+url);
+      };
+    `;
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/  <script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(refineView)}<\/script><script>${safe(app.replace(/main\(\);\s*$/,'')+'\nfixture.api={state,K,refine,send,renderTarget,invalidateTarget,draftChanged,readOriginals,wire,refreshContext}; wire();')}<\/script><script>${safe(shared)}<\/script><script>${safe(reading)}<\/script><script>${safe(inspector)}<\/script></body>`);
+    await new Promise(resolve=>frame.onload=resolve); await sleep(60);
+    const w=frame.contentWindow,d=w.document,f=w.fixture,el=id=>d.getElementById(id),box=el('transcript');
+    // Anthropic system/user strings now travel as cacheable text blocks whose concatenation is the same text.
+    const contentText=content=>typeof content==='string'?content:content.map(part=>part.text).join('');
+    f.api.state.backend='claude';f.api.state.claudeTarget={...f.target};f.api.renderTarget();
+    check('real pane/inspector initialize without errors',f.errors.length===0);
+    check('visible Claude no-context checkbox defaults OFF with accessible label',!el('native-context-choice').hidden&&!el('native-no-context').checked&&el('native-no-context').labels.length===1);
+    check('history Refine enabled while Claude Send stays unavailable',!el('refine-btn').disabled&&el('send-btn').disabled&&/unavailable/.test(el('backend-status').textContent));
+    box.value='  full before\n\nselected words\nafter  ';box.setSelectionRange(15,29);const full=box.value;
+    await f.api.refine();
+    check('selection replaced without losing surrounding untrimmed text',box.value===full.slice(0,15)+f.result+full.slice(29));
+    check('full original persists in real mock storage before provider',f.api.readOriginals()[0].text===full);
+    check('independent provider receives exact prose and complete selection',contentText(f.providers[0].messages[0].content).includes(f.context)&&contentText(f.providers[0].messages[0].content).includes(full.slice(15,29)));
+    await sleep(2050);
+    check('native Refine stays available after the actual status-button timer',!el('refine-btn').disabled&&el('send-btn').disabled);
+    check('native metric absent, no borrowed OpenCode cache',el('cache-info').textContent.includes('—'));
+    el('ctx-view').click();await sleep(30);
+    check('real context view displays exactly the reader text',el('ctx-pre').textContent===f.context);el('ctx-dialog').close();
+    const rv=sel=>d.querySelector('#ctx-body '+sel),rvAll=sel=>[...d.querySelectorAll('#ctx-body '+sel)];
+    box.value='draft before\n\nselected words\n\ndraft after';box.setSelectionRange(14,28);const viewSent=f.providers.length;
+    el('ctx-view').click();await sleep(30);
+    check('View: chat history, then the unselected draft before and after the selection, each its own pane',el('ctx-pre').textContent===f.context&&
+      rv('.rv-before .rv-text')?.textContent==='draft before\n\n'&&rv('.rv-after .rv-text')?.textContent==='\n\ndraft after'&&rv('.rv-prompt').hidden&&
+      rv('.rv-switch [data-mode="context"]').getAttribute('aria-checked')==='true');
+    rv('.rv-switch [data-mode="prompt"]').click();await sleep(10);
+    const shown=rvAll('.rv-prompt .rv-text').map(n=>n.textContent),scroller=rv('.rv-prompt');
+    check('View: Full prompt shows the system prompt and the user message, scrolled to the end, sending nothing',rv('.rv-context').hidden&&!scroller.hidden&&
+      shown.length===2&&shown[1].includes('<draft-before>')&&shown[1].includes('selected words')&&scroller.scrollHeight>scroller.clientHeight&&
+      scroller.scrollHeight-scroller.scrollTop-scroller.clientHeight<=2&&rv('.rv-switch').getBoundingClientRect().height>=16&&f.providers.length===viewSent);
+    el('ctx-dialog').close();await f.api.refine();
+    check('View: the Full prompt is exactly the request Refine then sends',f.providers.length===viewSent+1&&contentText(f.providers[viewSent].system)===shown[0]&&contentText(f.providers[viewSent].messages[0].content)===shown[1]);
+    box.value='selected first\n\nafter it';box.setSelectionRange(0,14);el('ctx-view').click();await sleep(30);
+    check('View: reopens in the mode last chosen',!rv('.rv-prompt').hidden&&rv('.rv-switch [data-mode="prompt"]').getAttribute('aria-checked')==='true');
+    rv('.rv-switch [data-mode="context"]').click();await sleep(10);
+    check('View: an empty draft side is one short line with no text box',rv('.rv-before').classList.contains('rv-empty')&&!rv('.rv-before .rv-text')&&
+      rv('.rv-before').getBoundingClientRect().height<30&&rv('.rv-after .rv-text')?.textContent==='\n\nafter it');
+    el('ctx-dialog').close();box.setSelectionRange(0,0);el('ctx-view').click();await sleep(30);
+    check('View: with no selection Refine cleans the whole box, said in one line instead of draft panes',!!rv('.rv-whole')&&!rv('.rv-before')&&!rv('.rv-after'));
+    el('ctx-dialog').close();
+    box.value='retained outage';box.setSelectionRange(0,0);const n=f.providers.length;f.failContext=true;
+    await f.api.refine();
+    check('required context outage blocks provider, retains full text/original',f.providers.length===n&&box.value==='retained outage'&&f.api.readOriginals()[0].text===box.value);
+    check('outage is a failed operation, not explicit no-context success',/failed/.test(el('status').textContent)&&!el('native-no-context').checked);
+    el('native-no-context').checked=true;el('native-no-context').dispatchEvent(new w.Event('change',{bubbles:true}));
+    const reads=f.contextReads;await f.api.refine();
+    check('explicit contextless checkbox works without fallback read',f.contextReads===reads&&f.providers.length===n+1&&box.value===f.result);
+    check('contextless status visibly discloses the choice',/explicit choice/.test(el('ctx-info').textContent));
+    el('native-no-context').checked=false;el('native-no-context').dispatchEvent(new w.Event('change',{bubbles:true}));f.failContext=false;
+    box.value='A → B → A original';box.setSelectionRange(0,0);f.defer=true;
+    const pending=f.api.refine();for(let i=0;i<25&&!f.release;i++)await sleep(5);
+    check('provider really pending with controls/cancel usable',!!f.release&&box.readOnly&&el('cancel-btn')&&el('plus30-btn'));
+    box.value='other';box.dispatchEvent(new w.Event('input',{bubbles:true}));box.value='A → B → A original';box.dispatchEvent(new w.Event('input',{bubbles:true}));
+    f.release();await pending;f.defer=false;f.release=null;
+    check('real input events away/back cannot apply stale result',box.value==='A → B → A original'&&/failed/.test(el('status').textContent));
+    box.value='FileEpoch original';f.defer=true;const sourcePending=f.api.refine();for(let i=0;i<25&&!f.release;i++)await sleep(5);
+    f.replaceSource=true;f.release();await sourcePending;f.defer=false;f.release=null;f.replaceSource=false;
+    check('source replacement during inference cannot replace the draft',box.value==='FileEpoch original'&&/failed/.test(el('status').textContent));
+    box.value='hotkey prose';const before=f.providers.length;box.focus();box.dispatchEvent(new w.KeyboardEvent('keydown',{key:'r',altKey:true,bubbles:true,cancelable:true}));await sleep(80);
+    check('real Alt+R wiring refines history context with inert provider',f.providers.length===before+1&&box.value===f.result);
+    const beforeSend=f.providers.length;box.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));await sleep(20);
+    check('Ctrl+Enter Claude Send shortcut refuses explicitly with text retained, no inference, no transport',f.providers.length===beforeSend&&box.value===f.result&&/unavailable/.test(el('status').textContent));
+    check('narrow controls stay inside page and dictation readable',d.documentElement.scrollWidth<=frame.clientWidth+1&&box.clientHeight>=100&&el('native-context-choice').getBoundingClientRect().right<=frame.clientWidth);
+    check('held inspection remains independent and not opened by Refine',!el('tool-inspector').classList.contains('held'));
+    check('no OpenCode/live/provider network was exercised; Claude Send stays unavailable',f.errors.length===0&&el('send-btn').disabled);
+  }catch(e){rows.push({name:'fixture error: '+e.message,passed:false});}
+  const failed=rows.filter(r=>!r.passed).length;
+  window.testResults={passed:rows.length-failed,failed,results:rows};document.body.dataset.testPassed=String(failed===0);
+  document.getElementById('results').textContent=JSON.stringify(window.testResults,null,2);
+})();
+</script>

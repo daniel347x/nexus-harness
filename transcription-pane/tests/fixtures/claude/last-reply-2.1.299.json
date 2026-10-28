@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "cliVersion": "2.1.299",
+  "messageId": "fixture-last-reply",
+  "thinkingUuid": "fixture-thinking-record",
+  "textUuid": "fixture-text-record",
+  "thinkingTelemetryCount": 60,
+  "thinkingDelta": "Sanitized thinking. ",
+  "signature": "fixture-signature",
+  "replySeed": "Sanitized full reply line.\n",
+  "replyCharacters": 1804,
+  "replyTail": "LAST-REPLY-TAIL",
+  "textDeltaCharacters": [4, 5, 10, 28, 5, 17, 21, 23, 5, 1, 11, 14, 20, 14, 20, 9, 5, 6, 12, 5, 10, 15, 4, 21, 17, 13, 21, 28, 16, 12, 13, 28, 26, 14, 6, 18, 27, 35, 1, 10, 18, 17, 25, 15, 9, 22, 27, 2, 29, 26, 20, 14, 19, 27, 6, 22, 26, 10, 14, 6, 9, 3, 11, 2, 20, 15, 23, 10, 11, 5, 4, 14, 7, 28, 5, 12, 6, 17, 7, 11, 18, 24, 3, 6, 14, 26, 21, 5, 13, 4, 28, 2, 8, 34, 9, 10, 11, 10, 7, 2, 6, 5, 5, 3, 5, 3, 12, 3, 10, 18, 14, 21, 5, 18, 19, 13, 17, 12, 11, 5, 11, 4, 16, 12, 33, 6, 20, 5, 3, 19, 24, 9, 26, 5, 7],
+  "result": {"type": "result", "subtype": "success", "is_error": false}
+}

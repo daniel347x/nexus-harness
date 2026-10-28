@@ -1,0 +1,203 @@
+<!doctype html><meta charset="utf-8"><title>Follow invariant: "Following" lit means pinned to the last pixel</title>
+<style>body{margin:0}iframe{width:1000px;height:700px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="history" title="Offline history"></iframe><pre id="results">running…</pre>
+<script>
+// Real markup, CSS and polling in headless Chrome; transport mocked. Each trigger Dan named
+// (new session, session switch, page reload, new host generation, several sessions open,
+// older history filled in above, a text selection left behind) must leave a growing
+// conversation pinned to its last pixel whenever the toggle reads "Following".
+(async()=>{
+  const results=[],check=(name,ok)=>{results.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,js,css,md,seenLatest]=await Promise.all(['sessions.html','sessions.js','sessions.css','message-markdown.js','seen-latest.js'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async name=>(await fetch(new URL(name,sharedBase))).text()));
+    const [marked,purify]=await Promise.all(['vendor/marked.umd.js','vendor/purify.min.js'].map(read));
+    const mock=`
+      window.fixture={errors:[],events:{},epoch:{},generation:{},context:{}};
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const envelope=x=>({schemaVersion:1,backend:'claude',...x});
+      const host=(n,uuid)=>({sessionRef:'s'+n,uuid,title:'Manager-Session-'+n,sessionLabel:'Manager-Session-'+n,cwd:'/work',source:'host',role:'Manager',
+        state:'ready',lifecycle:'live',executionId:'cc-'+uuid,generation:1,createdAt:1000+n,
+        capabilities:{history:true,nativeInput:true,controls:true,subagents:false},scopes:[{scopeRef:'scope-'+n,label:'main'}]});
+      fixture.sessions=[host(181,'u181'),host(182,'u182'),host(183,'u183')];
+      fixture.event=(n,text)=>({recordRef:'r'+n,uuid:'uuid-'+n,kind:n%2?'assistant':'user',status:'stored',time:1792000000+n,text:text||('Turn '+n+'\\n\\n'+'A line of prose that wraps. '.repeat(30)),calls:[]});
+      for(const s of fixture.sessions){fixture.events[s.sessionRef]=[];fixture.epoch[s.sessionRef]='epoch-1';for(let i=0;i<12;i++)fixture.events[s.sessionRef].push(fixture.event(i));}
+      window.fetch=async(url)=>{let data;
+        if(url.startsWith('/api/claude/sessions'))data=envelope({sessions:fixture.sessions,hasMore:false,status:'complete'});
+        else if(url==='/api/pins')data={schemaVersion:1,pins:{}};
+        else if(url.startsWith('/api/claude/events')){const q=new URLSearchParams(url.split('?')[1]),ref=q.get('sessionRef'),scope=q.get('scopeRef');
+          data=envelope({sessionRef:ref,scopeRef:scope,fileEpoch:fixture.epoch[ref],leafRef:'leaf',targetRef:'target-'+ref,events:fixture.events[ref].slice(-90),
+            branches:[],traces:[],diagnostics:[],status:'complete',change:'append',hasMore:false,deltaCursor:'delta',
+            ...(fixture.context[ref]?{contextReadout:fixture.context[ref]}:{})});}
+        else if(url==='/api/tool-selection')data={epoch:'mail',revision:1,selection:null};
+        else throw new Error('No live request: '+url);
+        return new Response(JSON.stringify(data));};
+    `;
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    const markup=html.replace(/<link[^>]+>/,'<style>'+css+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>${safe(marked)}<\/script><script>${safe(purify)}<\/script><script>${safe(md)}<\/script><script>${safe(seenLatest)}<\/script><script>${safe(js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script></body>`);
+    const frame=document.getElementById('history');
+    let w,d,api;
+    const load=async()=>{frame.srcdoc=markup;await new Promise(r=>frame.onload=r);await sleep(200);w=frame.contentWindow;d=w.document;api=w.fixture.api;};
+    const el=id=>d.getElementById(id);
+    const gap=()=>{const v=el('history-viewport');return v.scrollHeight-v.scrollTop-v.clientHeight;};
+    const following=()=>el('history-follow').getAttribute('aria-pressed')==='true'&&el('history-follow-label').textContent==='Following';
+    // The invariant itself: lit means pinned (a 1px rounding allowance).
+    const invariant=()=>!following()||gap()<=1;
+    let n=100;
+    const until=async(cond,max=1500)=>{for(let t=0;t<max && !cond();t+=50)await sleep(50);await sleep(60);};
+    const grow=async(ref,text)=>{const key='r'+n;w.fixture.events[ref].push(w.fixture.event(n++,text));api.state.nextPoll=0;await until(()=>api.state.rows.has(key));};
+    // A row by list position, or by its session name: the selected root Manager is pinned above the list
+    // (#sessions-pinned), so list positions shift once one is open.
+    const open=async which=>{const rows=[...d.querySelectorAll('#sessions-list .session-open')];
+      const row=typeof which==='number'?rows[which]:rows.find(r=>r.querySelector('.name-text')?.textContent===which);
+      row.click();await until(()=>api.state.session && !api.state.loading && api.state.order.length>0);};
+
+    await load();
+    check('production initializes without errors',w.fixture.errors.length===0);
+    check('several open Managers are listed newest created first',[...d.querySelectorAll('#sessions-list .session-name .name-text')].map(x=>x.textContent).join(',')==='Manager-Session-183,Manager-Session-182,Manager-Session-181');
+    await open(0);
+    const ref=()=>api.state.session.sessionRef;
+    check('new session: lands Following on the last pixel of a conversation taller than the view',following()&&el('history-viewport').scrollHeight>el('history-viewport').clientHeight*2&&gap()<=1);
+    await grow(ref());
+    check('new session: a new turn arriving by the poll stays pinned',following()&&gap()<=1&&el('history-events').textContent.includes('Turn 100'));
+    // A turn growing in place (streaming text replaced under the same record).
+    const last=w.fixture.events[ref()].at(-1);w.fixture.events[ref()][w.fixture.events[ref()].length-1]={...last,text:last.text+'\n\nMore streamed text. '.repeat(40)};api.state.nextPoll=0;await until(()=>el('history-events').textContent.includes('More streamed text.'));
+    check('a turn growing in place stays pinned',following()&&gap()<=1);
+    // Growth no reconcile path knows about (a block opening, a late layout change).
+    const row=api.state.rows.get('r'+(n-1)).node,extra=d.createElement('div');extra.style.height='600px';row.append(extra);await sleep(1200);
+    check('growth outside every known path is re-pinned within a second',following()&&gap()<=1);
+
+    // A text selection: never a silent hold behind a lit "Following".
+    w.focus();const prose=api.state.rows.get('r'+(n-1)).node.querySelector('.event-prose');
+    d.getSelection().selectAllChildren(prose);await sleep(100);
+    check('a selection in the conversation pauses visibly or stays pinned, never "Following" while held',invariant()&&(!following()?/text selected/.test(el('history-follow-label').textContent):true));
+    await grow(ref());
+    check('while a selection exists the invariant still holds after growth',invariant());
+    w.dispatchEvent(new w.Event('blur'));await sleep(100);
+    check('leaving the conversation resumes Following and pins to the last pixel',following()&&gap()<=1);
+    await grow(ref());
+    check('after the selection is left behind, growth stays pinned',following()&&gap()<=1);
+
+    // Deliberate pause by scrolling up; then a session switch lands Following again.
+    const v=el('history-viewport');api.state.scrollIntent=Date.now();v.scrollTop=100;v.dispatchEvent(new w.Event('scroll'));await sleep(50);
+    check('scrolling up by hand pauses (the toggle says so)',!following()&&el('history-follow-label').textContent.startsWith('Paused'));
+    const held=v.scrollTop;api.state.scrollIntent=0;await grow(ref());
+    check('paused never moves the reading position',v.scrollTop===held&&/new/.test(el('history-follow-label').textContent));
+    {
+      // The floating badge (the phone's, on the desktop): NEW = not yet seen, not merely "you are above the end".
+      const badge=el('history-latest-badge'),end=key=>api.state.rows.get(key).node.querySelector(':scope > .seen-end');
+      const quiet=async top=>{api.state.scrollIntent=0;v.scrollTop=top;v.dispatchEvent(new w.Event('scroll'));await sleep(80);};
+      const newest='r'+(n-1),expectLit=api.state.rows.get(newest).node.classList.contains('turn-final')?'final':'true'; // red when it is a final reply
+      check('desktop: the turn that arrived while paused lights the floating badge "1 new ↓", pulsing; the Paused label says the same',
+        !badge.hidden&&badge.textContent==='1 new ↓'&&badge.dataset.unseen===expectLit&&badge.dataset.pulse==='on'&&/Paused · 1 new ↓/.test(el('history-follow-label').textContent));
+      const bb=badge.getBoundingClientRect(),vb=v.getBoundingClientRect();
+      check('desktop: it floats at the bottom right inside the conversation, taking no layout space',bb.right<=vb.right&&bb.right>vb.right-40&&bb.bottom<=vb.bottom&&
+        bb.bottom>vb.bottom-40&&el('history-latest-dock').getBoundingClientRect().height===0&&w.getComputedStyle(badge).animationName===(expectLit==='final'?'latest-final-pulse':'latest-new-pulse'));
+      api.reconcile([w.fixture.event(-7,'older paused history '.repeat(100))],'older','epoch-1');await sleep(50);
+      check('desktop: older history filled in above while paused never counts as new: still "1 new ↓"',el('history-events').firstElementChild.textContent.includes('older paused history')&&
+        badge.textContent==='1 new ↓');
+      await grow(ref());await sleep(50);
+      check('desktop: a second arrival: "2 new ↓"',badge.textContent==='2 new ↓');
+      await quiet(v.scrollTop+end(newest).getBoundingClientRect().top-v.getBoundingClientRect().bottom+2);
+      check('desktop: scrolling until the first new turn has ended on screen counts it seen: "1 new ↓"',!badge.hidden&&badge.textContent==='1 new ↓');
+      const at=w.fixture.events[ref()].findIndex(e=>e.recordRef===newest),was=w.fixture.events[ref()][at];delete badge.dataset.pulse;
+      w.fixture.events[ref()][at]={...was,text:was.text+'\n\nStreamed on. '.repeat(120)};api.state.nextPoll=0;await until(()=>el('history-events').textContent.includes('Streamed on.'));await sleep(50);
+      check('desktop: a seen turn growing past the view is new again, pulsing: "2 new ↓"',badge.textContent==='2 new ↓'&&badge.dataset.pulse==='on');
+      badge.click();await until(()=>following());await sleep(80);
+      check('desktop: the badge jumps to the newest turn and resumes Following; nothing is new any more',following()&&gap()<=1&&badge.hidden&&!badge.dataset.unseen);
+      api.state.scrollIntent=Date.now();v.scrollTop=100;v.dispatchEvent(new w.Event('scroll'));await sleep(80);
+      check('desktop: scrolled up again, everything below has been seen: plain ↓ Latest, plain Paused label',!following()&&!badge.hidden&&badge.textContent==='↓ Latest'&&
+        !badge.dataset.unseen&&el('history-follow-label').textContent==='Paused');
+      api.state.scrollIntent=0;await grow(ref());await sleep(50);
+      check('desktop: another arrival: "1 new ↓"',badge.textContent==='1 new ↓');
+      api.state.scrollIntent=Date.now();v.scrollTop=v.scrollHeight;v.dispatchEvent(new w.Event('scroll'));await sleep(80);
+      check('desktop: scrolling to the end by hand clears it and resumes Following',following()&&badge.hidden);
+      api.state.scrollIntent=Date.now();v.scrollTop=100;v.dispatchEvent(new w.Event('scroll'));await sleep(80);
+      check('desktop: and back up, nothing is new',badge.textContent==='↓ Latest'&&!badge.dataset.unseen);
+      api.state.scrollIntent=0;
+      // Red = at least one unseen final reply (turn-final) below, whatever the newest row is; orange = only working turns.
+      const arrive=async extra=>{const key='r'+n;w.fixture.events[ref()].push({...w.fixture.event(n++),kind:'assistant',...extra});api.state.nextPoll=0;await until(()=>api.state.rows.has(key));await sleep(50);return key;};
+      const tool=marker=>({text:marker+' checking first. '.repeat(20),calls:[{callRef:'call-'+marker,block:1,id:'id-'+marker,name:'Bash',status:'stored',inputBytes:0,outputBytes:0,previewData:{schemaVersion:1,status:'unavailable',reason:'fixture'}}]});
+      const lit=()=>badge.dataset.unseen,bg=()=>w.getComputedStyle(badge).backgroundColor;
+      await arrive(tool('TOOL_D'));
+      check('desktop: a tool turn arriving below: the accent orange "1 new ↓", unchanged',badge.textContent==='1 new ↓'&&lit()==='true'&&bg()==='rgb(138, 82, 0)');
+      const finalD=await arrive({text:'FINAL_D the answer. '.repeat(30)});
+      check('desktop: a final reply arriving below turns it red (the final-answer red), pulsing',badge.textContent==='2 new ↓'&&lit()==='final'&&bg()==='rgb(154, 42, 34)'&&
+        badge.dataset.pulse==='on'&&w.getComputedStyle(badge).animationName==='latest-final-pulse');
+      await arrive(tool('TOOL_E'));
+      check('desktop: prose followed by a tool call is a working turn after all: orange again',lit()==='true'&&api.state.rows.get(finalD).node.classList.contains('turn-mid'));
+      await arrive({text:'FINAL_E the real answer. '.repeat(30)});await arrive({kind:'user',text:'YOU_E another question.'});await arrive(tool('TOOL_F'));
+      check('desktop: an unseen final reply keeps it red even when the newest row below is a tool turn',lit()==='final'&&badge.textContent==='6 new ↓'&&
+        d.querySelector('#history-events').lastElementChild.classList.contains('turn-tools'));
+      badge.click();await until(()=>following());await sleep(80);
+      check('desktop: the jump clears every state',following()&&badge.hidden&&!lit());
+    }
+    await open('Manager-Session-182');
+    check('session switch: the other conversation opens Following on its last pixel',following()&&gap()<=1&&ref()==='s182');
+    await grow('s182');
+    check('session switch: growth stays pinned',following()&&gap()<=1);
+
+    // New host generation: the same conversation under a new session handle and epoch.
+    w.fixture.sessions[2]={...w.fixture.sessions[2],sessionRef:'s183g2',generation:2,scopes:[{scopeRef:'scope-183g2',label:'main'}]};
+    w.fixture.events.s183g2=[...w.fixture.events.s183];w.fixture.epoch.s183g2='epoch-2';
+    await api.list();await sleep(50);await open(0);
+    check('new host generation: opens Following on its last pixel',following()&&gap()<=1&&ref()==='s183g2');
+    await grow('s183g2');
+    check('new host generation: growth stays pinned',following()&&gap()<=1);
+
+    // Older history filled in above while following keeps the newest pixel in view.
+    api.reconcile([w.fixture.event(-5,'older history '.repeat(200))],'older','epoch-2');await sleep(50);
+    check('older history filled in above a following view keeps it on the last pixel',following()&&gap()<=1);
+
+    // Page reload.
+    await load();await open(0);
+    check('page reload: opens Following on the last pixel',following()&&gap()<=1);
+    await grow(ref());
+    check('page reload: growth stays pinned',following()&&gap()<=1);
+    api.state.scrollIntent=Date.now();el('history-viewport').scrollTop=100;el('history-viewport').dispatchEvent(new w.Event('scroll'));await sleep(80);
+    check('page reload: what the view opened on counts as seen: scrolled up, the badge is the plain ↓ Latest',!following()&&!el('history-latest-badge').hidden&&
+      el('history-latest-badge').textContent==='↓ Latest'&&!el('history-latest-badge').dataset.unseen);
+    api.state.scrollIntent=0;await grow(ref());await sleep(50);
+    check('page reload: a turn arriving after it, while scrolled up, is new',el('history-latest-badge').textContent==='1 new ↓');
+    el('history-latest-badge').click();await until(()=>following());
+
+    // Context gauge: a pie at the left of the status bar, colored by fill, exact on hover.
+    const measured=(tokens,window)=>({state:'measured',occupancy_tokens:tokens,window_tokens:window,measured_at:1792000000,source:'native-transcript',label:'fixture'});
+    const gaugeColor=()=>{const probe=d.createElement('i');probe.style.cssText='display:block;width:1px;height:1px;background-color:var(--gauge-color)';el('context-gauge').append(probe);const c=getComputedStyle(probe).backgroundColor;probe.remove();return c;};
+    w.fixture.context[ref()]=measured(300000,1000000);api.state.nextPoll=0;await until(()=>el('context-gauge').dataset.known==='true');
+    const g=el('context-gauge'),gr=g.getBoundingClientRect(),bar=el('history-activity').getBoundingClientRect();
+    check('the context gauge sits at the left of the status bar, inside it',gr.width>=12&&gr.left>bar.left&&gr.left<bar.left+60&&gr.top>=bar.top&&gr.bottom<=bar.bottom);
+    check('hover gives the exact figure and the window',/Context 300,000 tokens of 1,000,000 \(30\.0%\)/.test(g.title)&&g.style.getPropertyValue('--gauge-fill')==='30.0');
+    const green=gaugeColor();
+    w.fixture.context[ref()]=measured(850000,1000000);api.state.nextPoll=0;await until(()=>g.style.getPropertyValue('--gauge-fill')==='85.0');
+    const red=gaugeColor();
+    w.fixture.context[ref()]=measured(550000,1000000);api.state.nextPoll=0;await until(()=>g.style.getPropertyValue('--gauge-fill')==='55.0');
+    const orange=gaugeColor();
+    check('the fill color moves green -> orange -> red with the share used',green!==orange&&orange!==red&&green!==red);
+    w.fixture.context[ref()]={state:'unavailable',reason:'transcript unavailable: fixture'};api.state.nextPoll=0;await until(()=>/last known figure/.test(g.title));
+    check('an unknown newer read keeps the last known figure on the gauge',g.dataset.known==='true'&&g.style.getPropertyValue('--gauge-fill')==='55.0'&&/550,000/.test(g.title));
+    w.fixture.context[ref()]={...measured(42000,null),window_tokens:null};api.state.nextPoll=0;await until(()=>g.dataset.known==='tokens');
+    check('measured tokens without a window still show, honestly marked window unknown',/42,000 tokens · window unknown/.test(g.title));
+    delete w.fixture.context[ref()];
+
+    // B and C: copy buttons on hover.
+    const turn=api.state.rows.get('r'+(n-1)).node,copy=turn.querySelector('.event-label > .event-copy');
+    check('a chat block has a copy button just left of its date, hidden until hover',!!copy&&copy.nextElementSibling===turn.querySelector('.event-meta')&&getComputedStyle(copy).opacity==='0');
+    let copied=null;Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async t=>{copied=t;}},configurable:true});
+    w.fixture.events[ref()].push({...w.fixture.event(n++,'# Heading\n\nSome **bold** text.\n\n```js\nconst x = 1;\n```\n'),kind:'assistant',
+      thinking:[{blockIndex:0,availability:'stored',streaming:false,text:'secret thinking'}]});api.state.nextPoll=0;await until(()=>api.state.rows.has('r'+(n-1)));
+    const mdTurn=api.state.rows.get('r'+(n-1)).node;mdTurn.querySelector('.event-copy').click();await sleep(50);
+    check('the message copy button copies only the message as its Markdown source',copied==='# Heading\n\nSome **bold** text.\n\n```js\nconst x = 1;\n```\n');
+    const codeCopy=mdTurn.querySelector('.code-wrap > .code-copy');
+    check('a rendered code block carries its own copy button',!!codeCopy&&!!mdTurn.querySelector('.code-wrap > pre'));
+    codeCopy.click();await sleep(50);
+    check('the code block copy button copies that block text',copied==='const x = 1;\n');
+    check('all transport mocked, no page errors',w.fixture.errors.length===0);
+  }catch(e){results.push({name:e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:results.filter(x=>x.passed).length,failed:results.filter(x=>!x.passed).length,checks:results},null,2);
+  document.body.dataset.testPassed=String(results.length>0&&results.every(x=>x.passed));
+})();
+</script>

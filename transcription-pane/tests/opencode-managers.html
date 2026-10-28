@@ -1,0 +1,144 @@
+<!doctype html><meta charset="utf-8"><title>Actual desktop OpenCode Managers · inert transports</title>
+<style>body{margin:0}iframe{width:1400px;height:1100px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="pane"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],sleep=ms=>new Promise(r=>setTimeout(r,ms)),check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw Error(name)},
+    until=async fn=>{for(let i=0;i<200;i++){if(fn())return;await sleep(5)}throw Error('fixture did not settle')};
+  try {
+    const base=new URL('../static/',location.href),read=async p=>(await fetch(new URL(p,base))).text();
+    const [html,app,shared,defaults,core,view,sessions,sessionsCss,managerOrder]=await Promise.all(['index.html','app.js','opencode-manager.js','refine-defaults.js','refine-core.js','refine-view.js','sessions.html','sessions.css','manager-order.js'].map(read));
+    const form=sessions.match(/<section id="claude-new-manager-row"[\s\S]*?<\/section>/)[0];
+    const env=d=>({schemaVersion:1,backend:'opencode',...d}),a='ses_desktopAAAA',b='ses_desktopBBBB',worker='ses_desktopWORK';
+    const model={providerID:'openai',id:'gpt-fixture',variant:'high'},models=[{providerID:'openai',id:'gpt-fixture',name:'GPT fixture',variants:{low:{},high:{},max:{}}},
+      {providerID:'openrouter',id:'other/model',name:'Other real catalog fixture',variants:{medium:{}}},
+      {providerID:'openai',id:'gpt-6.1-sol-fast',name:'GPT-6.1 Sol Fast',variants:{low:{},medium:{},high:{},xhigh:{}}}];
+    const state=(sid,witness)=>env({sessionId:sid,target:{backend:'opencode',sessionId:sid,witness:witness.repeat(64)},title:'OpenCode '+sid,
+      agent:'manager',model:{...model},busy:true,capabilities:{send:true,control:true,context:true},
+      context:{status:'measured',usedTokens:150000,window:872000,measuredAt:Date.now(),basis:'input + cache read + cache write + output + reasoning'}});
+    window.inert={store:new Map(),calls:[],records:new Map(),states:new Map([[a,state(a,'a')],[b,state(b,'b')]]),serial:0,
+      lose:false,missing:false,defer:false,release:null,errors:[],providers:[],context:'[USER]\nWhole eligible prose 😀\n\n---\n\n[ASSISTANT]\nGenuine final answer'};
+    const response=(d,status=200)=>new Response(JSON.stringify(d),{status});
+    inert.transport=async(url,opts={})=>{
+      url=String(url);const u=new URL(url,'http://fixture'),path=u.pathname,q=u.searchParams,body=opts.body?JSON.parse(opts.body):null;
+      inert.calls.push({url,path,body});
+      if(path==='/api/opencode/manager')return response(inert.states.get(q.get('id'))||{error:'worker remains view-only'},inert.states.has(q.get('id'))?200:409);
+      if(path==='/api/opencode/launch-defaults'||path==='/api/opencode/manager-models')return response(env({models,agents:['manager','manager-gpt'],mcp:[{name:'workflowy',status:'connected'}]}));
+      if(path==='/api/opencode/context')return response(env({target:inert.states.get(q.get('id')).target,text:inert.context,bytes:new TextEncoder().encode(inert.context).length,
+        users:1,historyMode:q.get('historyMode'),historyBoundaries:[{id:'msg_context',end:inert.context.length}]}));
+      if(path==='/api/opencode/intent'){
+        const nativeId=(body.kind==='launch'?'ses_':'msg_')+(++inert.serial).toString(16).padStart(12,'0')+'ABCDEFGHIJKLMN';
+        const r=env({operationId:body.operationId,kind:body.kind,intent:body,nativeId,state:'prepared',acknowledged:false});inert.records.set(body.operationId,r);return response(r);
+      }
+      if(['/api/opencode/send','/api/opencode/launch-manager','/api/opencode/control'].includes(path)){
+        const r=inert.records.get(body.operationId),saved=[...inert.store.values()].map(v=>{try{return JSON.parse(v)}catch(_){return null}}).find(v=>v?.operationId===body.operationId);
+        if(saved?.phase!=='posting'||saved.nativeId!==r.nativeId)throw Error('execute before exact journal readback');
+        if(r.kind==='send'){r.state='pending';r.acknowledged=true;if(inert.defer)await new Promise(resolve=>inert.release=resolve)}
+        else if(r.kind==='launch'){
+          const s=state(r.nativeId,'c');s.title=r.intent.name;s.agent=r.intent.agent;s.model=r.intent.model;inert.states.set(r.nativeId,s);
+          Object.assign(r,{state:'created',acknowledged:true,target:s.target,sent:false});
+        } else {r.state=r.intent.operation==='interrupt'?'accepted':'applied';r.acknowledged=r.state==='applied';if(r.intent.model)inert.states.get(r.intent.target.sessionId).model=r.intent.model;}
+        if(inert.lose)throw TypeError('reply lost after native admission');return response(r);
+      }
+      if(path==='/api/opencode/receipt')return inert.missing?response({error:'native receipt unreadable'},502):response(inert.records.get(q.get('operationId')));
+      if(path==='/api/claude/launch-defaults')return response({schemaVersion:1,backend:'claude',name:'Manager fixture',model:'claude-opus-5-5',effort:'xhigh'});
+      // Pane-served like launch-defaults (no host); the host's own routes answer as a stopped host does.
+      if(path==='/api/claude/first-messages'&&inert.firstMessages)return response({schemaVersion:1,backend:'claude',...inert.firstMessages,defaults:{},custom:{}});
+      if(inert.claudeDown&&path.startsWith('/api/claude/')){inert.claudeHost.push(path);return response({error:'host unavailable; retained history is independent'},502);}
+      if(url==='https://api.anthropic.com/v1/messages'){
+        inert.providers.push(body);
+        return new Response([{type:'message_start',message:{id:'fixture',type:'message',role:'assistant',content:[],stop_reason:null,usage:{input_tokens:10,output_tokens:0}}},
+          {type:'content_block_start',index:0,content_block:{type:'text',text:'Refined actual markup 😀'}},{type:'content_block_stop',index:0},
+          {type:'message_delta',delta:{stop_reason:'end_turn'},usage:{output_tokens:3}},{type:'message_stop'}].map(e=>'event: '+e.type+'\ndata: '+JSON.stringify(e)+'\n\n').join(''),{headers:{'Content-Type':'text/event-stream'}});
+      }
+      throw Error('No live transport allowed: '+url);
+    };
+    const safe=s=>s.replace(/<\/script/gi,'<\\/script'),frame=document.getElementById('pane');let w,d,api,box;
+    async function mount(){
+      const ready=new Promise(r=>frame.onload=r),mock=`window.fixture={};window.fetch=(...a)=>top.inert.transport(...a);
+        addEventListener('error',e=>top.inert.errors.push(e.message));
+        Object.defineProperty(window,'localStorage',{value:{get length(){return top.inert.store.size},key:i=>[...top.inert.store.keys()][i],getItem:k=>top.inert.store.get(k)??null,setItem:(k,v)=>top.inert.store.set(k,String(v)),removeItem:k=>top.inert.store.delete(k)}});
+        Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{}}});window.confirm=()=>{throw Error('OpenCode must not confirm')};
+        window.BroadcastChannel=class{postMessage(){}close(){}};`;
+      const exposed=app.replace(/main\(\);\s*$/,'')+`\nfixture.api={state,wire,send,refine,showRefineView,buildContext,freezeRefineTarget,acceptOpenCodeManager,pollOpenCodeManager,controlOpenCodeManager,openCodeManagerApi,saveDraft,draftChanged,newManagerRuntime,launchNewManager,openNewManager,openNewSub,launchNewSub};wire();`;
+      frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}"><style>${sessionsCss}</style>`).replace(/<script\b[^>]*src="[^"]+"><\/script>/g,'')
+        .replace('<section id="target-row"',form+'<section id="target-row"').replace('</body>',()=>[mock,defaults,core,view,shared,managerOrder,exposed].map(s=>'<script>'+safe(s)+'<\/script>').join('')+'</body>');
+      await ready;await sleep(20);w=frame.contentWindow;d=w.document;api=w.fixture.api;box=d.getElementById('transcript');
+    }
+    const draft=text=>{box.value=text;box.dispatchEvent(new w.Event('input',{bubbles:true}));api.saveDraft()},posts=()=>inert.calls.filter(c=>c.path==='/api/opencode/send');
+    inert.store.set('refine_provider','anthropic');inert.store.set('refine_anthropic_api_key','INERT-NOT-A-KEY');inert.store.set('refine_think_level','medium');
+    await mount();await api.acceptOpenCodeManager(a);await sleep(10);
+    check('actual index markup exposes OpenCode Manager controls and context basis',!d.getElementById('opencode-manager-panel').hidden&&/input \+ cache/.test(d.getElementById('opencode-context').textContent));
+    const original=' \n'+('Long dictated 😀中\n'.repeat(20000))+'TAIL Ω ';draft(original);d.getElementById('send-btn').click();await until(()=>posts().length===1&&!api.state.sending);
+    const sent=inert.records.get(posts()[0].body.operationId);
+    check('busy Send is direct steer with full original and complete tail',sent.intent.delivery==='steer'&&sent.intent.original===original&&sent.intent.submitted===original.trim());
+    check('exact pending inbox evidence clears only unchanged draft',box.value==='');
+    check('desktop new path never uses watcher, /oc or legacy /api/send',!inert.calls.some(c=>c.path.startsWith('/oc')||c.path==='/api/send'||c.path==='/api/active-session'));
+    inert.defer=true;draft('A original');const delayed=api.send();await until(()=>typeof inert.release==='function');await api.acceptOpenCodeManager(b);draft('B draft');inert.release();await delayed;
+    check('delayed A ACK keeps B draft and cannot hold B Send',box.value==='B draft'&&!api.openCodeManagerApi().pending(api.state.ocManagerTarget));
+    inert.defer=false;inert.lose=true;inert.missing=true;draft('reload original');await api.send();const count=posts().length;
+    check('reply loss retains full draft in uncertain same-target journal',box.value==='reload original'&&!!api.openCodeManagerApi().pending(api.state.ocManagerTarget));
+    await mount();await api.acceptOpenCodeManager(b);inert.missing=false;inert.lose=false;await api.pollOpenCodeManager();
+    check('reload reconciles query-only and desktop keeps the new page draft',posts().length===count&&box.value==='reload original');
+    const beforeWorker=api.state.ocManagerTarget.sessionId;try{await api.acceptOpenCodeManager(worker)}catch(_){}
+    check('worker authority refusal leaves existing Manager and draft intact',api.state.ocManagerTarget.sessionId===beforeWorker&&box.value==='reload original');
+    d.getElementById('opencode-variant').value='max';draft('control draft');await api.controlOpenCodeManager('set_model');await api.controlOpenCodeManager('interrupt');
+    check('busy model/thinking readback and one Interrupt preserve draft',inert.states.get(b).model.variant==='max'&&box.value==='control draft'&&inert.calls.filter(c=>c.path==='/api/opencode/control').length===2);
+    const ctx=await api.buildContext(api.freezeRefineTarget());check('whole Refine reads guarded genuine prose',ctx.text===inert.context);
+    inert.store.set('refine_history_mode','budgeted');await api.buildContext(api.freezeRefineTarget());check('budgeted Refine requests explicit server mode',inert.calls.some(c=>c.path==='/api/opencode/context'&&c.url.includes('historyMode=budgeted')));
+    inert.store.set('pane_claude_no_context_v1','true');const contexts=inert.calls.filter(c=>c.path==='/api/opencode/context').length;draft('rough words');await api.refine();
+    check('explicit no-context Refine uses unchanged independent provider',box.value==='Refined actual markup 😀'&&inert.calls.filter(c=>c.path==='/api/opencode/context').length===contexts&&inert.providers.length===1);
+    d.getElementById('manager-new-runtime').value='opencode';await api.newManagerRuntime();d.getElementById('claude-new-name').value='Catalog Manager';d.getElementById('opencode-new-variant').value='max';draft('launch draft');
+    check('OpenCode form hides native Claude model and thinking with the real grid CSS',
+      ['claude-new-model','claude-new-effort'].every(id=>w.getComputedStyle(d.getElementById(id).closest('label')).display==='none'));
+    d.getElementById('manager-new-runtime').value='claude';await api.newManagerRuntime();
+    check('native Claude form hides the entire OpenCode settings section',w.getComputedStyle(d.getElementById('opencode-new-settings')).display==='none');
+    d.getElementById('manager-new-runtime').value='opencode';await api.newManagerRuntime();d.getElementById('opencode-new-variant').value='max';
+    await api.launchNewManager();await sleep(10);const launch=[...inert.records.values()].find(r=>r.kind==='launch');
+    check('same New Manager form launches catalog model/variant/persona without a turn',launch.intent.model.variant==='max'&&launch.intent.model.providerID==='openai'&&launch.intent.agent==='manager'&&launch.sent===false&&posts().length===count);
+    check('created OpenCode Manager selected with draft preserved',api.state.ocManagerTarget.sessionId===launch.nativeId&&box.value==='launch draft');
+    // ↳ Sub-session, the crisis route: Claude host stopped. The box carries New Manager's own runtime/model/thinking
+    // (Native Claude by default, as before); OpenCode · GPT-6.1 Sol Fast · xhigh starts the sub-session and sends its text.
+    api.state.backend='claude';d.getElementById('manager-new-runtime').value='claude';await api.newManagerRuntime();
+    inert.firstMessages={manager:'Hello, Manager-Session-{N}.',subSession:'Sub-session {N}-{letter} of Manager-Session-{N}.\n\nReason for this sub-session: '};
+    inert.claudeDown=true;inert.claudeHost=[];
+    d.getElementById('claude-sessions-frame').contentWindow.opcSidebar={managerNames:()=>[['Manager-Session-226','x'],['Manager-Session-226-a']]};
+    draft('crisis draft');await api.openNewSub();
+    const choices=d.getElementById('manager-new-choices'),shown=id=>{const n=d.getElementById(id);return w.getComputedStyle(n.closest('label')||n).display!=='none'&&n.getBoundingClientRect().width>0};
+    check('↳ opened before ＋ New Manager defaults to Opus 5.5 / xhigh without a launch-defaults read',
+      d.getElementById('claude-new-model').value==='claude-opus-5-5'&&d.getElementById('claude-new-effort').value==='xhigh'&&
+      !inert.calls.some(c=>c.path==='/api/claude/launch-defaults'));
+    check('↳ opens 226-b with New Manager’s own runtime/model/thinking inside its box, Native Claude by default',
+      !d.getElementById('claude-new-sub-form').hidden&&d.getElementById('claude-new-manager-form').hidden&&d.getElementById('claude-new-sub-choices-slot').contains(choices)&&
+      d.getElementById('manager-new-runtime').value==='claude'&&['manager-new-runtime','claude-new-model','claude-new-effort'].every(shown)&&!shown('opencode-new-settings')&&
+      d.getElementById('claude-new-sub-title').textContent==='Sub-session 226-b of Manager-Session-226'&&
+      d.getElementById('claude-new-sub-text').getBoundingClientRect().bottom<=d.getElementById('manager-new-runtime').getBoundingClientRect().top&&
+      d.getElementById('claude-new-effort').getBoundingClientRect().bottom<=d.getElementById('claude-new-sub-send').getBoundingClientRect().top);
+    const runtime=d.getElementById('manager-new-runtime');runtime.value='opencode';runtime.dispatchEvent(new w.Event('change'));
+    await until(()=>d.getElementById('opencode-new-model').options.length===3&&shown('opencode-new-settings'));
+    check('OpenCode in the sub-session box shows persona, catalog model and thinking and hides the Claude fields',
+      ['opencode-new-agent','opencode-new-model','opencode-new-variant'].every(shown)&&!shown('claude-new-model')&&!shown('claude-new-effort'));
+    d.getElementById('opencode-new-agent').value='manager-gpt';
+    const ocModel=d.getElementById('opencode-new-model');ocModel.value='openai/gpt-6.1-sol-fast';ocModel.dispatchEvent(new w.Event('change'));
+    d.getElementById('opencode-new-variant').value='xhigh';
+    d.getElementById('claude-new-sub-text').value+='Claude host is down';
+    const subText='Sub-session 226-b of Manager-Session-226.\n\nReason for this sub-session: Claude host is down';
+    const sendOf=t=>[...inert.records.values()].find(r=>r.kind==='send'&&r.intent.original===t);
+    await api.launchNewSub();await until(()=>sendOf(subText)&&!api.state.sending);
+    const subLaunch=[...inert.records.values()].find(r=>r.kind==='launch'&&r.intent.name==='Manager-Session-226-b'),opening=sendOf(subText);
+    check('Claude host down: OpenCode · GPT-6.1 Sol Fast · xhigh starts Manager-Session-226-b, selects it and sends the box once as its first message; the draft stays',
+      subLaunch&&subLaunch.intent.agent==='manager-gpt'&&subLaunch.intent.model.providerID==='openai'&&subLaunch.intent.model.id==='gpt-6.1-sol-fast'&&
+      subLaunch.intent.model.variant==='xhigh'&&opening.intent.target.sessionId===subLaunch.nativeId&&api.state.ocManagerTarget.sessionId===subLaunch.nativeId&&
+      [...inert.records.values()].filter(r=>r.kind==='send'&&r.intent.original===subText).length===1&&d.getElementById('claude-new-sub-form').hidden&&box.value==='crisis draft');
+    check('the crisis route never calls a Claude host route ['+inert.claudeHost.join(', ')+']',!inert.claudeHost.some(p=>/launch-manager|\/send$|reconnect/.test(p)));
+    await api.openNewManager();
+    check('＋ New Manager takes the same controls back, still on the choice made in the sub-session box',d.getElementById('claude-new-choices-slot').contains(choices)&&
+      d.getElementById('claude-new-sub-form').hidden&&!d.getElementById('claude-new-manager-form').hidden&&runtime.value==='opencode'&&
+      d.getElementById('opencode-new-agent').value==='manager-gpt'&&ocModel.value==='openai/gpt-6.1-sol-fast');
+    inert.claudeDown=false;
+    check('browser fixture has no hidden script errors',inert.errors.length===0);
+    document.body.dataset.testPassed='true';
+  } catch(e) {checks.push({name:e.stack||String(e),passed:false});document.body.dataset.testPassed='false'}
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(c=>c.passed).length,failed:checks.filter(c=>!c.passed).length,checks});
+})();
+</script>

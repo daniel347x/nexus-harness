@@ -1,0 +1,1806 @@
+{
+ "about": "Shared test vectors for the root-search guard (docs/root-search-guard.md), run by the Python check (scripts/test_root_search_guard.py); the held OpenCode port (branch feat/root-search-guard-2) must pass them before it ships. Replace @REPOS@ and @HOME@ in every string with the environment below (a neutral layout, nobody's real one). `extra_roots` is the setting's list of extra root folders (each with every ancestor a root); `repos` are the folders that hold a .git entry; `folders` gives the subfolder names a listing of that folder returns (any other folder lists none); listing a folder in `unreadable` fails (an OSError); `glob_honours_gitignore` is whether Claude Code's Glob honours .gitignore (the session's settings env has CLAUDE_CODE_GLOB_NO_IGNORE=false, as every fresh host launch does), and a vector may override it. `cwd` is the session working directory: what a Grep/Glob call with no path searches, and where an OpenCode `shell` call without `workdir` starts. `shell_cwd` (Claude Code Bash only) is the folder the command starts in, as Claude Code reports it; absent, it is unknown. Tools: Claude Code's Bash, Grep, Glob; OpenCode's shell, grep, glob. expect: refuse | allow; `root` is the root a refusal names; `message`, when present, is the exact refusal text.",
+ "environment": {
+  "repos_root": "/mnt/d/work/repos",
+  "home": "/home/user",
+  "extra_roots": [
+   "@REPOS@"
+  ],
+  "repos": [
+   "@REPOS@/opencode-companion",
+   "@REPOS@/quick-worker",
+   "@REPOS@/manager-sessions",
+   "@REPOS@/workflowy-nexus-mcp-tools",
+   "@REPOS@/oc-worktrees/root-search-guard",
+   "@HOME@/diagnostics/opencode-src/opencode-v2.0.24",
+   "@HOME@/projects/beta",
+   "@HOME@/archive/d-repo",
+   "@HOME@/hidden-first/zeta"
+  ],
+  "folders": {
+   "@REPOS@/opencode-companion": [
+    ".git",
+    "agents",
+    "chrome-extension",
+    "config",
+    "docs",
+    "node_modules",
+    "packages",
+    "plugins",
+    "proxy",
+    "scripts",
+    "tmp",
+    "transcription-pane"
+   ],
+   "@HOME@/projects": [
+    "alpha",
+    "beta",
+    "notes"
+   ],
+   "@HOME@/archive": [
+    "a-notes",
+    "b-notes",
+    "c-notes",
+    "d-repo"
+   ],
+   "@HOME@/hidden-first": [
+    ".a",
+    ".b",
+    ".c",
+    "zeta"
+   ],
+   "@HOME@/documents": [
+    "letters",
+    "photos",
+    "receipts"
+   ]
+  },
+  "unreadable": [
+   "@HOME@/locked"
+  ],
+  "glob_honours_gitignore": true
+ },
+ "vectors": [
+  {
+   "id": "incident-ms186-glob-astra",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "agents/agent/*astra*",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "MS186: Glob walks the whole repository whatever the pattern (104 s); allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "incident-ms186-glob-quick",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "agents/agent/quick-*",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "MS186: Glob walks the whole repository whatever the pattern (104 s); allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "incident-ms186-subagent-grep-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && ls; ls quick-worker 2>/dev/null; timeout 60 grep -rnEi \"discretion|extended working|cost target|cost-target|GPT.{0,40}(cost|price|bill)|billed|ChatGPT plan allowance\" --include=*.md --include=*.py --include=*.ts --include=*.mjs --include=*.json --include=*.sh scripts plugins agents config docs quick-worker . 2>/dev/null | grep -v -e pytest_cache -e node_modules | sort -u | head -40"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "MS186 subagent: the trailing `.` operand after the cd is the repository root (killed by its own timeout 60)"
+  },
+  {
+   "id": "incident-ms193-pytest-then-grep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && PY=$(ls -d @REPOS@/workflowy-nexus-mcp-tools/.venv-wsl/bin/python) && timeout 600 $PY -m pytest -q scripts/test_oc_seat_titles.py scripts/test_oc_seat_dispatch.py scripts/test_oc_seat_claude.py 2>&1 | tail -5; grep -rn \"ROLE UNKNOWN\" --include=*.md --include=*.py . 2>/dev/null | grep -v '^./.git' | head"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "MS193: grep -rn . after pytest in the same command; `| grep -v .git` filters output, not the walk (253 s)"
+  },
+  {
+   "id": "incident-ms194-nexus",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/workflowy-nexus-mcp-tools && git status --short --ignored 2>/dev/null | grep '^!!' | head -40; grep -rn \"nexusignore\" --include=*.py -l . 2>/dev/null | head -0; grep -n \"def .*nexusignore\\|nexusignore\" nexus_map_codebase.py | head -8"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/workflowy-nexus-mcp-tools",
+   "why": "MS194: `grep -rn … -l .` at the NEXUS repository root, output discarded by head -0 (62 s)"
+  },
+  {
+   "id": "incident-ms204-glob",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "*/",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "MS204: Glob at the companion root (298 s; quick-worker is a sibling repository); allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "incident-ms207-glob",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "**/quick-worker/AGENTS.md",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "MS207: Glob at the companion root (306 s; quick-worker is a sibling repository); allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "incident-ms216-glob",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "quick-worker/**/*.md",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "MS216: Glob at the companion root (359 s; quick-worker is a sibling repository); allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "incident-ms220",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git status --short | head -20; git log -1 --oneline; grep -rln \"sol-fast#high\\|THINKING LEVEL HIGH\" scripts/tests tests 2>/dev/null | head; grep -rn \"sol-fast#high\\|THINKING LEVEL HIGH\" --include=*.md --include=*.py --include=*.ts . 2>/dev/null | grep -v node_modules | grep -v \"/tmp/\" | head -20"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "MS220: the first grep names subfolders (allowed); the second searches `.` = the repository root (123 s)"
+  },
+  {
+   "id": "incident-conductor-069",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rhoE \"quick-(opus55|fable51)-[a-z]+\" scripts/*.py 2>/dev/null | sort -u | head; ls config 2>/dev/null | head; grep -rlE \"quick-opus55-high\" --include=*.md --include=*.json --include=*.py . 2>/dev/null | head -5"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "Conductor: grep -rlE … . at the companion root after a cd (60 s timeout, backgrounded)"
+  },
+  {
+   "id": "grep-tool-at-repo-root",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "ROLE UNKNOWN",
+    "path": "@REPOS@/opencode-companion",
+    "glob": "*.py",
+    "output_mode": "files_with_matches"
+   },
+   "expect": "allow",
+   "why": "the Grep tool honors .gitignore: 31 of 31 root calls answered in under 0.6 s"
+  },
+  {
+   "id": "grep-tool-at-repos",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "@REPOS@"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "the Grep tool at a configured extra root (@REPOS@) searches every repository"
+  },
+  {
+   "id": "grep-tool-at-repos-trailing-slash",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "@REPOS@/"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "trailing slash normalized"
+  },
+  {
+   "id": "grep-tool-above-repos",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "/mnt/d/work"
+   },
+   "expect": "refuse",
+   "root": "/mnt/d/work",
+   "why": "every ancestor of a configured extra root (@REPOS@) is a root"
+  },
+  {
+   "id": "folder-of-repositories-grep-r",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo @HOME@/projects"
+   },
+   "expect": "refuse",
+   "root": "@HOME@/projects",
+   "message": "Refused by the Claude host's root-search guard: `grep -rn foo @HOME@/projects` walks the whole tree at @HOME@/projects, a folder above whole repositories and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Name subfolders instead (projects holds: alpha, beta, notes). Nothing in this command ran.",
+   "why": "one of its first three non-hidden subfolders (beta) holds .git: a folder of repositories"
+  },
+  {
+   "id": "folder-of-repositories-grep-tool",
+   "tool": "Grep",
+   "cwd": "@HOME@",
+   "input": {
+    "pattern": "foo",
+    "path": "@HOME@/projects"
+   },
+   "expect": "refuse",
+   "root": "@HOME@/projects",
+   "why": "Grep at a folder of repositories searches every repository in it"
+  },
+  {
+   "id": "folder-of-repositories-glob",
+   "tool": "Glob",
+   "cwd": "@HOME@",
+   "input": {
+    "pattern": "**/*.md",
+    "path": "@HOME@/projects"
+   },
+   "expect": "refuse",
+   "root": "@HOME@/projects",
+   "why": "Glob at a folder of repositories searches every repository in it"
+  },
+  {
+   "id": "folder-of-repositories-hidden-skipped",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo @HOME@/hidden-first"
+   },
+   "expect": "refuse",
+   "root": "@HOME@/hidden-first",
+   "why": "hidden subfolders are skipped: zeta, the first non-hidden one, holds .git"
+  },
+  {
+   "id": "folder-of-repositories-fourth-only",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo @HOME@/archive"
+   },
+   "expect": "allow",
+   "why": "only the first three non-hidden subfolders by name are probed; the repository is the fourth"
+  },
+  {
+   "id": "plain-folder",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo @HOME@/documents"
+   },
+   "expect": "allow",
+   "why": "none of its first subfolders is a repository: not a root"
+  },
+  {
+   "id": "unreadable-folder",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo @HOME@/locked"
+   },
+   "expect": "allow",
+   "why": "its listing fails: not a root"
+  },
+  {
+   "id": "grep-tool-at-home",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "@HOME@"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "$HOME is a fixed root"
+  },
+  {
+   "id": "grep-tool-no-path-in-repo",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo"
+   },
+   "expect": "allow",
+   "why": "no path = the working directory, here one repository (manager-sessions)"
+  },
+  {
+   "id": "grep-tool-subfolder",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "@REPOS@/opencode-companion/scripts"
+   },
+   "expect": "allow",
+   "why": "a subfolder"
+  },
+  {
+   "id": "grep-tool-file",
+   "tool": "Grep",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "foo",
+    "path": "@REPOS@/opencode-companion/README.md"
+   },
+   "expect": "allow",
+   "why": "a file"
+  },
+  {
+   "id": "glob-no-path-at-repo-cwd",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "**/*.md"
+   },
+   "expect": "allow",
+   "why": "no path = the working directory, a repository root; allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "glob-no-path-at-home",
+   "tool": "Glob",
+   "cwd": "@HOME@",
+   "input": {
+    "pattern": "*.md"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "no path = $HOME, a folder above repositories, where Glob (ignore-aware like Grep) is still refused",
+   "message": "Refused by the Claude host's root-search guard: `Glob \"*.md\" at @HOME@` searches every repository under the home folder @HOME@, which runs until Claude Code's 60 s Glob limit stops it. Give it one repository or one of its subfolders."
+  },
+  {
+   "id": "glob-at-extra-root",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "*/AGENTS.md",
+    "path": "@REPOS@"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "Glob at a configured extra root searches every repository under it"
+  },
+  {
+   "id": "glob-relative-path-to-clone",
+   "tool": "Glob",
+   "cwd": "@HOME@",
+   "input": {
+    "pattern": "**/*.ts",
+    "path": "diagnostics/opencode-src/opencode-v2.0.24"
+   },
+   "expect": "allow",
+   "why": "a relative path resolves against the working directory: the OpenCode source clone is a git top-level; allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "glob-subfolder",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "quick-*",
+    "path": "@REPOS@/opencode-companion/agents/agent"
+   },
+   "expect": "allow",
+   "why": "path names a subfolder"
+  },
+  {
+   "id": "glob-absolute-pattern-at-root",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "@REPOS@/opencode-companion/**/*.md"
+   },
+   "expect": "allow",
+   "why": "an absolute pattern starts at its literal prefix, the repository root; allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "glob-absolute-pattern-subfolder",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "@REPOS@/opencode-companion/docs/*.md"
+   },
+   "expect": "allow",
+   "why": "literal prefix is docs/"
+  },
+  {
+   "id": "glob-windows-path",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "*.md",
+    "path": "D:\\work\\repos"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "D:\\… means /mnt/d/…: here the configured extra root, where Glob searches every repository"
+  },
+  {
+   "id": "glob-worktree-root",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "pattern": "*.py",
+    "path": "@REPOS@/oc-worktrees/root-search-guard"
+   },
+   "expect": "allow",
+   "why": "a worktree (a .git file) is a repository root; allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "other-tool",
+   "tool": "Read",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "file_path": "@REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "only Bash, Grep and Glob are judged"
+  },
+  {
+   "id": "bash-cd-then-subfolders",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn foo scripts docs"
+   },
+   "expect": "allow",
+   "why": "named subfolders"
+  },
+  {
+   "id": "bash-no-cd-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "the folder at the start of a command is unknown (the shell keeps the previous command's folder)"
+  },
+  {
+   "id": "bash-literal-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rn foo @REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "the root typed literally"
+  },
+  {
+   "id": "bash-literal-root-slash",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rn foo @REPOS@/opencode-companion/ --include=*.md"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "trailing slash; --include does not narrow the walk"
+  },
+  {
+   "id": "bash-literal-repos",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rln foo @REPOS@ --include=*.py"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "@REPOS@"
+  },
+  {
+   "id": "bash-root-slash",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rn foo /"
+   },
+   "expect": "refuse",
+   "root": "/",
+   "why": "/ is a root"
+  },
+  {
+   "id": "bash-home-tilde",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -rn foo ~"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "~ is $HOME"
+  },
+  {
+   "id": "bash-clone-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd ~/diagnostics/opencode-src/opencode-v2.0.24 && grep -rn \"tool.execute.before\" ."
+   },
+   "expect": "refuse",
+   "root": "@HOME@/diagnostics/opencode-src/opencode-v2.0.24",
+   "why": "the OpenCode source clone is a git top-level"
+  },
+  {
+   "id": "bash-clone-file",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "grep -n \"tool.execute.before\" ~/diagnostics/opencode-src/opencode-v2.0.24/packages/plugin/src/index.ts"
+   },
+   "expect": "allow",
+   "why": "one file, not recursive"
+  },
+  {
+   "id": "bash-worktree-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/oc-worktrees/root-search-guard && grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/oc-worktrees/root-search-guard",
+   "why": "a worktree is a repository root"
+  },
+  {
+   "id": "bash-worktrees-parent-subfolder",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/oc-worktrees && grep -rn foo root-search-guard/scripts"
+   },
+   "expect": "allow",
+   "why": "a subfolder of a worktree"
+  },
+  {
+   "id": "bash-not-a-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd /mnt/c/tmp && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "/mnt/c/tmp is not a root"
+  },
+  {
+   "id": "bash-pipe-grep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git status --short | grep -v tmp"
+   },
+   "expect": "allow",
+   "why": "a grep reading a pipe is not a search"
+  },
+  {
+   "id": "bash-pipe-grep-r",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git ls-files | grep -r foo"
+   },
+   "expect": "refuse",
+   "why": "GNU grep -r with no file operand searches the current folder even when its input is a pipe (the pipe exemption is for rg, ag and ack)",
+   "root": "@REPOS@/opencode-companion"
+  },
+  {
+   "id": "bash-pipe-rg",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && cat scripts/oc_seat.py | rg foo"
+   },
+   "expect": "allow",
+   "why": "rg reading a pipe"
+  },
+  {
+   "id": "bash-xargs-grep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git ls-files scripts | xargs grep -l foo"
+   },
+   "expect": "allow",
+   "why": "xargs supplies the operands"
+  },
+  {
+   "id": "bash-xargs-grep-r",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git ls-files scripts | xargs grep -rln foo"
+   },
+   "expect": "allow",
+   "why": "xargs supplies grep -r its file operands"
+  },
+  {
+   "id": "bash-grep-not-recursive",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -n foo README.md"
+   },
+   "expect": "allow",
+   "why": "not recursive"
+  },
+  {
+   "id": "bash-grep-r-no-operand",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn --include='*.py' -e foo -e bar"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "grep -r with no path operand searches the current folder"
+  },
+  {
+   "id": "bash-grep-d-recurse",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -d recurse -n foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "-d recurse is -r"
+  },
+  {
+   "id": "bash-grep-star",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn foo *"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "`*` expands to every top-level entry, tmp/ included"
+  },
+  {
+   "id": "bash-grep-glob-files",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn foo scripts/*.py"
+   },
+   "expect": "allow",
+   "why": "a narrower glob names files"
+  },
+  {
+   "id": "bash-rgrep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "rgrep foo @REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "rgrep is grep -r"
+  },
+  {
+   "id": "bash-git-grep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && git grep -n foo"
+   },
+   "expect": "allow",
+   "why": "git grep reads tracked files only"
+  },
+  {
+   "id": "bash-find-shallow",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && find . -maxdepth 2 -name '*.md'"
+   },
+   "expect": "allow",
+   "why": "a shallow find (-maxdepth 2)"
+  },
+  {
+   "id": "bash-find-deep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && find . -maxdepth 3 -name x"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "-maxdepth 3 is not shallow"
+  },
+  {
+   "id": "bash-find-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && find . -name '*.py' -path '*claude*'"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "find walks everything"
+  },
+  {
+   "id": "bash-find-literal",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "find @REPOS@/opencode-companion -name AGENTS.md"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "find at the literal root"
+  },
+  {
+   "id": "bash-find-subfolder",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "find @REPOS@/opencode-companion/scripts -name '*.py'"
+   },
+   "expect": "allow",
+   "why": "a subfolder"
+  },
+  {
+   "id": "bash-find-repos-shallow",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@ && find . -maxdepth 1 -type d"
+   },
+   "expect": "allow",
+   "why": "shallow listing of @REPOS@"
+  },
+  {
+   "id": "bash-ls-recursive",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && ls -R"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "ls -R walks the tree"
+  },
+  {
+   "id": "bash-ls",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && ls -la"
+   },
+   "expect": "allow",
+   "why": "one folder listing"
+  },
+  {
+   "id": "bash-repos-ls",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@ && ls"
+   },
+   "expect": "allow",
+   "why": "one folder listing"
+  },
+  {
+   "id": "bash-du-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && du -sh ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "du walks the whole tree"
+  },
+  {
+   "id": "bash-du-subfolder",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && du -sh tmp"
+   },
+   "expect": "allow",
+   "why": "a subfolder, named on purpose"
+  },
+  {
+   "id": "bash-tree-shallow",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && tree -L 2"
+   },
+   "expect": "allow",
+   "why": "tree -L 2 is shallow"
+  },
+  {
+   "id": "bash-tree",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && tree"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "tree walks everything"
+  },
+  {
+   "id": "bash-rg-repo-root",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && rg -n foo"
+   },
+   "expect": "allow",
+   "why": "rg honors .gitignore: one repository is fine"
+  },
+  {
+   "id": "bash-rg-repos",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "rg -n foo @REPOS@"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "rg at @REPOS@ searches every repository"
+  },
+  {
+   "id": "bash-rg-repos-cd",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@ && rg -l foo"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "rg at @REPOS@ after a cd"
+  },
+  {
+   "id": "bash-rg-unrestricted",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && rg -uu foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "rg -uu ignores .gitignore"
+  },
+  {
+   "id": "bash-rg-no-ignore",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && rg --no-ignore -l foo"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "--no-ignore"
+  },
+  {
+   "id": "bash-rg-hidden",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && rg --hidden foo"
+   },
+   "expect": "allow",
+   "why": "--hidden alone still honors .gitignore"
+  },
+  {
+   "id": "bash-rg-files",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "rg --files -g '*.md' @REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "rg --files honors .gitignore"
+  },
+  {
+   "id": "bash-rg-shallow-home",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "rg --max-depth 1 foo ~"
+   },
+   "expect": "allow",
+   "why": "a shallow rg"
+  },
+  {
+   "id": "bash-fd-repo",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "fd -e py . @REPOS@/opencode-companion"
+   },
+   "expect": "allow",
+   "why": "fd honors .gitignore"
+  },
+  {
+   "id": "bash-fd-no-ignore",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "fd -I -e py . @REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "fd -I ignores .gitignore"
+  },
+  {
+   "id": "bash-repos-subfolder",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@ && grep -rn foo opencode-companion/scripts"
+   },
+   "expect": "allow",
+   "why": "a subfolder of one repository"
+  },
+  {
+   "id": "bash-cd-chain-down",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && cd scripts && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "cd tracked into a subfolder"
+  },
+  {
+   "id": "bash-cd-chain-up",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion/scripts && cd .. && grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "cd .. back to the root"
+  },
+  {
+   "id": "bash-subshell-restores",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "(cd @REPOS@/opencode-companion && grep -rn foo scripts); grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "the subshell's cd does not leak: the second grep starts in the unknown folder"
+  },
+  {
+   "id": "bash-subshell-inner",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && (cd scripts && grep -rn foo .)"
+   },
+   "expect": "allow",
+   "why": "the subshell cd into a subfolder"
+  },
+  {
+   "id": "bash-pushd",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "pushd @REPOS@/opencode-companion && grep -rn foo .; popd"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "pushd is tracked like cd"
+  },
+  {
+   "id": "bash-env-chdir",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "env -C @REPOS@/opencode-companion grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "env -C moves the wrapped command"
+  },
+  {
+   "id": "bash-timeout-wrapper",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && timeout 30 grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "timeout wraps the search"
+  },
+  {
+   "id": "bash-if",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && if grep -rq foo .; then echo yes; fi"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "a search inside if"
+  },
+  {
+   "id": "bash-cd-or-fallback",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion/scripts 2>/dev/null || cd @REPOS@/opencode-companion; grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a cd after || runs only if the first failed: the folder is unknown, refuse only when certain"
+  },
+  {
+   "id": "bash-cd-if-else",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "if [ -d @REPOS@/opencode-companion/scripts ]; then cd @REPOS@/opencode-companion/scripts; else cd @REPOS@/opencode-companion; fi; grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a cd inside an if branch may not run: the folder is unknown"
+  },
+  {
+   "id": "bash-cd-case",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "case \"$MODE\" in full) cd @REPOS@/opencode-companion;; esac; grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a cd inside a case branch may not run: the shell may still be in scripts/"
+  },
+  {
+   "id": "bash-cd-background",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion & grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a backgrounded cd moves only its own subshell: the folder is unknown"
+  },
+  {
+   "id": "bash-cd-background-list",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && make & grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "an and/or list run with & moves only its background subshell: the folder is unknown"
+  },
+  {
+   "id": "bash-cd-function-body",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "f() { cd @REPOS@/opencode-companion; }; grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a cd in a function body runs only when the function is called: the folder is unknown"
+  },
+  {
+   "id": "bash-cd-or-exit",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion || exit 1; grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "the cd before || is certain (if it fails, the command exits)"
+  },
+  {
+   "id": "bash-cd-brace-group",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "{ cd @REPOS@/opencode-companion; }; grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "a { … } group runs in the current shell: its cd is certain"
+  },
+  {
+   "id": "bash-for-dynamic",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && for d in scripts docs; do grep -rn foo \"$d\"; done"
+   },
+   "expect": "allow",
+   "why": "$d is unknown"
+  },
+  {
+   "id": "bash-background",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn foo . > /mnt/c/tmp/out.txt &"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "still runs in the background"
+  },
+  {
+   "id": "bash-newline-chain",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion\ngrep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "a newline separates pieces like ;"
+  },
+  {
+   "id": "bash-c",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "bash -c 'cd @REPOS@/opencode-companion && grep -r foo .'"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "inside bash -c"
+  },
+  {
+   "id": "bash-sh-c-timeout",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "timeout 30 sh -c \"cd @REPOS@/quick-worker; grep -rl beacon .\""
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/quick-worker",
+   "why": "inside sh -c behind timeout: quick-worker is a repository root"
+  },
+  {
+   "id": "bash-command-substitution-find",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && wc -l $(find . -name '*.py')"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "the find inside $(…) runs at the root"
+  },
+  {
+   "id": "bash-find-pipe-xargs-shallow",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && find . -maxdepth 1 | xargs grep -l foo"
+   },
+   "expect": "allow",
+   "why": "shallow find; xargs supplies operands"
+  },
+  {
+   "id": "bash-cd-substitution",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd \"$(git rev-parse --show-toplevel)\" && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "cd $(…) leaves the folder unknown"
+  },
+  {
+   "id": "bash-cd-variable",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd \"$REPO\" && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "cd \"$VAR\" leaves the folder unknown"
+  },
+  {
+   "id": "bash-cd-relative-unknown",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd opencode-companion && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a relative cd from an unknown folder"
+  },
+  {
+   "id": "bash-operand-variable",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -r foo \"$DIR\""
+   },
+   "expect": "allow",
+   "why": "a $VAR operand is unknown"
+  },
+  {
+   "id": "bash-echo-quoted",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "echo 'cd @REPOS@/opencode-companion && grep -r foo .'"
+   },
+   "expect": "allow",
+   "why": "quoted text is data"
+  },
+  {
+   "id": "bash-heredoc",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cat > /mnt/c/tmp/x.sh <<'EOF'\ncd @REPOS@/opencode-companion\ngrep -r foo .\nEOF\nwc -l /mnt/c/tmp/x.sh"
+   },
+   "expect": "allow",
+   "why": "a heredoc body is data"
+  },
+  {
+   "id": "bash-comment",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && ls  # then grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a comment is data"
+  },
+  {
+   "id": "bash-script",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && python3 -c \"import os; list(os.walk('.'))\""
+   },
+   "expect": "allow",
+   "why": "what a script does is not read"
+  },
+  {
+   "id": "bash-unterminated-quote",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn 'foo ."
+   },
+   "expect": "allow",
+   "why": "lexer doubt (unterminated quote) allows"
+  },
+  {
+   "id": "repo-root-session-bare-grep-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "grep -rn \"ROLE UNKNOWN\" --include=*.py ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "message": "Refused by the Claude host's root-search guard: `grep -rn \"ROLE UNKNOWN\" --include=*.py .` walks the whole tree at the root of the repository opencode-companion (@REPOS@/opencode-companion) and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Name subfolders instead (opencode-companion holds: agents, chrome-extension, config, docs, packages, plugins, proxy, scripts, transcription-pane), or use the Grep tool, which honors .gitignore and may search this repository. Nothing in this command ran.",
+   "why": "session launched in the repository root, no cd: `.` is the root (Claude Code reports the shell at the root)"
+  },
+  {
+   "id": "repo-root-session-bare-find",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "find . -name '*.md'"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "session launched in the repository root: find walks it"
+  },
+  {
+   "id": "repo-root-session-grep-subfolder",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "grep -rn foo scripts plugins"
+   },
+   "expect": "allow",
+   "why": "named subfolders of the root"
+  },
+  {
+   "id": "repo-root-session-cd-sub-then-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "cd scripts && grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "a relative cd from the known root lands in a subfolder"
+  },
+  {
+   "id": "repo-root-session-after-cd-scripts",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "history: an earlier `cd scripts` persisted inside the working directory, so Claude Code reports the shell in scripts"
+  },
+  {
+   "id": "repo-root-session-after-cd-scripts-dotdot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "grep -rn foo .."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "history: the shell stands in scripts, so `..` is the repository root"
+  },
+  {
+   "id": "repo-root-session-after-cd-scripts-cd-up",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "cd .. && grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "history: the shell stands in scripts; `cd ..` returns to the root"
+  },
+  {
+   "id": "repo-root-session-rg-no-path",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "rg -n foo"
+   },
+   "expect": "allow",
+   "why": "rg honors .gitignore: one repository root is allowed"
+  },
+  {
+   "id": "repo-root-session-rg-no-ignore",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "rg -n --no-ignore foo"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "rg with ignore handling off is a whole-tree walk at the root"
+  },
+  {
+   "id": "repo-root-session-ls-shallow",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "ls -la && git status --short"
+   },
+   "expect": "allow",
+   "why": "no walk"
+  },
+  {
+   "id": "repo-root-session-pipe-grep",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "git ls-files | grep -r foo"
+   },
+   "expect": "refuse",
+   "why": "GNU grep -r with no file operand searches the current folder even when its input is a pipe (the pipe exemption is for rg, ag and ack)",
+   "root": "@REPOS@/opencode-companion"
+  },
+  {
+   "id": "repo-root-session-shallow-find",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "shell_cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "find . -maxdepth 2 -name AGENTS.md"
+   },
+   "expect": "allow",
+   "why": "shallow find"
+  },
+  {
+   "id": "repo-root-session-glob-no-path",
+   "tool": "Glob",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "pattern": "**/*.py"
+   },
+   "expect": "allow",
+   "why": "Glob with no path walks the folder Claude Code stands in: the repository root; allowed now: Glob honours .gitignore where the session's settings say CLAUDE_CODE_GLOB_NO_IGNORE=false (every fresh launch, launch.FORCED_PROFILE_ENV), like Grep, so one repository root is allowed"
+  },
+  {
+   "id": "glob-repo-root-without-gitignore",
+   "tool": "Glob",
+   "cwd": "@REPOS@/opencode-companion",
+   "glob_honours_gitignore": false,
+   "input": {
+    "pattern": "**/*.py"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "message": "Refused by the Claude host's root-search guard: Glob with path @REPOS@/opencode-companion walks every file under the root of the repository opencode-companion (@REPOS@/opencode-companion) whatever the pattern, and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Set `path` to the subfolder you mean (opencode-companion holds: agents, chrome-extension, config, docs, packages, plugins, proxy, scripts, transcription-pane), or list files with `rg --files -g '<pattern>' @REPOS@/opencode-companion`, which honors .gitignore.",
+   "why": "a session whose settings predate CLAUDE_CODE_GLOB_NO_IGNORE=false (a resume keeps its stored profile): its Glob walks ignored folders, so a repository root is refused"
+  },
+  {
+   "id": "incident-ms186-glob-astra-without-gitignore",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "glob_honours_gitignore": false,
+   "input": {
+    "pattern": "agents/agent/*astra*",
+    "path": "@REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "MS186 as it happened (104 s): Glob ignoring .gitignore walks the whole repository whatever the pattern"
+  },
+  {
+   "id": "glob-subfolder-without-gitignore",
+   "tool": "Glob",
+   "cwd": "@REPOS@/manager-sessions",
+   "glob_honours_gitignore": false,
+   "input": {
+    "pattern": "quick-*",
+    "path": "@REPOS@/opencode-companion/agents/agent"
+   },
+   "expect": "allow",
+   "why": "a subfolder is never a root, whatever Glob ignores"
+  },
+  {
+   "id": "repo-root-session-glob-no-path-in-subfolder",
+   "tool": "Glob",
+   "cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "pattern": "**/*.py"
+   },
+   "expect": "allow",
+   "why": "Claude Code stands in scripts (after a cd): Glob walks only that subfolder"
+  },
+  {
+   "id": "repo-root-session-grep-tool-no-path",
+   "tool": "Grep",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "pattern": "foo"
+   },
+   "expect": "allow",
+   "why": "the Grep tool may search one repository"
+  },
+  {
+   "id": "home-session-bare-grep-dot",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "a lead seat in $HOME: `.` is the home folder"
+  },
+  {
+   "id": "home-session-after-cd-opencode-clone",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@/diagnostics/opencode-src/opencode-v2.0.24",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@HOME@/diagnostics/opencode-src/opencode-v2.0.24",
+   "why": "history: an earlier cd into the OpenCode clone persisted inside $HOME; `.` is that repository root"
+  },
+  {
+   "id": "home-session-after-cd-clone-subfolder",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@/diagnostics/opencode-src/opencode-v2.0.24/packages/core",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "history: the shell stands in a subfolder of the clone"
+  },
+  {
+   "id": "home-session-ls-recursive",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@",
+   "input": {
+    "command": "ls -R"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "message": "Refused by the Claude host's root-search guard: `ls -R` walks the whole tree at the home folder @HOME@ and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Name subfolders instead. Nothing in this command ran.",
+   "why": "ls -R walks $HOME; at a folder above repositories the Grep tool is not offered (it is refused there too)"
+  },
+  {
+   "id": "repos-session-rg-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@",
+   "shell_cwd": "@REPOS@",
+   "input": {
+    "command": "rg -n foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "message": "Refused by the Claude host's root-search guard: `rg -n foo .` searches every repository under @REPOS@, a folder above whole repositories, which hangs for minutes. Give it one repository or one of its subfolders. Nothing in this command ran.",
+   "why": "rg at @REPOS@ searches every repository"
+  },
+  {
+   "id": "home-session-rg-type-list",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@",
+   "input": {
+    "command": "rg --type-list"
+   },
+   "expect": "allow",
+   "why": "prints the type list and exits: no search"
+  },
+  {
+   "id": "home-session-rg-version-short",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@",
+   "input": {
+    "command": "rg -V"
+   },
+   "expect": "allow",
+   "why": "prints its version and exits"
+  },
+  {
+   "id": "home-session-rg-help-short",
+   "tool": "Bash",
+   "cwd": "@HOME@",
+   "shell_cwd": "@HOME@",
+   "input": {
+    "command": "rg -h"
+   },
+   "expect": "allow",
+   "why": "prints its short help and exits"
+  },
+  {
+   "id": "unknown-shell-folder-bare-grep-dot",
+   "tool": "Bash",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "grep -rn foo ."
+   },
+   "expect": "allow",
+   "why": "the starting folder is unknown (no shell_cwd: a concurrent command may move it): refuse only when certain"
+  },
+  {
+   "id": "opencode-shell-bare-grep-dot",
+   "tool": "shell",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "command": "grep -rn \"worker clause\" ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/quick-worker",
+   "message": "Refused by OpenCode's root-search guard: `grep -rn \"worker clause\" .` walks the whole tree at the root of the repository quick-worker (@REPOS@/quick-worker) and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Name subfolders instead, or use the grep tool, which honors .gitignore and may search this repository. Nothing in this command ran.",
+   "why": "OpenCode session in quick-worker (a repository root), no workdir: the DeepSeek helpers' pattern"
+  },
+  {
+   "id": "opencode-shell-workdir-root",
+   "tool": "shell",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "command": "grep -rn foo .",
+    "workdir": "@REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "workdir is the repository root"
+  },
+  {
+   "id": "opencode-shell-workdir-subfolder",
+   "tool": "shell",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "command": "grep -rn foo .",
+    "workdir": "@REPOS@/opencode-companion/scripts"
+   },
+   "expect": "allow",
+   "why": "workdir is a subfolder"
+  },
+  {
+   "id": "opencode-shell-relative-workdir",
+   "tool": "shell",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "grep -rn foo .",
+    "workdir": "scripts"
+   },
+   "expect": "allow",
+   "why": "a relative workdir resolves against the session folder"
+  },
+  {
+   "id": "opencode-shell-relative-workdir-up",
+   "tool": "shell",
+   "cwd": "@REPOS@/opencode-companion/scripts",
+   "input": {
+    "command": "find . -name x",
+    "workdir": ".."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "a relative workdir resolving to the repository root"
+  },
+  {
+   "id": "opencode-shell-tilde-workdir",
+   "tool": "shell",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "command": "grep -rn foo .",
+    "workdir": "~"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "OpenCode expands a ~ workdir to the home folder (FileAccess.resolvePath)"
+  },
+  {
+   "id": "opencode-shell-cd-root",
+   "tool": "shell",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "command": "cd @REPOS@/opencode-companion && grep -rn foo ."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "message": "Refused by OpenCode's root-search guard: `grep -rn foo .` walks the whole tree at the root of the repository opencode-companion (@REPOS@/opencode-companion) and ignores .gitignore (tmp/, node_modules/, .git/), which hangs for minutes. Name subfolders instead (opencode-companion holds: agents, chrome-extension, config, docs, packages, plugins, proxy, scripts, transcription-pane), or use the grep tool, which honors .gitignore and may search this repository. Nothing in this command ran.",
+   "why": "cd to a repository root, then `.`"
+  },
+  {
+   "id": "opencode-shell-find-repos",
+   "tool": "shell",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "find .. -name \"*.md\""
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": ".. from manager-sessions is @REPOS@"
+  },
+  {
+   "id": "opencode-shell-rg-dot",
+   "tool": "shell",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "rg -n foo ."
+   },
+   "expect": "allow",
+   "why": "rg honors .gitignore: one repository is allowed"
+  },
+  {
+   "id": "opencode-shell-git-grep",
+   "tool": "shell",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "command": "git grep -n foo"
+   },
+   "expect": "allow",
+   "why": "git grep is not a walk"
+  },
+  {
+   "id": "opencode-grep-repos",
+   "tool": "grep",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "pattern": "foo",
+    "path": "@REPOS@"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "message": "Refused by OpenCode's root-search guard: `grep \"foo\" at @REPOS@` searches every repository under @REPOS@, a folder above whole repositories, which hangs for minutes. Give it one repository or one of its subfolders.",
+   "why": "OpenCode's grep (ripgrep) at @REPOS@ searches every repository"
+  },
+  {
+   "id": "opencode-grep-no-path-repo",
+   "tool": "grep",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "pattern": "foo"
+   },
+   "expect": "allow",
+   "why": "OpenCode's grep honors .gitignore: one repository is allowed"
+  },
+  {
+   "id": "opencode-grep-dotdot",
+   "tool": "grep",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "pattern": "foo",
+    "path": ".."
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": ".. from a repository is @REPOS@"
+  },
+  {
+   "id": "opencode-glob-no-path-repo",
+   "tool": "glob",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "pattern": "**/*.ts"
+   },
+   "expect": "allow",
+   "why": "OpenCode's glob runs ripgrep and honors .gitignore: one repository is allowed"
+  },
+  {
+   "id": "opencode-glob-home",
+   "tool": "glob",
+   "cwd": "@HOME@",
+   "input": {
+    "pattern": "**/AGENTS.md"
+   },
+   "expect": "refuse",
+   "root": "@HOME@",
+   "why": "the home folder is a fixed root"
+  },
+  {
+   "id": "opencode-glob-repos",
+   "tool": "glob",
+   "cwd": "@REPOS@/quick-worker",
+   "input": {
+    "pattern": "*/AGENTS.md",
+    "path": "@REPOS@"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@",
+   "why": "@REPOS@ is a fixed root"
+  },
+  {
+   "id": "opencode-read-not-judged",
+   "tool": "read",
+   "cwd": "@REPOS@/opencode-companion",
+   "input": {
+    "filePath": "@REPOS@/opencode-companion/README.md"
+   },
+   "expect": "allow",
+   "why": "not a search tool"
+  },
+  {
+   "id": "time-wrapper-flags",
+   "tool": "Bash",
+   "cwd": "@REPOS@/manager-sessions",
+   "input": {
+    "command": "time -p grep -rn foo @REPOS@/opencode-companion"
+   },
+   "expect": "refuse",
+   "root": "@REPOS@/opencode-companion",
+   "why": "`time -p` is a wrapper: its flags are skipped"
+  }
+ ]
+}

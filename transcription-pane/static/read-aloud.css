@@ -1,0 +1,82 @@
+/* Read Aloud's pop-over player (read-aloud.js), on the desktop conversation viewer and the phone page alike.
+   Its own colours, so it reads the same over either page's theme. */
+.ra-overlay {
+  --ra-bg:#1c212b; --ra-line:#3a4352; --ra-text:#e1e5eb; --ra-dim:#8b93a1; --ra-faint:#666e7c; --ra-accent:#4fc3f7;
+  --ra-current:rgba(79,195,247,.12); --ra-ok:#7ee2a6; --ra-error:#ffb3b3; --ra-button:#252b36; --ra-button-hi:#303a4a;
+  position:fixed; inset:0; z-index:2147483000; display:flex; align-items:center; justify-content:center;
+  background:rgba(8,10,14,.62); font:14px/1.45 system-ui,-apple-system,sans-serif; color:var(--ra-text);
+}
+.ra-panel { display:flex; flex-direction:column; gap:8px; width:min(780px,94vw); max-height:88vh; padding:12px 14px;
+  background:var(--ra-bg); border:1px solid var(--ra-line); border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,.55); box-sizing:border-box; }
+.ra-head { display:flex; align-items:baseline; gap:10px; min-width:0; }
+.ra-title { font-size:15px; white-space:nowrap; }
+.ra-sub { color:var(--ra-dim); font-size:12.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ra-close { margin-left:auto; }
+.ra-status { display:flex; gap:10px; align-items:baseline; font-size:13px; color:var(--ra-dim); min-height:1.45em; }
+.ra-status .ra-state { flex:1; min-width:0; overflow-wrap:anywhere; }
+.ra-status[data-kind="ok"] .ra-state { color:var(--ra-ok); }
+.ra-status[data-kind="error"] .ra-state { color:var(--ra-error); }
+.ra-elapsed { font-variant-numeric:tabular-nums; color:var(--ra-faint); white-space:nowrap; }
+/* The rest of a long rewrite while the first passes already play: its progress, or why it stopped. */
+.ra-job { font-size:12px; color:var(--ra-faint); overflow-wrap:anywhere; margin-top:-4px; }
+.ra-job:empty { display:none; }
+.ra-job[data-kind="error"] { color:var(--ra-error); }
+.ra-controls { display:flex; align-items:center; gap:8px; }
+.ra-controls .ra-seek { flex:1; min-width:60px; accent-color:var(--ra-accent); }
+.ra-time { font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--ra-dim); white-space:nowrap; }
+.ra-overlay button, .ra-overlay select { font:inherit; font-size:13px; color:var(--ra-text); background:var(--ra-button);
+  border:1px solid var(--ra-line); border-radius:6px; padding:3px 9px; cursor:pointer; touch-action:manipulation; }
+/* touch-action above: two quick taps on −10s / +10s are two skips, never a double-tap zoom. */
+.ra-back, .ra-forward { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ra-overlay button:hover:not(:disabled), .ra-overlay select:hover:not(:disabled) { background:var(--ra-button-hi); }
+.ra-overlay button:disabled, .ra-overlay select:disabled, .ra-overlay input:disabled { opacity:.45; cursor:default; }
+.ra-overlay button[hidden] { display:none; }
+.ra-play { min-width:44px; font-size:16px !important; }
+.ra-text { flex:1; min-height:120px; overflow:auto; padding:6px 10px; border:1px solid var(--ra-line); border-radius:8px;
+  font-size:15px; line-height:1.55; overscroll-behavior:contain; }
+.ra-text p { margin:0 0 .7em; }
+.ra-text .ra-placeholder { color:var(--ra-faint); font-style:italic; }
+.ra-chunk { padding:10px 9px; margin:0 -6px 8px; min-height:44px; box-sizing:border-box;
+  border-radius:6px; border:1px solid var(--ra-line); border-left:3px solid transparent; cursor:pointer; touch-action:manipulation;
+  user-select:text; -webkit-user-select:text; }
+.ra-chunk:hover { background:rgba(255,255,255,.03); }
+.ra-chunk:focus-visible { outline:2px solid var(--ra-accent); outline-offset:2px; }
+.ra-chunk.ra-current { background:var(--ra-current); border-left-color:var(--ra-accent); }
+.ra-chunk p:last-child { margin-bottom:0; }
+.ra-chunk h1, .ra-chunk h2, .ra-chunk h3, .ra-chunk h4, .ra-chunk h5, .ra-chunk h6 { margin:0 0 .5em; line-height:1.25; color:var(--ra-text); }
+.ra-chunk h1, .ra-chunk h2 { font-size:1.2em; }
+.ra-chunk h3, .ra-chunk h4, .ra-chunk h5, .ra-chunk h6 { font-size:1.05em; }
+.ra-foot { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.ra-info { font-size:11.5px; color:var(--ra-faint); overflow-wrap:anywhere; }
+/* ⚙ in the pop-over's head opens the 🔊 Read Aloud settings section between the head and the status line. */
+.ra-gear { margin-left:auto; }
+.ra-gear + .ra-close { margin-left:0; }
+.ra-settings-host { border:1px solid var(--ra-line); border-radius:8px; padding:4px 10px 8px; max-height:50vh; overflow:auto; }
+.ra-settings-host[hidden] { display:none; }
+/* The 🔊 Read Aloud settings section, wherever it is mounted (pop-over, phone Refine setup, desktop ⚙ Refine settings):
+   layout only, so each page's own control styles apply. */
+.ra-settings > summary { cursor:pointer; font-weight:600; padding:4px 0; }
+.ra-settings-body { display:flex; flex-direction:column; gap:4px; padding:2px 0 4px; }
+.ra-set-label { display:block; margin-top:6px; font-size:.9em; opacity:.85; }
+.ra-set-line { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.ra-set-line > select, .ra-set-line > input { flex:1 1 12em; width:auto; min-width:0; }
+.ra-set-line > button { flex:none; width:auto; }
+.ra-set-keynow { font-variant-numeric:tabular-nums; opacity:.85; }
+.ra-set-hint { margin:2px 0; font-size:.85em; opacity:.7; }
+.ra-set-status { min-height:1.3em; font-size:.9em; overflow-wrap:anywhere; }
+.ra-set-status[data-kind="ok"] { color:#7ee2a6; }
+.ra-set-status[data-kind="error"] { color:#ff9c9c; }
+/* The phone (and any narrow frame): a full-screen sheet with thumb-sized controls. */
+@media (max-width: 600px) {
+  .ra-overlay { align-items:stretch; }
+  .ra-panel { width:100vw; max-height:none; height:100%; border-radius:0; border:0;
+    padding:calc(10px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px)); }
+  /* Two rows: ⏮ −10s ▶ +10s and the speed, then the seek bar with the time beside it. */
+  .ra-controls { flex-wrap:wrap; gap:8px 6px; }
+  .ra-controls .ra-seek { order:5; flex:1 1 calc(100% - 120px); height:28px; }
+  .ra-controls .ra-time { order:6; }
+  .ra-overlay button, .ra-overlay select { padding:7px 12px; font-size:15px; }
+  .ra-overlay select { font-size:16px; min-height:40px; } /* 16px: iOS Safari zooms the page into a smaller select when it opens */
+  .ra-play, .ra-back, .ra-forward { min-width:56px; }
+  .ra-text { font-size:16px; }
+}

@@ -1,0 +1,18 @@
+{
+  "view_window_days": 7,
+  "view_wide_window_days": 30,
+  "idle_unsealed_days": 90,
+  "universe_idle_scan_minutes": 10,
+  "sweep_idle_hours": 24,
+  "sweep_every_hours": 24,
+  "sweep_start_delay_minutes": 10,
+  "sweep_check_minutes": 15,
+  "export_grain": "month",
+  "export_dir": "/mnt/e/__daniel347x/__Files/SessionHistoryArchives",
+  "originals_dir": "full-originals",
+  "archive_path": "~/.local/state/opencode-companion/history/archive.sqlite3",
+  "seal_ledger_path": "~/.local/state/opencode-companion/program-seals.jsonl",
+  "pins_path": "~/.local/state/opencode-companion/transcription-pane/session-pins.json",
+  "trim_sealed_days": 7,
+  "trim_enabled": false
+}

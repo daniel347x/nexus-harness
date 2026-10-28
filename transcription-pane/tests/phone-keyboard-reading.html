@@ -1,0 +1,259 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>iPhone: the line at the top of the conversation stays the top line as the keyboard opens and closes, every cycle — actual modules, iOS WebKit's coordinates, scroll anchoring off</title>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}iframe{display:block;width:100%;height:100%;border:0}pre{position:fixed;left:-9999px;top:0;white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page at the emulated device"></iframe><pre id="results">running…</pre>
+<script>
+// Dan (Manager-Sessions 220–221) reads well up a long conversation and taps the text box: the line at the top of what he
+// sees of the conversation must stay the top line when the keyboard opens and again when it closes, the same line every
+// cycle, whether or not he touched the conversation in between. The keyboard shell narrows the page by the strip's width,
+// every message rewraps, the conversation's scrollTop stays the same number, and no scroll anchoring corrects it (Safari
+// before 27; none acted on his iPhone with iOS 27 either), so the page holds that line itself. His iPhone's strip
+// diagnostics (iOS 27.0.1, Chrome on iOS, a 428×751 page) showed what the first hold got wrong: iOS WebKit measures client
+// coordinates (getBoundingClientRect) from the visual viewport, not the layout viewport (with the keyboard up
+// visualViewport.offsetTop 340, window.scrollY 340, and the frame over the screen at 0). So the page runs here with that
+// model (fixture.model 'webkit': every box's client position less the visual viewport's pan, window.scrollY where the
+// visual viewport sits in the document) and with Chrome's ('chrome'), scroll anchoring OFF on the whole page, as on
+// Safari ≤ 26 and as it acted on his iPhone (?anchoring=1, and one scenario, leave it on). Loads the ACTUAL
+// m.html/m.js/m.css with inert host IO and a 70-turn conversation at 428×751 (his page; the device driver applies it). The
+// keyboard is the visualViewport, mocked at the page boundary as iOS reports it: on his iPhone in one step to 411 px
+// visible with the page panned 340 px to its end, and back in one step after the blur; Safari's way in several resizes and
+// pans. The checks measure the true screen (the visual viewport's part of Chrome's own layout): the line at the top of
+// what is on screen of the conversation (the block there and how far down it) stays within 8 px of that top (the word
+// there within a line) and the turn at the top stays the same, at every step; after each cycle the line is back where it
+// was on the screen before the tap. ?app=PATH loads another m.js (a before/after comparison).
+(async()=>{
+  const checks=[],steps=[],record=(name,ok)=>checks.push({name,passed:!!ok});
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what,n=400)=>{for(let i=0;i<n;i++){try{if(fn())return;}catch(_){}await sleep(25);}throw new Error(what+' did not settle');};
+  const Q=new URLSearchParams(location.search),HELD_PX=8;
+  try {
+    // ---- the device: Dan's iPhone page, 428×751, through the device driver's handshake (a driver that already set it needs none)
+    const want={width:428,height:751};
+    if(innerWidth!==want.width||innerHeight!==want.height){
+      window.deviceRequest={...want,mobile:true,token:'reading'};
+      for(let i=0;i<80&&window.deviceApplied!=='reading';i++)await sleep(50);
+      await sleep(200);
+    }
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const files=await Promise.all(['m.html','m.css','diff-view.css','glare.css','status-toast.css','vendor/marked.umd.js','vendor/purify.min.js','message-markdown.js',
+      'refine-defaults.js','refine-core.js','refine-view.js','../../chrome-extension/codenomad-session-watcher/tool-preview-core.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-record-text.js','tool-reading.js','seen-latest.js','vendor/highlight.min.js','diff-view.js','quota-halt.js',
+      'manager-order.js','status-toast.js',Q.get('app')||'m.js'].map(read));
+    const [html,css,diffCss,glareCss,toastCss,...scripts]=files,app=scripts.at(-1);
+    record('the fixture loaded the actual m.html, m.css and '+(Q.get('app')||'m.js')+' at '+innerWidth+'×'+innerHeight,
+      app.length>1000&&html.includes('id="m-conversation"')&&css.includes('--m-shell-right')&&innerWidth===want.width&&innerHeight===want.height);
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const uuid='11111111-1111-4111-8111-111111111111';
+    const manager={source:'host',role:'Manager',uuid,executionId:'cc-'+uuid,generation:1,targetRef:'target-'+uuid,sessionRef:'session-'+uuid,
+      scopes:[{label:'main',scopeRef:'main-'+uuid}],title:'Manager-Session-221',createdAt:'2026-10-27T04:00:00Z',lifecycle:'live',
+      capabilities:{nativeInput:true,controls:true,reconnect:true}};
+    // A Manager conversation like Dan's: his dictated paragraphs, the Manager's multi-paragraph replies with a heading and a list.
+    const words='the conductor landed the unit and the phone page now keeps the draft at three lines while the keyboard is up so the conversation above stays readable and the strip scrolls it'.split(' ');
+    let rnd=7;const pick=()=>{rnd=(rnd*48271)%2147483647;return words[rnd%words.length];};
+    const para=n=>{const w=[];for(let i=0;i<n;i++)w.push(pick());const s=w.join(' ');return s[0].toUpperCase()+s.slice(1)+'.';};
+    const TURNS=70,events=[];
+    for(let i=0;i<TURNS;i++){
+      const user=i%2===0;
+      const text=user?'TURN-'+i+' '+para(40+(i*13)%50)+'\n\n'+para(30):
+        'TURN-'+i+' '+para(60)+'\n\n### The heading of turn '+i+'\n\n- '+para(14)+'\n- '+para(18)+'\n- '+para(10)+'\n\n'+para(50+(i*7)%40);
+      events.push({seq:i,kind:user?'user':'assistant',text,uuid:'event-'+i,recordRef:'record-'+i,scope:'main',calls:[],partial:false});
+    }
+    const fixture=window.reading={errors:[],requests:[]};
+    const mock=`
+      const fixture=parent.reading;
+      addEventListener('error',e=>fixture.errors.push(String(e.message||e.target?.src||'resource error')));
+      addEventListener('unhandledrejection',e=>fixture.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+      const store=new Map();
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return store.size;},key:i=>[...store.keys()][i]??null,
+        getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:()=>Promise.resolve(''),writeText:()=>Promise.resolve()}});
+      // iOS under its keyboard: the layout viewport stays; visualViewport.height shrinks and offsetTop pans (to the page's
+      // end on his iPhone). The engine's coordinates: 'webkit' (iOS) measures every box's client position from the visual
+      // viewport, so the pan moves them all by offsetTop, and reports window.scrollY where the visual viewport sits in the
+      // document (pageTop); 'chrome' measures from the layout viewport. The checks keep the true measure (fixture.rect).
+      let keyboard=0;
+      const webkit=fixture.model==='webkit',rect=Element.prototype.getBoundingClientRect,layoutY=()=>document.scrollingElement?.scrollTop||0;
+      const vv=new EventTarget();vv.offsetTop=0;vv.offsetLeft=0;vv.width=innerWidth;vv.height=innerHeight;vv.scale=1;
+      Object.defineProperty(vv,'pageTop',{get:()=>layoutY()+vv.offsetTop});
+      fixture.rect=rect;
+      if(webkit){
+        Element.prototype.getBoundingClientRect=function(){const r=rect.call(this);return new DOMRect(r.x,r.y-vv.offsetTop,r.width,r.height);};
+        for(const name of ['scrollY','pageYOffset'])Object.defineProperty(window,name,{configurable:true,get:()=>vv.pageTop});
+      }
+      window.__vv=(height,top=0)=>{const was=window.scrollY;keyboard=height;vv.width=innerWidth;vv.height=height||innerHeight;const moved=vv.offsetTop!==top;vv.offsetTop=top;
+        vv.dispatchEvent(new Event('resize'));if(moved)vv.dispatchEvent(new Event('scroll'));if(window.scrollY!==was)dispatchEvent(new Event('scroll'));};
+      Object.defineProperty(window,'visualViewport',{configurable:true,value:vv});
+      addEventListener('resize',()=>window.__vv(keyboard,vv.offsetTop));
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      const identity=()=>({targetRef:'target-${uuid}',executionId:'cc-${uuid}',generation:1,uuid:'${uuid}',source:'host',role:'Manager'});
+      window.fetch=async(url,options={})=>{
+        url=String(url);fixture.requests.push([url,options.method||'GET']);
+        const u=new URL(url,parent.location.href),q=Object.fromEntries(u.searchParams);
+        let data;
+        if(u.pathname==='/api/claude/sessions')data=env({sessions:[${JSON.stringify(manager)}],hasMore:false,status:'complete'});
+        else if(u.pathname==='/api/claude/events'){
+          const past=q.fromSeq==='9007199254740991';
+          data=env({sessionRef:q.sessionRef,scopeRef:q.scopeRef,source:'host',role:'Manager',executionId:'cc-${uuid}',generation:1,fileEpoch:'epoch',
+            events:q.cursor||past?[]:${JSON.stringify(events)},eventUpdates:[],deltaCursor:'delta',hasMore:false,status:'complete'});
+        }else if(u.pathname==='/api/claude/state'){
+          data=env({...identity(),capabilities:${JSON.stringify(manager.capabilities)},lifecycle:'live',
+            liveState:{native_session_state:'idle',primary_turn_open:false,settings_mismatch:false,settings_unverified:false,
+              controls_effective:{model:'claude-opus-5-5',effort:'high'},setting_control_state:'applied',setting_control_pending:false}});
+        }else if(u.pathname==='/api/usage')return new Response(JSON.stringify({schemaVersion:1,backend:'usage',status:'origin',error:'fixture'}),{status:403});
+        else if(u.pathname==='/api/claude/receipt')data=env({...identity(),receipt:null});
+        else if(u.pathname==='/api/claude/control-receipt')data=env({...identity(),controlReceipt:null});
+        else throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    const frame=document.getElementById('phone');
+    const charTop=(d,node,offset)=>{const range=d.createRange();range.setStart(node,offset);range.setEnd(node,Math.min(node.length,offset+1));return range.getBoundingClientRect().top;};
+    // One fresh page per scenario in the engine model given, the conversation loaded and following its newest message.
+    async function boot(model,anchoring){
+      fixture.api=null;fixture.model=model;
+      const extraCss=anchoring?'':'*,*::before,*::after{overflow-anchor:none !important}';
+      frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>[css,diffCss,glareCss,toastCss,extraCss].map(x=>'<style>'+x+'</style>').join('')+'</head>')
+        .replace(/  <script src="[^"]+"><\/script>/g,'').replace('</body>',()=>[mock,...scripts.slice(0,-1),app+'\nfixture.api=phoneManager;'].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+      await new Promise(r=>frame.onload=r);
+      await until(()=>fixture.api,'the actual page start');
+      const w=frame.contentWindow,d=w.document,el=id=>d.getElementById('m-'+id),api=fixture.api;
+      await until(()=>el('managers')?.children.length>0,'the Manager list');
+      el('managers').children[0].click();
+      await until(()=>el('messages').querySelectorAll('article').length>=TURNS-1,'the conversation');
+      await sleep(400);
+      const p={w,d,el,api,box:el('draft'),conv:el('conversation'),model,anchoring,rect:node=>fixture.rect.call(node)};
+      p.rows=()=>[...el('messages').querySelectorAll('article')];
+      p.turnOf=row=>+((row?.textContent.match(/TURN-(\d+)/)||[])[1]??-1);
+      p.shell=()=>d.body.dataset.thumb==='on'&&w.getComputedStyle(el('page')).position==='fixed';
+      // The screen (the visual viewport) in Chrome's own coordinates, and what is on it of the conversation: its box
+      // clipped to the screen and, with the keyboard shell on, to the shell's frame.
+      p.screen=()=>({top:w.visualViewport.offsetTop,bottom:w.visualViewport.offsetTop+w.visualViewport.height});
+      p.visible=()=>{const c=p.rect(p.conv),s=p.screen(),f=p.shell()?p.rect(el('page')):s,top=c.top+p.conv.clientTop;
+        return {top:Math.max(top,s.top,f.top),bottom:Math.min(top+p.conv.clientHeight,s.bottom,f.bottom)};};
+      // The line at the top of that (1 px in): the block it is in, how far down it, its turn and its place on the screen;
+      // and the character there (the word Dan was reading), for a measure that knows nothing of blocks.
+      p.line=()=>{
+        const v=p.visible(),y=v.top+1,row=p.rows().find(r=>p.rect(r).bottom>y);
+        let node=row;
+        for(const n of row.querySelectorAll('p,li,pre,table,blockquote,h1,h2,h3,h4,h5,h6,summary,.m-head')){const r=p.rect(n);if(r.height>0&&r.top<=y&&r.bottom>y)node=n;}
+        const r=p.rect(node),c=p.rect(p.conv);
+        const caret=d.caretRangeFromPoint?.(c.left+40,y+10),text=caret?.startContainer?.nodeType===3&&row.contains(caret.startContainer)?caret:null;
+        return {node,row,turn:p.turnOf(row),fraction:(y-r.top)/r.height,
+          word:text&&{node:text.startContainer,offset:text.startOffset,below:charTop(d,text.startContainer,text.startOffset)-y}};
+      };
+      // Where that line is now: how far below the top of what is on screen of the conversation (0 = still the top line)
+      // and on the screen; the turn now at the top.
+      p.where=line=>{
+        const r=p.rect(line.node),v=p.visible(),s=p.screen(),y=r.top+line.fraction*r.height,top=p.rows().find(x=>p.rect(x).bottom>v.top+1);
+        return {fromTop:Math.round(y-v.top-1),screen:Math.round(y-s.top),
+          word:line.word?Math.round(charTop(d,line.word.node,line.word.offset)-v.top-1-line.word.below):null,
+          topTurn:p.turnOf(top),onScreen:y>=v.top-1&&y<=v.bottom+1,
+          convTop:Math.round(p.conv.scrollTop),width:Math.round(p.conv.clientWidth),visible:[Math.round(v.top-s.top),Math.round(v.bottom-s.top)],
+          follow:api.state.follow,shell:p.shell()};
+      };
+      p.lineHeight=parseFloat(w.getComputedStyle(p.rows()[0].querySelector('p')||p.rows()[0]).lineHeight)||22;
+      return p;
+    }
+    // Dan's own scroll on the conversation: a touch (pointer and touch events) that moves it.
+    const touchScroll=async(p,to)=>{
+      const fire=(kind,Kind=p.w.Event)=>p.conv.dispatchEvent(new Kind(kind,{bubbles:true,pointerType:'touch',isPrimary:true}));
+      fire('pointerdown',p.w.PointerEvent);fire('touchstart');fire('touchmove');
+      p.conv.scrollTop=to;p.conv.dispatchEvent(new p.w.Event('scroll'));await sleep(250);
+      fire('touchend');fire('pointerup',p.w.PointerEvent);await sleep(250);
+    };
+    // Ten turns up (twenty rows, his and the Manager's), 40 px into that turn, as his own touch scroll leaves it.
+    const tenUp=async p=>{
+      const target=p.rows().find(row=>p.turnOf(row)===TURNS-1-20);
+      await touchScroll(p,Math.round(p.rect(target).top-p.rect(p.conv).top+p.conv.scrollTop-40));
+    };
+    // One step: where the held line is now, recorded, and checked to be still the top line (within HELD_PX) in the same turn.
+    const held=(p,scenario,label,line,extra=()=>true)=>{
+      const now=p.where(line);steps.push({scenario,label,...now});
+      record(scenario+' · '+label+': the line that was at the top of the conversation is '+now.fromTop+' px below its top (word '+now.word+' px; ≤ '+HELD_PX+
+        '), the turn at the top '+line.turn+' → '+now.topTurn+' [on the screen at '+now.screen+', scrollTop '+now.convTop+', width '+now.width+', visible '+now.visible.join('–')+']',
+        Math.abs(now.fromTop)<=HELD_PX&&now.topTurn===line.turn&&now.onScreen&&(now.word===null||Math.abs(now.word)<=p.lineHeight+HELD_PX)&&extra(now));
+      return now;
+    };
+    // One keyboard cycle: the tap, the keyboard coming (each step of it), the polls, the blur with the keyboard still up
+    // (the shell off, the screen still the keyboard's), the keyboard going (each step); the line at the top of the
+    // conversation before the tap is the top line at every step and ends back where it was on the screen.
+    const IPHONE={up:[[411,340]],down:[[0,0]]};  // his iPhone: Chrome on iOS 27.0.1, one step each way
+    async function cycle(p,scenario,{up,down}=IPHONE){
+      const line=p.line(),before=p.where(line),open=up.at(-1)[0];
+      p.box.focus();await sleep(200);
+      held(p,scenario,'the tap (the shell on, the page narrower)',line,now=>now.shell&&now.width<before.width);
+      for(const [h,pan] of up){p.w.__vv(h,pan);await sleep(300);held(p,scenario,'the keyboard coming ('+h+' px visible, panned '+pan+')',line);}
+      await sleep(1200);
+      held(p,scenario,'1.5 s later (the polls ran)',line,now=>now.visible[1]<=open+1);
+      p.box.blur();await sleep(60);
+      held(p,scenario,'the blur (the shell off, the keyboard still up)',line,now=>!now.shell);
+      for(const [h,pan] of down){p.w.__vv(h,pan);await sleep(300);held(p,scenario,'the keyboard going ('+(h||'all')+' px visible, panned '+pan+')',line,now=>!now.shell);}
+      const end=p.where(line);
+      record(scenario+' · the keyboard gone: the line is back where it was on the screen before the tap ('+before.screen+' → '+end.screen+
+        ' px), the page as wide as before',Math.abs(end.screen-before.screen)<=HELD_PX&&end.width===before.width&&!end.shell);
+      return {line,before,end};
+    }
+
+    // ---- 1 · his iPhone (iOS WebKit's coordinates, anchoring off): his own scroll ten turns up, then a keyboard cycle
+    let p=await boot('webkit',Q.get('anchoring')==='1');
+    record('the page measures as iOS WebKit does (the client positions from the visual viewport) and scroll anchoring is '+(p.anchoring?'on':'off')+
+      ' on the conversation ['+p.w.getComputedStyle(p.conv).overflowAnchor+'], the conversation real and following its newest message',
+      p.w.getComputedStyle(p.conv).overflowAnchor===(p.anchoring?'auto':'none')&&p.conv.scrollHeight>p.conv.clientHeight*20&&p.api.state.follow);
+    await tenUp(p);
+    let line=p.line();
+    record('ten turns up, the conversation no longer follows and the line at the top of it is in turn '+line.turn+' (word '+(line.word?'found':'none')+')',
+      !p.api.state.follow&&line.turn>=TURNS-1-21&&line.turn<=TURNS-1-19&&!!line.word);
+    p.w.__vv(411,340);await sleep(50);
+    const pan=p.el('page').getBoundingClientRect(),truth=p.rect(p.el('page'));p.w.__vv(0,0);await sleep(200);
+    record('the emulated pan: with the keyboard up the page reports offsetTop 340 and scrollY 340, and the page\'s own box 340 px higher than its layout place ['+
+      [Math.round(pan.top),Math.round(truth.top)].join(' / ')+']',Math.round(truth.top-pan.top)===340);
+    const first=await cycle(p,'his iPhone · cycle 1');
+    // ---- 2 · the same page, nothing touched since: the same line at the top, the same steps, the same places
+    const second=await cycle(p,'his iPhone · cycle 2, nothing touched');
+    record('cycle 2 starts from the line cycle 1 kept, at the same place (turn '+first.line.turn+' → '+second.line.turn+', '+first.before.screen+' → '+second.before.screen+' px)',
+      second.line.turn===first.line.turn&&Math.abs(second.before.screen-first.before.screen)<=HELD_PX);
+    // ---- 3 · a small touch scroll up and down between cycles, then another cycle
+    await touchScroll(p,p.conv.scrollTop-300);await touchScroll(p,p.conv.scrollTop+120);
+    await cycle(p,'his iPhone · cycle 3, after a small touch scroll');
+    // ---- 4 · with the keyboard up Dan scrolls back himself, the keyboard's bar changes, the keyboard goes: his line stays the top line
+    p.box.focus();await sleep(200);p.w.__vv(411,340);await sleep(400);
+    await touchScroll(p,p.conv.scrollTop-1500);
+    line=p.line();
+    const found=p.where(line);
+    record('his own place · with the keyboard up Dan scrolls 1,500 px back himself, to turn '+line.turn,line.turn<TURNS-1-21&&!p.api.state.follow&&found.shell);
+    p.w.__vv(391,360);await sleep(400);
+    held(p,'his own place','the keyboard\'s bar changes (391 px visible, panned 360): his line, never the old one',line);
+    p.box.blur();await sleep(60);held(p,'his own place','the blur',line,now=>!now.shell);
+    p.w.__vv(0,0);await sleep(400);held(p,'his own place','the keyboard gone',line,now=>!now.shell);
+
+    // ---- 5 · Safari's way (iOS WebKit's coordinates): the keyboard in three resizes with the pan growing, and back in two
+    p=await boot('webkit',false);await tenUp(p);
+    await cycle(p,'Safari\'s way',{up:[[600,151],[470,281],[411,340]],down:[[580,171],[0,0]]});
+    await cycle(p,'Safari\'s way · again, nothing touched',{up:[[600,151],[470,281],[411,340]],down:[[580,171],[0,0]]});
+
+    // ---- 6 · Chrome's coordinates (from the layout viewport), the same keyboard: the same result
+    p=await boot('chrome',false);await tenUp(p);
+    await cycle(p,'Chrome\'s coordinates');
+    await cycle(p,'Chrome\'s coordinates · again, nothing touched');
+
+    // ---- 7 · scroll anchoring on (Safari 27, Chrome): the browser's own correction is never doubled
+    p=await boot('webkit',true);await tenUp(p);
+    await cycle(p,'anchoring on');
+
+    // ---- 8 · following the newest message: it stays in view and following throughout, unchanged
+    p=await boot('webkit',false);
+    const newest=()=>{const r=p.rect(p.rows().at(-1)),v=p.visible();return {bottom:Math.round(r.bottom-v.bottom),follow:p.api.state.follow,atEnd:Math.round(p.conv.scrollHeight-p.conv.clientHeight-p.conv.scrollTop)};};
+    const following=label=>{const n=newest();steps.push({scenario:'following',label,...n});
+      record('following · '+label+': the newest message ends on screen and the conversation still follows ['+[n.bottom,n.atEnd,n.follow].join(' / ')+']',n.follow&&n.atEnd<=1&&n.bottom<=12);};
+    following('before the tap');
+    p.box.focus();await sleep(200);following('the tap');
+    p.w.__vv(470,281);await sleep(200);p.w.__vv(411,340);await sleep(400);following('the keyboard up');
+    await sleep(1200);following('1.5 s later');
+    p.box.blur();await sleep(60);following('the blur');
+    p.w.__vv(0,0);await sleep(400);following('the keyboard gone');
+    record('no real transport was attempted and the actual scripts had no uncaught errors ['+fixture.errors.join('; ')+']',fixture.errors.length===0&&
+      fixture.requests.every(([url])=>url.startsWith('/api/claude/')||url.startsWith('/api/usage')));
+  } catch(e) { checks.push({name:e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks,steps},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

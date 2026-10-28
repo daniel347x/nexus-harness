@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CodeNomad three-line tool argument preview regression</title>
+<link rel="stylesheet" href="../tool-previews.css">
+<style>
+  body { font: 13px monospace; --text-secondary: #555; }
+  .fixture { margin: 20px 0; border: 1px solid #888; }
+  .narrow { width: 360px; } .wide { width: 1600px; }
+  /* Relevant installed CodeNomad 0.20.1 baseline rules. */
+  .tool-call-header { display: flex; align-items: center; }
+  .tool-call-header-toggle { display: flex; flex: 1; min-width: 0; width: 100%; gap: 6px;
+    font: inherit; border: 0; background: transparent; padding: 6px; }
+  .tool-call-summary { display: inline-flex; min-width: 0; flex: 1 1 0%; align-items: center;
+    text-align: start; gap: 8px; }
+  .tool-call-summary-type { flex: 0 0 auto; }
+  .tool-call-summary-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .tool-call-header-status { display: inline-flex; margin-inline-start: auto; flex: 0 0 auto; white-space: nowrap; }
+  .action { flex: 0 0 auto; }
+</style>
+<body>
+<h1>Up-to-three-line argument previews: narrow and wide headers</h1>
+<div id="rows"></div>
+<pre id="testResults">Waiting…</pre>
+<script>
+  let requests = 0, toggles = 0, actions = 0;
+  for (const [width, tool, part] of [['narrow', 'node', 'part1'], ['wide', 'bash', 'part2']]) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `fixture ${width}`;
+    wrapper.innerHTML = `<div class="tool-call" data-instance-id="instance" data-session-id="session"
+      data-message-id="message" data-part-id="${part}" data-tool-name="${tool === 'node' ? 'workflowy_node' : tool}">
+      <div class="tool-call-header"><button class="tool-call-header-toggle" aria-expanded="false">
+      <span aria-hidden="true">▸</span><span class="tool-call-summary"><span class="tool-call-summary-type">${tool}</span>
+      <span class="tool-call-summary-title">Native title stays here</span>
+      <span class="tool-call-header-status">Completed</span></span></button><button class="action">Copy</button></div></div>`;
+    wrapper.querySelector('.tool-call-header-toggle').onclick = event => {
+      toggles++; event.currentTarget.setAttribute('aria-expanded', 'true');
+    };
+    wrapper.querySelector('.action').onclick = () => actions++;
+    document.querySelector('#rows').append(wrapper);
+  }
+  window.fetch = async () => {
+    requests++;
+    return new Response(JSON.stringify({ data: { id: 'message', type: 'assistant', time: { created: 1, completed: 1 }, content: [
+      { id: 'part1', type: 'tool', name: 'workflowy_node', state: { input: { verb: 'edit', params: { node_handle: '[ap:1WJOL8]',
+        name: 'A safely rendered title', note: '<img src=x onerror=alert(1)>\n' + 'long arguments '.repeat(1000) } } } },
+      { id: 'part2', type: 'tool', name: 'bash', state: { input: { command: 'git status --short', description: 'Inspect changes' } } },
+    ] } }));
+  };
+</script>
+<script src="../tool-record-text.js"></script>
+<script src="../tool-preview-core.js"></script>
+<script src="../tool-previews.js"></script>
+<script>
+  setTimeout(() => {
+    const results = [];
+    const check = (label, ok) => results.push(`${ok ? 'PASS' : 'FAIL'} ${label}`);
+    const previews = [...document.querySelectorAll('.opc-tool-argument-preview')];
+    check('one preview per header', previews.length === 2);
+    check('one request for both tool families', requests === 1);
+    check('Workflowy verb/handle visible in data', previews[0]?.textContent.includes('[ap:1WJOL8]'));
+    check('shell arguments available', previews[1]?.textContent.includes('git status'));
+    check('HTML arguments never parsed', !document.querySelector('img'));
+    for (const wrapper of document.querySelectorAll('.fixture')) {
+      const preview = wrapper.querySelector('.opc-tool-argument-preview');
+      const status = wrapper.querySelector('.tool-call-header-status');
+      const action = wrapper.querySelector('.action');
+      const box = wrapper.getBoundingClientRect(), p = preview.getBoundingClientRect();
+      const style = getComputedStyle(preview), lineHeight = parseFloat(style.lineHeight);
+      check(`${wrapper.className}: at most three lines`, style.whiteSpace === 'normal' && p.height <= lineHeight * 3 + 1);
+      check(`${wrapper.className}: exactly 1pt smaller`, Math.abs(parseFloat(getComputedStyle(preview.parentElement).fontSize)
+        - parseFloat(style.fontSize) - 4 / 3) < 0.02);
+      check(`${wrapper.className}: preview has space (${p.width}px; sizes ${wrapper.querySelector('.opc-tool-sizes').getBoundingClientRect().width}px)`, p.width > 40);
+      check(`${wrapper.className}: status/actions stay in row`, status.getBoundingClientRect().right <= box.right && action.getBoundingClientRect().right <= box.right);
+      check(`${wrapper.className}: status follows preview`, p.right <= status.getBoundingClientRect().left);
+      preview.click();
+      action.click();
+    }
+    check('native expansion still receives clicks', toggles === 2);
+    check('native action still receives clicks', actions === 2);
+    const narrowStyle = getComputedStyle(previews[0]);
+    check('narrow preview wraps to three lines', Math.abs(previews[0].getBoundingClientRect().height - parseFloat(narrowStyle.lineHeight) * 3) < 1);
+    check('narrow preview clamps overflow', previews[0].scrollHeight > previews[0].clientHeight && narrowStyle.webkitLineClamp === '3');
+    check('wide short preview stays on one line', Math.abs(previews[1].getBoundingClientRect().height - parseFloat(getComputedStyle(previews[1]).lineHeight)) < 1);
+    document.body.dataset.testPassed = String(results.every(result => result.startsWith('PASS')));
+    document.querySelector('#testResults').textContent = results.join('\n');
+  }, 700);
+</script>
+</body>
+</html>

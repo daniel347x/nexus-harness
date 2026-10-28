@@ -1,0 +1,993 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone Programs page — inert read-only host</title>
+<style>body{margin:0}iframe{width:390px;height:1000px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone programs page"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async fn=>{for(let i=0;i<600;i++){try{if(fn())return true;}catch(_){/* the iframe may still be parsing */}await sleep(5);}return false;};
+  const fx=window.phonePrograms={requests:[],errors:[],store:new Map(),storage:[],clipboardWrites:[],channels:[],channelPosts:[],pins:{},pinPosts:[],
+    sessionPages:[],ocReads:0,glanceReads:[],turnReads:[],subagentReads:[],teleReads:[],previewCalls:0,glanceText:'all done.',rows:{},extra:[],teleExtra:'',
+    claudeGlanceReads:[],claudeGlanceText:'Checking the tree first.',claudeCall:null};
+  let w=null,d=null,diagnostics=null;
+  try {
+    const base=new URL('../static/',location.href),sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const read=async u=>(await fetch(new URL(u,base))).text();
+    const readShared=async u=>(await fetch(new URL(u,sharedBase))).text();
+    const [html,css,phoneCss,records,previews,toolReading,js,glareCss,glareJs,managerOrder]=await Promise.all([
+      read('m-programs.html'),read('sessions.css'),read('m-programs.css'),
+      readShared('tool-record-text.js'),readShared('tool-preview-core.js'),read('tool-reading.js'),read('sessions.js'),read('glare.css'),read('glare.js'),read('manager-order.js')]);
+    const mock=`
+      const fixture=parent.phonePrograms;
+      addEventListener('error',e=>fixture.errors.push('error: '+e.message));
+      addEventListener('unhandledrejection',e=>fixture.errors.push('rejection: '+String((e.reason&&e.reason.message)||e.reason)));
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:value=>{fixture.clipboardWrites.push(String(value));return Promise.resolve();}}});
+      window.BroadcastChannel=class{constructor(name){fixture.channels.push(String(name));}postMessage(m){fixture.channelPosts.push(m);}};
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{
+        get length(){return fixture.store.size;},
+        key:i=>[...fixture.store.keys()][i]??null,
+        getItem:k=>{fixture.storage.push(['get',k]);return fixture.store.has(k)?fixture.store.get(k):null;},
+        setItem:(k,v)=>{fixture.storage.push(['set',k,String(v)]);fixture.store.set(k,String(v));},
+        removeItem:k=>{fixture.storage.push(['remove',k]);fixture.store.delete(k);}}});
+      const uuid=n=>'0000000'+n+'-0000-4000-8000-000000000000';
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      const ocv=x=>({schemaVersion:1,backend:'opencode',...x});
+      const seat=(n,extra)=>({source:'host',role:'worker',displayRole:'worker',uuid:uuid(n),executionId:'cc-'+uuid(n),generation:1,
+        targetRef:'target-'+n,sessionRef:'session-'+n,scopes:[{scopeRef:'scope-'+n,label:'main'}],title:'Session '+n,createdAt:1000+n,
+        lifecycle:'live',capabilities:{},liveState:{},...extra});
+      const manager=seat(1,{role:'manager',displayRole:'manager',title:'Manager with native subagents',createdAt:1010,
+        capabilities:{nativeInput:true,controls:true,reconnect:true,subagents:true}});
+      // The newest numbered Manager of the whole inventory: with no Manager picked it is the one pinned above the
+      // list (the unnumbered Manager below keeps its ordinary Manager Sessions row).
+      const pinnedManager=seat(13,{role:'manager',displayRole:'manager',title:'Manager-Session-184',createdAt:1009,
+        capabilities:{nativeInput:true,controls:true,reconnect:true},liveState:{}});
+      const conductor=seat(2,{role:'conductor',displayRole:'conductor',createdAt:1011,liveState:{primary_turn_open:true},
+        title:'[ap:TREE01]-001 · ⚡ Phone programs: one sidebar renderer',
+        lineage:{program:'TREE01',kind:'conductor',conductorN:1,quickProgram:true,managerSession:'184',entryAction:'start',title:'[ap:TREE01]-001 · ⚡ Phone programs: one sidebar renderer'},
+        turnFacts:{status:'complete',modelsComplete:true,models:['claude-opus-5-5'],levelsComplete:true,levels:['high'],firstAt:1792300000,lastAt:1792300600}});
+      const worker=seat(3,{displayRole:'quick-worker',createdAt:1012,
+        title:'[ap:TREE01]-001 ▸ ⚡ quick worker · a nested worker whose name is long enough to wrap on a 390px phone',
+        lineage:{program:'TREE01',kind:'seat',quick:true,conductorN:1,parentSeat:'cc-'+uuid(2),title:'[ap:TREE01]-001 ▸ ⚡ quick worker · a nested worker whose name is long enough to wrap on a 390px phone'}});
+      const helper=seat(4,{role:'helper',displayRole:'helper',createdAt:1013,
+        title:'[ap:TREE01]-001 ▸ ⚡ quick helper · waits on its Conductor',
+        lineage:{program:'TREE01',kind:'seat',quick:true,conductorN:1,parentSeat:'cc-'+uuid(3),title:'[ap:TREE01]-001 ▸ ⚡ quick helper · waits on its Conductor'},
+        liveState:{primary_turn_open:false,background_tasks:{'agent-1':{task_type:'local_agent',tool_input:{command:'bash oc_seat.sh wait cc-'+uuid(2)}}}}});
+      const quietBranch=seat(5,{createdAt:1014,title:'[ap:TREE01]-001 ▸ worker · quiet branch that folds away',
+        lineage:{program:'TREE01',kind:'seat',conductorN:1,parentSeat:'cc-'+uuid(2),title:'[ap:TREE01]-001 ▸ worker · quiet branch that folds away'}});
+      const quietLeaf=seat(6,{role:'helper',displayRole:'helper',createdAt:1015,title:'[ap:TREE01]-001 ▸ helper · quiet leaf under the quiet branch',
+        lineage:{program:'TREE01',kind:'seat',conductorN:1,parentSeat:'cc-'+uuid(5),title:'[ap:TREE01]-001 ▸ helper · quiet leaf under the quiet branch'}});
+      const freeWorker=seat(7,{displayRole:'quick-worker',createdAt:1016,capabilities:{subagents:true},
+        title:'[ap:FREE01]-001 ▸ ⚡ quick worker · freestanding, outside any program',
+        lineage:{program:null,kind:'seat',quick:true,title:'[ap:FREE01]-001 ▸ ⚡ quick worker · freestanding, outside any program'},
+        liveState:{primary_turn_open:false,background_tasks:{'task-7':{task_type:'local_bash',tool_input:{command:'ls -la /mnt/e/archive',description:'List the archive folder'}}}}});
+      const freeHelper=seat(8,{role:'helper',displayRole:'helper',createdAt:1017,title:'[ap:FREE01]-001 ▸ ⚡ quick helper · under the freestanding worker',
+        lineage:{program:null,kind:'seat',quick:true,parentSeat:'cc-'+uuid(7),title:'[ap:FREE01]-001 ▸ ⚡ quick helper · under the freestanding worker'}});
+      const twin={source:'windows-history',role:'history',uuid:uuid(7),sessionRef:'session-twin',scopes:[{scopeRef:'scope-twin',label:'main'}],
+        title:'Native transcript of the freestanding worker',createdAt:1005,cwd:'unknown',status:'stored'};
+      const history={source:'windows-history',role:'history',uuid:uuid(9),sessionRef:'session-history',scopes:[{scopeRef:'scope-history',label:'main'}],
+        title:'An old transcript with no host record',createdAt:1004,cwd:'/mnt/e/repos/quick-worker/transcripts',status:'stored'};
+      const child1={source:'host',role:'subagent',uuid:uuid(10),sessionRef:'session-sub1',parentUuid:uuid(1),agentId:'agent-a',agentType:'researcher',
+        description:'Read the archive folder',scopes:[{scopeRef:'scope-sub1',label:'main'}],title:'Session 10',createdAt:1018,lifecycle:'live'};
+      const child2={source:'host',role:'subagent',uuid:uuid(11),sessionRef:'session-sub2',parentUuid:uuid(1),agentId:'agent-b',agentType:'writer',
+        description:'Draft the summary',scopes:[{scopeRef:'scope-sub2',label:'main'}],title:'Session 11',createdAt:1019,lifecycle:'live'};
+      const runningChild={source:'host',role:'subagent',uuid:uuid(12),sessionRef:'session-sub3',parentUuid:uuid(4),agentId:'agent-1',agentType:'researcher',
+        description:'Counting the waiting tasks',scopes:[{scopeRef:'scope-sub3',label:'main'}],title:'Session 12',createdAt:1020,lifecycle:'live'};
+      const ocHelper={id:'ses_treehelp1',program:'TREE01',kind:'helper',quick:true,parentSeat:'cc-'+uuid(3),conductorN:1,
+        title:'[ap:TREE01]-001 ▸ ⚡ quick helper · an OpenCode row under the program worker',busy:true,outcome:null,agent:'build',
+        model:'openrouter/anthropic/claude-opus-5-5',cost:0.12,createdAt:1021,updatedAt:1792301000,idleAt:null,
+        directory:'/mnt/e/__daniel347x/__Dan_Root/__repos/quick-worker'};
+      const ocFreeWorker={id:'ses_freeqw01',program:null,kind:'worker',quick:true,
+        title:'[ap:FREE01]-001 ▸ ⚡ quick worker · an OpenCode worker outside any program',busy:false,outcome:'succeeded',agent:'build',
+        model:'openrouter/x/flash',cost:0.002,createdAt:1022,updatedAt:1792302000,idleAt:1792302000,
+        directory:'/mnt/e/__daniel347x/__Dan_Root/__repos/quick-worker'};
+      const ocFreeHelper={id:'ses_freehp01',program:null,kind:'helper',quick:true,parentSeat:'ses_freeqw01',
+        title:'[ap:FREE01]-001 ▸ ⚡ quick helper · under the OpenCode worker',busy:false,agent:'build',createdAt:1023,updatedAt:1792302100,idleAt:1792302100};
+      fixture.rows={manager:manager,pinnedManager:pinnedManager,conductor:conductor,freeWorker:freeWorker,ocHelper:ocHelper,ocFreeWorker:ocFreeWorker,ocFreeHelper:ocFreeHelper};
+      // oc.sh telemetry as the pane server answers it (scripted): a program's rows, or freestanding Claude sessions.
+      const teleSeg=(full,short,over)=>({key:'k#0',segment:0,kind:'fresh',label:'fresh',full,short:short||full,line:'fresh · '+full,flags:[],notes:[],live:false,...over});
+      const teleEntry=(sid,role,phases,segments)=>({sid,backend:sid.startsWith('cc-')?'claude':'opencode',role,roleSource:'title',phases,unit:phases?'U01':null,lastT:1,segments});
+      window.fetch=async(url,options={})=>{
+        url=String(url);fixture.requests.push([url,options.method||'GET']);
+        if(fixture.delay)await new Promise(r=>setTimeout(r,fixture.delay)); // a real network answers in a later task
+        const u=new URL(url,parent.location.href),q=Object.fromEntries(u.searchParams);let data=null;
+        if(u.pathname==='/api/claude/sessions'){
+          fixture.sessionPages.push(q.cursor||'');
+          if(q.cursor){
+            if(q.cursor!=='phone-programs-2')throw new Error('unexpected inventory cursor '+q.cursor);
+            if(fixture.laterPageFails)return new Response('{}',{status:503});
+            data=env({sessions:[quietBranch,quietLeaf,freeWorker,freeHelper,twin,history,runningChild],hasMore:false,status:'complete',
+              ...(fixture.laterHostLoad!==undefined?{hostLoad:fixture.laterHostLoad}:{})});
+           }else data=env({sessions:[manager,pinnedManager,conductor,worker,helper,...fixture.extra],hasMore:true,nextCursor:'phone-programs-2',status:'complete',listWindowDays:7,diagnostics:[],
+             ...(fixture.hostLoad!==undefined?{hostLoad:fixture.hostLoad}:{})});
+        }else if(u.pathname==='/api/pins'){
+          const body=options.method==='POST'&&options.body?JSON.parse(options.body):null;
+          if(body){const pins={...fixture.pins};if(body.pinned)pins[body.key]={pinned_at:Date.now()/1000};else delete pins[body.key];fixture.pins=pins;fixture.pinPosts.push(body);}
+          data={schemaVersion:1,pins:fixture.pins};
+        }else if(u.pathname==='/api/opencode/programs'){
+          fixture.ocReads++;data=ocv({status:'complete',error:null,observedAt:Date.now()/1000,sessions:[ocHelper,ocFreeWorker,ocFreeHelper]});
+        }else if(u.pathname==='/api/claude/turns'){
+          data=env({uuid:q.uuid,turnFacts:q.uuid===conductor.uuid?conductor.turnFacts:null});
+        }else if(u.pathname==='/api/opencode/activity'){
+          data=ocv({status:'complete',observedAt:Date.now()/1000,active:[ocHelper,ocFreeWorker,ocFreeHelper].filter(r=>r.busy).map(r=>r.id),sessions:[]});
+        }else if(u.pathname==='/api/opencode/glance'){
+          fixture.glanceReads.push(q.id);
+          const row=[ocHelper,ocFreeWorker,ocFreeHelper].find(r=>r.id===q.id)||{};
+          data=ocv({status:'complete',id:q.id,busy:row.busy===true,outcome:row.outcome||null,agent:row.agent||null,model:row.model||null,cost:row.cost||null,
+            idleAt:row.idleAt||null,messages:[{role:'user',time:1792302000,chars:5,text:'go on'},
+              {role:'assistant',time:1792302100,chars:fixture.glanceText.length,text:fixture.glanceText}]});
+        }else if(u.pathname==='/api/claude/glance'){
+          fixture.claudeGlanceReads.push(u.search);
+          data=env({status:'complete',uuid:q.uuid,model:'claude-opus-5-5',lastAt:1792302300,partial:false,
+            messages:[{role:'user',time:1792302000,chars:6,text:'go now'},{role:'assistant',time:1792302200,chars:fixture.claudeGlanceText.length,text:fixture.claudeGlanceText}],
+            call:fixture.claudeCall || {name:'Read',status:'stored',open:false,time:1792302250,resultTime:1792302251.4,
+              previewData:{schemaVersion:1,status:'available',value:{kind:'object',entries:[['file_path',{kind:'string',characters:11,jsonCharacters:13,head:'/mnt/e/x.py',tail:'/mnt/e/x.py'}]]}}},
+            read:{mode:'tail',bytes:1048576,window:1000,size:2000000,ms:3}});
+        }else if(u.pathname==='/api/opencode/turns'){
+          fixture.turnReads.push(q.id);data=ocv({status:'complete',id:q.id,firstAt:1792300000,lastAt:1792302000});
+        }else if(u.pathname==='/api/telemetry'){
+          fixture.teleReads.push(u.search);const sessions={};
+          if(q.program==='TREE01'){
+            sessions['cc-'+uuid(2)]=teleEntry('cc-'+uuid(2),'CONDUCTOR',false,[teleSeg('context 35.6 → 522 KT · 126 min'+fixture.teleExtra)]);
+            // The nested worker ran three times (a fresh start, resumed twice): three lines, oldest first.
+            const fu=(n,full,short)=>teleSeg(full,short,{key:'k#'+n,segment:n,kind:'follow_up',label:'+'+n+' follow-up',line:'+'+n+' follow-up · '+full});
+            sessions['cc-'+uuid(3)]=teleEntry('cc-'+uuid(3),'IMPLEMENTER',true,[teleSeg('start-up 50.3 KT · edit@57.2 KT · report@427 KT · end 481 KT · 0/0/96/14 min · ⚑2',
+              '50.3 (0) → 57.2 (0) → 427 (96) → 481 KT (14 min) ⚑2',{flags:['the first source read rests on shell parsing at #4 (shell read x.py)','2 report write(s) before the last file edit']}),
+              fu(1,'carried 481 KT · src@488 KT · edit@490 KT · report@512 KT · end 520 KT · 1/0/8/2 min · ⚑0','488 (1) → 490 (0) → 512 (8) → 520 KT (2 min) ⚑0'),
+              fu(2,'carried 520 KT · src@527 KT · edit@531 KT · report@566 KT · end 571 KT · 2/1/19/3 min · ⚑1','527 (2) → 531 (1) → 566 (19) → 571 KT (3 min) ⚑1')]);
+            // A GPT (OpenCode) session: each run's phase line under its own (oc_telemetry pane_stream_phases).
+            const gpt=(line)=>({stream:{line,full:'phases · '+line,cli:'oc.sh telemetry --sid '+ocHelper.id+' --phases'}});
+            sessions[ocHelper.id]={...teleEntry(ocHelper.id,'IMPLEMENTER',true,[teleSeg('start-up 97.0 KT · edit@— · report@200 KT · end 222 KT · 1/12/—/19 min · ⚑0','97.0 (1) → — (12) → 200 → 222 KT (19 min) ⚑0',gpt('wall · wait 2.4m 7% · think 1.6m 5% · write 2.5m 8% · tools 1.4m 4% · helpers 24m 75%')),
+              teleSeg('start-up 61.2 KT · edit@— · report@— · end 120 KT · 1/2/—/— min · ⚑0','61.2 (1) → — → — → 120 KT (2 min) ⚑0',{key:'k#1',segment:1,kind:'follow_up',label:'+1 follow-up',live:true,...gpt('wait 15m 10% · think 23m 15% · write 13m 9% · tools 95m 65% · other 9.0m 6%')})]),streamPhases:true};
+          }else for(const sid of u.searchParams.getAll('sid'))if(sid.startsWith('cc-'))sessions[sid]=teleEntry(sid,'unknown',false,[teleSeg('context 31.9 → 307 KT · 15 min')]);
+          data={schemaVersion:1,backend:'telemetry',status:'complete',program:q.program?'[ap:'+q.program+']':null,asOf:1,sessions};
+        }else if(u.pathname==='/api/claude/subagents'){
+          fixture.subagentReads.push([q.sessionRef,options.method||'GET']);
+          data=q.sessionRef==='session-1'?env({sessionRef:q.sessionRef,sessions:[child1,child2],hasMore:false,status:'complete'})
+            :env({sessionRef:q.sessionRef,sessions:[runningChild],hasMore:false,status:'complete'});
+        }else throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+      };
+    `;
+    const spy='const actualPreview=window.opcToolPreview;window.opcToolPreview=Object.freeze({...actualPreview,preview:(...args)=>{parent.phonePrograms.previewCalls++;return actualPreview.preview(...args);}});';
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const frame=document.getElementById('phone');
+    frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+'</style><style>'+phoneCss+'</style><style>'+glareCss+'</style></head>')
+      .replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>[mock,glareJs,records,previews,spy,toolReading,managerOrder,
+        // The page's own history instance, for the one check that runs the open glances' refresh without waiting out its cadence.
+        js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();parent.phonePrograms.history=history;')]
+        .map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+    await new Promise(r=>frame.onload=r);
+    w=frame.contentWindow;d=w.document;
+    const $=id=>d.getElementById(id);
+    const groups=()=>[...d.querySelectorAll('#sessions-list > .session-group')];
+    const headingText=g=>{const h=g.querySelector('h3');return [h.children[1].textContent,h.children[2].textContent].join('');};
+    const groupLabels=()=>groups().map(headingText).join('|');
+    const groupOf=text=>groups().find(g=>g.querySelector('h3').textContent.includes(text));
+    const itemOf=text=>[...d.querySelectorAll('#sessions-list .session-item')].find(n=>n.textContent.includes(text));
+    const kidsOf=text=>[...d.querySelectorAll('#sessions-list .sidebar-child')].find(n=>n.textContent.includes(text));
+    const ocOf=text=>[...d.querySelectorAll('#sessions-list .oc-item')].find(n=>n.textContent.includes(text));
+    const ocHelperRow=()=>ocOf('an OpenCode row under the program worker');
+    const ocFree=()=>ocOf('an OpenCode worker outside any program');
+    const ocFreeHelperRow=()=>ocOf('under the OpenCode worker');
+    const click=async(node,done)=>{node.click();await until(done);};
+    // A real iPhone tap as WebKit delivers it: touch pointer events on the finger's node, then (a touch
+    // pointer cannot hover) pointerout and a non-bubbling pointerleave on every ancestor after the lift.
+    // WebKit commits the click only if the node responding to clicks at that point is still the one
+    // the tap started on; a row rebuilt in between gets no click at all (Dan's iPhone, round 3).
+    const touchTap=async node=>{
+      node.scrollIntoView({block:'center'});await sleep(0);
+      const r=node.getBoundingClientRect(),x=r.left+Math.min(r.width/2,60),y=r.top+Math.min(r.height/2,12);
+      const responder=n=>{for(let at=n;at;at=at.parentElement)if(at.onclick||at.tagName==='BUTTON')return at;return null;};
+      const start=d.elementFromPoint(x,y),tapped=responder(start),chain=[];
+      for(let at=start;at;at=at.parentElement)chain.push(at);
+      const pointer=(type,target,bubbles=true)=>target.dispatchEvent(new w.PointerEvent(type,{pointerType:'touch',pointerId:7,isPrimary:true,bubbles,cancelable:true,clientX:x,clientY:y}));
+      pointer('pointerover',start);for(const at of [...chain].reverse())pointer('pointerenter',at,false);
+      pointer('pointerdown',start);start.dispatchEvent(new w.Event('touchstart',{bubbles:true}));
+      pointer('pointerup',start);pointer('pointerout',start);for(const at of chain)pointer('pointerleave',at,false);
+      start.dispatchEvent(new w.Event('touchend',{bubbles:true}));await sleep(0);
+      if(!tapped || !tapped.isConnected || responder(d.elementFromPoint(x,y))!==tapped)return false;
+      tapped.dispatchEvent(new w.MouseEvent('click',{bubbles:true,cancelable:true,clientX:x,clientY:y}));
+      return true;
+    };
+
+    check('the actual phone page is the desktop sidebar in read-only mode: phone body, no conversation markup, assets in production order',
+      html.includes('<h1 class="phone-sr">Programs and sessions')&&html.includes('class="phone-programs"')&&html.includes('data-view="programs"')&&
+      html.indexOf('/sessions.css')<html.indexOf('/m-programs.css')&&html.indexOf('/tool-record-text.js')<html.indexOf('/tool-preview-core.js')&&
+      html.indexOf('/tool-preview-core.js')<html.indexOf('/sessions.js')&&html.indexOf('/manager-order.js')>0&&html.indexOf('/manager-order.js')<html.indexOf('/sessions.js')&&
+      typeof w.opcManagerOrder?.compare==='function'&&
+      !d.getElementById('history-events')&&!d.getElementById('history-target')&&!d.getElementById('subagents-list')&&
+      typeof w.opcToolPreview?.preview==='function'&&typeof w.opcToolText?.size==='function');
+
+    const coldClaude=fx.requests.find(([url])=>url.startsWith('/api/claude/sessions'));
+    check('the cold read asks for paginated host summaries, never native history, with the OpenCode list beside it and nothing selected',
+      await until(()=>$('sessions-status').textContent.includes('host inventory')&&d.querySelector('.oc-item')&&$('sessions-filter-status').textContent.includes('OpenCode: 3 sessions'))&&
+      fx.sessionPages.slice(0,2).join('|')==='|phone-programs-2'&&coldClaude?.[0]==='/api/claude/sessions?details=0&native=0&view=week'&&coldClaude?.[1]==='GET'&&fx.ocReads>=1&&
+      $('sessions-status').textContent.includes('stored native history loads on request (2 server pages)')&&
+      $('sessions-filter-status').textContent==='13 shown · 13 listed · 12 in the whole inventory · OpenCode: 3 sessions'&&
+      !$('sessions-pinned').hidden&&$('sessions-pinned').textContent.includes('Manager-Session-184')&&fx.history.state.session===null&&$('sessions-notice').hidden);
+
+    check('Running now leads with the busy program; the quiet work keeps its home sections in the desktop order',
+      groupLabels()==='Running now · 1 program · 2 sessions|Favorite programs · 0|Manager Sessions · 2|Quick programs · 1 program|Quick workers and helpers · quick-worker · 4|Other · 1');
+
+    const program=groupOf('Running now').querySelector('.program');
+    check('the program row names its Conductor, core, Manager Session and size, and stays open while anything in it is active',
+      program.querySelector('.program-title .name-text').textContent==='Phone programs: one sidebar renderer'&&
+      program.querySelector('.program-meta > .meta-status').textContent==='[ap:TREE01] · from Manager-Session-184 · 6 sessions'&&
+      program.querySelector('.program-head').getAttribute('aria-expanded')==='true'&&
+      program.classList.contains('live')&&program.classList.contains('active-program')&&program.querySelector('.program-fold').textContent==='⊟');
+
+    const left=n=>n.getBoundingClientRect().left,text=program.textContent;
+    check('the tree nests Conductor → quick worker → its helper and the OpenCode helper, each level indented and in creation order',
+      !!itemOf('-001')&&!!itemOf('a nested worker')&&!!itemOf('waits on its Conductor')&&!!ocHelperRow()&&!!itemOf('quiet branch that folds away')&&
+      text.indexOf('a nested worker')<text.indexOf('waits on its Conductor')&&text.indexOf('waits on its Conductor')<text.indexOf('an OpenCode row under the program worker')&&
+      text.indexOf('an OpenCode row under the program worker')<text.indexOf('quiet branch that folds away')&&text.indexOf('quiet branch that folds away')<text.indexOf('quiet leaf under the quiet branch')&&
+      left(itemOf('-001'))+4<left(itemOf('a nested worker'))&&left(itemOf('a nested worker'))+4<left(itemOf('waits on its Conductor'))&&
+      Math.abs(left(ocHelperRow())-left(itemOf('waits on its Conductor')))<=1&&
+      itemOf('-001').querySelector('.role-word').textContent==='Conductor:'&&itemOf('a nested worker').querySelector('.role-word').textContent==='Quick worker:'&&
+      ocHelperRow().querySelector('.role-word').textContent==='Helper:'&&itemOf('-001').querySelector('.session-models').textContent.includes('Opus 5.5 · high'));
+
+    check('busy is the host’s own open turn; waiting is a closed turn with a background task, and the recogniser names the session it waits on',
+      itemOf('-001').classList.contains('active')&&!itemOf('-001').querySelector('.waiting-flag')&&
+      !itemOf('waits on its Conductor').classList.contains('active')&&
+      itemOf('waits on its Conductor').querySelector('.waiting-flag').textContent==='🔔 Doorbell'&&
+      /waits on ⚡ Phone programs: one sidebar renderer · Conductor · \[ap:TREE01\] · socket not recorded/.test(itemOf('waits on its Conductor').querySelector('.waiting-flag').title)&&
+      itemOf('waits on its Conductor').querySelector('.waiting-flag').title.includes('its turn is closed; it is woken when one of its 1 background task completes.')&&
+      !itemOf('Manager with native subagents').classList.contains('active')&&!itemOf('Manager with native subagents').querySelector('.waiting-flag'));
+
+    check('a freestanding quick worker waits with the shared tool preview, and the preview consumer is the packaged one',
+      itemOf('freestanding, outside any program').querySelector('.waiting-flag').textContent==='waiting'&&
+      itemOf('freestanding, outside any program').querySelector('.waiting-flag').title.includes('"List the archive folder"')&&fx.previewCalls>=1);
+
+    check('OpenCode rows carry the chip and their host state; only the busy one is marked active',
+      ocHelperRow().classList.contains('active')&&ocHelperRow().querySelector('.session-meta').textContent.startsWith('OpenCode busy')&&
+      !ocFree().classList.contains('active')&&ocFree().querySelector('.session-meta').textContent.replace(/ \(first [^)]*\)$/,'')==='OpenCode idle · succeeded · flash · $0.002'&&
+      ocFreeHelperRow().querySelector('.session-crumb')===null&&ocHelperRow().querySelector('.session-note')===null);
+
+    ocHelperRow().scrollIntoView({block:'center'});await sleep(0);
+    await until(()=>!!ocHelperRow()?.querySelector('.session-times'));
+    check('every row shows its own first and latest turn, YYYY-MM-DD HH:MM ET, right of the models (Claude) or the status (OpenCode, read once per row)',
+      [...d.querySelectorAll('#sessions-list .session-item:not(.oc-item) .session-times')].some(n=>n.textContent==='(first 2026-10-18 01:06 ET · last 2026-10-18 01:16 ET)'&&n.previousElementSibling.previousElementSibling.className==='session-models')&&
+      ocHelperRow().querySelector('.session-times').textContent==='(first 2026-10-18 01:06 ET · last 2026-10-18 01:40 ET)'&&
+      new Set(fx.turnReads).size===fx.turnReads.length);
+
+    const programNow=groupOf('Running now').querySelector('.program'),programTimes=programNow.querySelector('.program-meta > .session-times'),programHead=programNow.querySelector('.program-head').getBoundingClientRect();
+    check('the program row carries the same first/last parenthetical on its meta line (its sessions\' earliest and latest turn), wrapped whole inside the row at 390 px',
+      !!programTimes&&/^\(first \d{4}-\d\d-\d\d \d\d:\d\d ET · last (\d{4}-\d\d-\d\d \d\d:\d\d ET|—)\)$/.test(programTimes.textContent)&&
+      programTimes.previousElementSibling.previousElementSibling.className==='meta-status'&&
+      [...programTimes.querySelectorAll('.times-part')].every(n=>{const r=n.getBoundingClientRect();return r.left>=programHead.left-0.5&&r.right<=programHead.right+0.5&&n.getClientRects().length===1;}));
+
+    // Telemetry: oc.sh telemetry on every tree row, its own lines under the times line, one per run.
+    const teleOf=node=>node?.querySelector('.session-open > .session-tele'),runs=t=>[...(t?.querySelectorAll('.tele-run') || [])].map(n=>n.textContent);
+    await until(()=>!!teleOf(itemOf('a nested worker'))&&!!teleOf(ocHelperRow())&&!!teleOf(itemOf('freestanding, outside any program')));
+    const condTele=[...d.querySelectorAll('#sessions-list .session-item')].map(teleOf).find(t=>runs(t).some(r=>r.includes('context 35.6 → 522 KT · 126 min')));
+    const timesOf=t=>t?.previousElementSibling?.querySelector('.session-times'),inside=(n,box)=>{const r=n.getBoundingClientRect();return r.left>=box.left-0.5&&r.right<=box.right+0.5;};
+    check('telemetry: one read for the program and one for the freestanding tree; it keeps its own micro line directly under the times line, while that second line above is one point larger and brighter',
+      fx.teleReads.includes('?program=TREE01')&&fx.teleReads.some(x=>x.startsWith('?sid='))&&!!condTele&&
+      condTele.previousElementSibling.classList.contains('session-meta')&&!!timesOf(condTele)&&
+      condTele.getBoundingClientRect().top>=timesOf(condTele).getBoundingClientRect().bottom-0.5&&
+      w.getComputedStyle(condTele).color==='rgb(155, 163, 177)'&&w.getComputedStyle(condTele).fontSize==='10.5px'&&
+      Math.abs(parseFloat(w.getComputedStyle(condTele.previousElementSibling).fontSize)-10.5-4/3)<.1&&
+      w.getComputedStyle(condTele.previousElementSibling).color==='rgb(174, 182, 195)'&&w.getComputedStyle(timesOf(condTele)).color==='rgb(174, 182, 195)');
+    const wTele=teleOf(itemOf('a nested worker')),wOpen=wTele.parentNode.getBoundingClientRect();
+    // A run has no box of its own in the grid (display:contents): its cells are the grid items (flex items when the row wraps).
+    const box=n=>n.getBoundingClientRect(),runsOf=t=>[...t.querySelectorAll('.tele-run')];
+    const leavesOf=n=>[...n.querySelectorAll('.tele-mark,.tele-cell,.tele-arrow,.tele-flag,.tele-tail')];
+    const cellsWhole=t=>leavesOf(t).every(n=>n.getClientRects().length===1&&inside(n,t.parentNode.getBoundingClientRect()));
+    const lines=n=>new Set(leavesOf(n).map(x=>Math.round(box(x).top))).size;
+    const ordered=t=>runsOf(t).every((n,i,all)=>i===0||Math.min(...leavesOf(n).map(x=>box(x).top))>=Math.max(...leavesOf(all[i-1]).map(x=>box(x).bottom))-0.5);
+    // The columns: every run's k-th cell (its mark, each moment, each arrow, the ⚑) starts at the same x.
+    const columns=t=>{const r=runsOf(t).map(n=>[...n.querySelectorAll('.tele-mark,.tele-cell,.tele-arrow,.tele-flag')].map(x=>box(x).left));
+      return r.length>1&&r.every(x=>x.length===r[0].length&&x.every((v,i)=>Math.abs(v-r[0][i])<0.75));};
+    // A moment never parts from the arrow (or ⚑) after it.
+    const pairsWhole=t=>[...t.querySelectorAll('.tele-unit')].every(u=>lines(u)===1);
+    const W_RUNS=['▶️ 50.3 (0) → 57.2 (0) → 427 (96) → 481 KT (14 min) ⚑2','↪️ 488 (1) → 490 (0) → 512 (8) → 520 KT (2 min) ⚑0','↪️ 527 (2) → 531 (1) → 566 (19) → 571 KT (3 min) ⚑1'];
+    check('a session resumed twice shows three lines, oldest first, the first opened by ▶️ and each resume by ↪️, each with its own moments and every bracket, no "carried" ('+runs(wTele).join(' | ')+')',
+      JSON.stringify(runs(wTele))===JSON.stringify(W_RUNS)&&!wTele.textContent.includes('carried')&&ordered(wTele));
+    check('its columns line up from line to line: each run\'s mark, moments, arrows and ⚑ start at the same x ('+(wTele.classList.contains('tele-wrap')?'wrapped':'grid')+')',columns(wTele));
+    check('at 390 px nothing is cut: every cell whole and inside its row, no moment apart from its arrow',
+      cellsWhole(wTele)&&inside(wTele,wOpen)&&wTele.scrollWidth<=wTele.clientWidth+1&&pairsWhole(wTele));
+    const oTele=teleOf(ocHelperRow()),tailOf=t=>t.querySelector('.tele-tail');
+    const after=(a,b)=>box(b).top>=box(a).bottom-0.5||(Math.abs(box(b).top-box(a).top)<1&&box(b).left>=box(a).right-0.5);
+    check('a live row ends its line "so far", after the ⚑, in the running color (the busy Conductor too); an OpenCode row keeps its times on its line and its telemetry under it; a Conductor shows only context and wall clock',
+      JSON.stringify(runs(condTele))==='["▶️ context 35.6 → 522 KT · 126 min so far"]'&&JSON.stringify(runs(oTele))==='["▶️ 97.0 (1) → — (12) → 200 → 222 KT (19 min) ⚑0","↪️ 61.2 (1) → — → — → 120 KT (2 min) ⚑0 so far"]'&&!!timesOf(oTele)&&
+      after(oTele.querySelector('.tele-flag'),tailOf(oTele))&&w.getComputedStyle(tailOf(oTele)).color==='rgb(240, 211, 154)'&&!wTele.querySelector('.tele-tail')&&
+      condTele.title.includes('Conductor: phases are not classified for this role yet'));
+    // A GPT session (the OpenCode helper): each run's phase line directly under its own line, from the moments' column,
+    // inside the row at 390 px, wrapping only between its parts; the chain lines keep their columns.
+    const phasesOf=t=>[...t.querySelectorAll('.tele-phases')],partsOf=n=>[...n.querySelectorAll('.tele-phase')];
+    check('a GPT row shows a phase line under each run ('+phasesOf(oTele).map(n=>n.textContent).join(' | ')+'), from the moments\' column, inside the row, each part whole',
+      phasesOf(oTele).length===2&&phasesOf(oTele).every((n,i)=>box(n).top>=Math.max(...leavesOf(runsOf(oTele)[i]).filter(x=>!x.classList.contains('tele-tail')).map(x=>box(x).bottom))-0.5&&
+        (i===0||box(n).top>=box(phasesOf(oTele)[i-1]).bottom-0.5)&&inside(n,oTele.parentNode.getBoundingClientRect())&&
+        Math.abs(box(partsOf(n)[0]).left-box(runsOf(oTele)[i].querySelector('.tele-cell')).left)<0.75&&partsOf(n).every(x=>x.getClientRects().length===1))&&
+      Math.min(...leavesOf(runsOf(oTele)[1]).map(x=>box(x).top))>=box(phasesOf(oTele)[0]).bottom-0.5&&columns(oTele)&&oTele.scrollWidth<=oTele.clientWidth+1&&
+      !wTele.querySelector('.tele-phases')&&!condTele.querySelector('.tele-phases'));
+    check('the first run\'s mark and a resume\'s take the same cell: the moments after them start at the same x',
+      Math.abs(box(runsOf(wTele)[0].querySelector('.tele-cell')).left-box(runsOf(wTele)[1].querySelector('.tele-cell')).left)<0.75&&
+      box(runsOf(wTele)[0].querySelector('.tele-mark')).right<=box(runsOf(wTele)[0].querySelector('.tele-cell')).left+0.5);
+    const helperShown=!!itemOf('waits on its Conductor');
+    await click(wTele,()=>!!itemOf('a nested worker').querySelector('.tele-detail'));
+    const teleDetail=itemOf('a nested worker').querySelector('.tele-detail');
+    check('a tap on the telemetry opens its whole account under the row (every run\'s long form, every ⚑ flag), and leaves the row\'s tree as it was',
+      teleDetail.textContent.includes('\nfresh · start-up 50.3 KT')&&teleDetail.textContent.includes('  ⚑ 2 report write(s) before the last file edit')&&
+      teleDetail.textContent.includes('\n+2 follow-up · carried 520 KT')&&
+      teleOf(itemOf('a nested worker')).getAttribute('aria-expanded')==='true'&&!!itemOf('waits on its Conductor')===helperShown);
+    await click(teleOf(itemOf('a nested worker')),()=>!itemOf('a nested worker').querySelector('.tele-detail'));
+    check('a second tap closes it',!itemOf('a nested worker').querySelector('.tele-detail')&&!!itemOf('waits on its Conductor')===helperShown);
+    const nested=()=>teleOf(itemOf('a nested worker'));
+    // Each redraw fits the rows' telemetry to the list's width (teleFit, before the reading position is put back). A width
+    // change alone, or the hidden frame shown again, fits them on the next frame (a ResizeObserver, an animation frame):
+    // rendering callbacks this virtual-time harness runs only now and then, so these checks redraw.
+    const redrawTele=async done=>{const pages=fx.sessionPages.length;$('sessions-refresh').click();return until(()=>fx.sessionPages.length>=pages+2&&done());};
+    frame.style.width='900px';
+    await redrawTele(()=>!nested().classList.contains('tele-wrap')&&runsOf(nested()).every(r=>lines(r)===1));
+    const wideTele=nested();
+    check('a wider list shows the same chain as one grid, each run on one line, the columns lined up',
+      !wideTele.classList.contains('tele-wrap')&&runsOf(wideTele).every(r=>lines(r)===1)&&JSON.stringify(runs(wideTele))===JSON.stringify(W_RUNS)&&columns(wideTele)&&
+      w.getComputedStyle(wideTele).display==='grid'&&w.getComputedStyle(wideTele).fontVariantNumeric==='tabular-nums');
+    // Even below a normal phone width, the action rail reserves only the first two lines: telemetry keeps
+    // the full row width and still wraps with every cell whole instead of shrinking into the icon column.
+    frame.style.width='290px';
+    await redrawTele(()=>nested().classList.contains('tele-wrap'));
+    const tightTele=nested(),tightMeasure='('+tightTele.clientWidth+' px text / '+tightTele.scrollWidth+' px content, '+runsOf(tightTele).map(r=>lines(r)).join(',')+' lines)';
+    check('narrower than its grid, the row wraps between moments rather than drop a bracket: every cell whole and inside the row, each moment with its arrow, and the runs still line up '+tightMeasure,
+      tightTele.classList.contains('tele-wrap')&&JSON.stringify(runs(tightTele))===JSON.stringify(W_RUNS)&&cellsWhole(tightTele)&&pairsWhole(tightTele)&&runsOf(tightTele).some(r=>lines(r)>1)&&
+      tightTele.scrollWidth<=tightTele.clientWidth+1&&columns(tightTele)&&ordered(tightTele)&&runsOf(tightTele).every(r=>lines(r)===lines(runsOf(tightTele)[0])));
+    // The phone's Programs frame hidden behind Chat: a redraw then cannot measure (Chrome lays out nothing there; WebKit
+    // may keep the frame's width, and then fits it as usual), and never fits on a zero width; shown again, they are fitted.
+    frame.style.display='none';await sleep(30);
+    await redrawTele(()=>nested()!==tightTele);
+    const hiddenTele=nested(),hiddenWidth=$('sessions-scroll').clientWidth;
+    check('a list drawn while hidden is never fitted on a zero width: with no layout its rows stay one grid, nothing stored (list width while hidden: '+hiddenWidth+')',
+      hiddenWidth?hiddenTele.classList.contains('tele-wrap')&&Number(hiddenTele.dataset.gridWidth)>hiddenTele.clientWidth:
+        !hiddenTele.classList.contains('tele-wrap')&&hiddenTele.dataset.gridWidth===undefined&&leavesOf(hiddenTele).every(n=>!n.style.minWidth));
+    frame.style.display='';await sleep(30);
+    await redrawTele(()=>nested().classList.contains('tele-wrap'));
+    check('shown again, its rows are fitted',nested().classList.contains('tele-wrap')&&nested().scrollWidth<=nested().clientWidth+1&&columns(nested())&&cellsWhole(nested()));
+    frame.style.width='390px';await sleep(60);
+
+    check('an OpenCode row with sessions under it toggles them on tap, and every OpenCode row now carries its own 💬 chip',
+      ocFree().querySelector('.session-open').getAttribute('aria-expanded')==='true'&&!!ocFreeHelperRow()&&
+      ocFree().querySelector('.session-actions > .oc-glance-chip')?.getAttribute('aria-expanded')==='false'&&
+      ocHelperRow().querySelector('.session-actions > .oc-glance-chip')?.getAttribute('aria-expanded')==='false');
+    await click(ocFree().querySelector('.session-open'),()=>!ocFreeHelperRow());
+    check('tapping the OpenCode worker row closes the helper under it without a glance read',
+      ocFree().querySelector('.session-open').getAttribute('aria-expanded')==='false'&&fx.glanceReads.length===0&&!ocFree().querySelector('.oc-glance'));
+    await click(ocFree().querySelector('.session-open'),()=>!!ocFreeHelperRow());
+    await click(ocFree().querySelector('.oc-glance-chip'),()=>ocFree().querySelector('.oc-glance-chip')?.getAttribute('aria-expanded')==='true'&&ocFree().querySelector('.glance-msg[data-role=assistant] .glance-text')?.textContent==='all done.');
+    check('the 💬 chip opens the OpenCode glance under its row: state, messages, id and copy — and no Open in CodeNomad is offered here',
+      ocFree().querySelector('.oc-glance-chip')?.getAttribute('aria-expanded')==='true'&&ocFree().classList.contains('glancing')&&!!ocFreeHelperRow()&&
+      ocFree().querySelector('.glance-id')?.textContent==='ses_freeqw01'&&ocFree().querySelector('.glance-head')?.textContent.startsWith('idle · outcome succeeded · build · flash · $0.002')&&
+      ocFree().querySelector('.glance-msg[data-role=assistant] .glance-text')?.textContent==='all done.'&&ocFree().querySelector('.glance-msg[data-role=user] .glance-text')?.textContent==='go on'&&
+      !ocFree().querySelector('.glance-focus')&&!ocFree().querySelector('.focus-open')&&!d.querySelector('.focus-open')&&!d.querySelector('.glance-focus')&&
+      fx.glanceReads.join('|')==='ses_freeqw01'&&fx.turnReads.every(id=>['ses_freeqw01','ses_treehelp1','ses_freehp01'].includes(id)));
+
+    fx.glanceText='a second, deliberate look.';
+    await click(ocFree().querySelector('.glance-foot button.link'),()=>ocFree().querySelector('.glance-msg[data-role=assistant] .glance-text')?.textContent==='a second, deliberate look.');
+    check('the glance refresh re-reads only that OpenCode session and never touches the conversation view',
+      fx.glanceReads.length===2&&fx.glanceReads[1]==='ses_freeqw01'&&ocFree().querySelector('.glance-msg[data-role=assistant] .glance-text')?.textContent==='a second, deliberate look.'&&fx.requests.every(([,method])=>method==='GET'));
+
+    await click(ocFree().querySelector('.oc-glance-chip'),()=>!ocFree().querySelector('.oc-glance'));
+    check('tapping the chip again closes the glance and leaves the read-only list in place',
+      ocFree().querySelector('.oc-glance-chip').getAttribute('aria-expanded')==='false'&&!ocFree().classList.contains('glancing')&&!!ocFreeHelperRow());
+    await click(ocHelperRow().querySelector('.session-open'),()=>ocHelperRow()?.querySelector('.glance-msg[data-role=assistant]'));
+    check('an OpenCode leaf row also carries its 💬 chip, and a tap on the row still opens its glance',
+      ocHelperRow().querySelector('.session-actions > .oc-glance-chip')?.getAttribute('aria-expanded')==='true'&&
+      ocHelperRow().querySelector('.session-open').getAttribute('aria-expanded')==='true'&&fx.glanceReads.at(-1)==='ses_treehelp1');
+    await click(ocHelperRow().querySelector('.session-open'),()=>!ocHelperRow().querySelector('.oc-glance'));
+
+    // A Claude row's glance, with the OpenCode row's gesture: every row carries the 💬 chip on its one action rail;
+    // a row with nothing under it is still its own glance tap.
+    const oldRow=()=>itemOf('An old transcript with no host record'),glanceReqs=fx.requests.length;
+    check('a Claude leaf row carries its 💬 chip on the rail, and a tap on the row is still its glance',
+      !!oldRow().querySelector('.session-actions > .session-glance-chip')&&oldRow().querySelector('.session-open').getAttribute('role')==='button'&&
+      oldRow().querySelector('.session-open').getAttribute('aria-expanded')==='false'&&!oldRow().querySelector('.claude-glance'));
+    await click(oldRow().querySelector('.session-open'),()=>oldRow()?.querySelector('.claude-glance .glance-call'));
+    const cg=oldRow().querySelector('.claude-glance');
+    check('tapping it opens its glance with one read of /api/claude/glance (its UUID, its folder as the hint): its messages, then its latest tool call with the conversation\'s own preview and total time, and Read conversation › — no rename, no target',
+      fx.requests.length===glanceReqs+1&&fx.claudeGlanceReads.join('|')==='?uuid=00000009-0000-4000-8000-000000000000&cwd=%2Fmnt%2Fe%2Frepos%2Fquick-worker%2Ftranscripts'&&
+      [...cg.querySelectorAll('.glance-msg .glance-text')].map(n=>n.textContent).join('|')==='go now|Checking the tree first.'&&
+      cg.querySelector('.glance-call-name').textContent==='Read'&&cg.querySelector('.glance-call-time').textContent==='1.4s'&&
+      cg.querySelector('.glance-call-preview').textContent.includes('/mnt/e/x.py')&&cg.querySelector('.glance-read')?.textContent==='Read conversation ›'&&
+      cg.querySelector('.glance-id').textContent==='00000009-0000-4000-8000-000000000000'&&!d.querySelector('.session-rename')&&
+      oldRow().querySelector('.session-open').getAttribute('aria-expanded')==='true'&&oldRow().classList.contains('glancing'));
+    await click(oldRow().querySelector('.session-open'),()=>!oldRow().querySelector('.claude-glance'));
+    check('a second tap closes it with no further read',fx.claudeGlanceReads.length===1&&fx.requests.length===glanceReqs+1);
+    // A row with sessions under it: its tap still opens or closes them; its action rail carries the glance chip.
+    const conductorItem=()=>[...d.querySelectorAll('#sessions-list .session-item')].find(n=>n.querySelector('.role-word')?.textContent==='Conductor:');
+    fx.claudeCall={name:'Bash',status:'pending-or-missing',open:true,time:Date.now()/1000-65,resultTime:null,
+      previewData:{schemaVersion:1,status:'available',value:{kind:'object',entries:[['command',{kind:'string',characters:9,jsonCharacters:11,head:'pytest -q',tail:'pytest -q'}]]}}};
+    const cRail=conductorItem().querySelector(':scope > .session-actions'),cChip=cRail?.querySelector('.session-glance-chip'),cCopy=cRail?.querySelector('.session-copy');
+    const cChipBox=cChip?.getBoundingClientRect(),cCopyBox=cCopy?.getBoundingClientRect();
+    check('a Claude row with sessions under it carries ⧉ 💬 as one horizontal rail inside the row, closed',
+      !!cRail&&!!cChip&&!!cCopy&&cChip.getAttribute('aria-expanded')==='false'&&cChipBox.left>=cCopyBox.right-1&&Math.abs(cChipBox.top-cCopyBox.top)<2&&
+      cChipBox.bottom<=conductorItem().querySelector('.session-open').getBoundingClientRect().bottom+1&&
+      conductorItem().querySelector('.session-open').getAttribute('aria-expanded')==='true');
+    await click(cChip,()=>conductorItem()?.querySelector('.claude-glance .glance-call'));
+    const runningCall=conductorItem().querySelector('.claude-glance .glance-call');
+    check('the busy Conductor\'s 💬 opens its glance: its running call with the time so far, and its tree stays open',
+      runningCall.dataset.state==='running'&&/^1m 0[4-7]s so far$/.test(runningCall.querySelector('.glance-call-time').textContent)&&
+      runningCall.querySelector('.glance-call-preview').textContent.includes('pytest -q')&&/^busy/.test(conductorItem().querySelector('.claude-glance .glance-head').textContent)&&
+      conductorItem().querySelector('.session-open').getAttribute('aria-expanded')==='true'&&!!itemOf('a nested worker')&&fx.claudeGlanceReads.length===2);
+    // ⤢ Large: the open glance as a sheet over the whole frame, large and bright, every message whole; it reads nothing itself.
+    const glanceStyle=n=>w.getComputedStyle(n),readsBeforeLarge=fx.claudeGlanceReads.length,bigChip=conductorItem().querySelector('.claude-glance > .glance-large-open');
+    check('an open glance offers ⤢ Large at its top right, beside its head line (whose text is unchanged)',!!bigChip&&bigChip.getAttribute('role')==='button'&&
+      bigChip.getBoundingClientRect().right>=conductorItem().querySelector('.claude-glance').getBoundingClientRect().right-12&&/^busy/.test(conductorItem().querySelector('.claude-glance .glance-head').textContent)&&Math.abs(bigChip.getBoundingClientRect().top-conductorItem().querySelector('.claude-glance .glance-head').getBoundingClientRect().top)<8);
+    await click(bigChip,()=>$('glance-large')?.querySelector('.glance-text'));
+    const sheet=$('glance-large'),sheetRect=sheet.getBoundingClientRect(),bigText=sheet.querySelector('.glance-msg[data-role=assistant] .glance-text');
+    check('⤢ Large opens the glance as a sheet over the whole frame: its title, every message whole in large white type, the running call unclipped, no read of its own',
+      sheetRect.top<=0.5&&sheetRect.left<=0.5&&Math.abs(sheetRect.width-w.innerWidth)<1&&Math.abs(sheetRect.height-w.innerHeight)<1&&
+      $('glance-large-title').textContent.startsWith('Conductor · ')&&bigText.textContent==='Checking the tree first.'&&
+      glanceStyle(bigText).display==='block'&&parseFloat(glanceStyle(bigText).fontSize)>=18&&glanceStyle(bigText).color==='rgb(255, 255, 255)'&&
+      glanceStyle(sheet.querySelector('.glance-call-preview')).display==='block'&&sheet.querySelector('.glance-call').dataset.state==='running'&&
+      !sheet.querySelector('.glance-large-open')&&fx.claudeGlanceReads.length===readsBeforeLarge);
+    fx.claudeGlanceText='A newer message '+'long enough to make the sheet scroll on a phone at the large size. '.repeat(14);
+    fx.history.state.glanceNextPoll=0;await fx.history.pollGlances();
+    await until(()=>$('glance-large')?.textContent.includes('A newer message'));
+    const sheetBody=()=>$('glance-large').querySelector('.glance-large-body');
+    check('the sheet follows the glance\'s own refresh (one read): the new message whole, and the sheet at its newest end',
+      fx.claudeGlanceReads.length===readsBeforeLarge+1&&sheetBody().querySelector('.glance-msg[data-role=assistant] .glance-text').textContent===fx.claudeGlanceText&&
+      sheetBody().scrollHeight>sheetBody().clientHeight&&sheetBody().scrollHeight-sheetBody().scrollTop-sheetBody().clientHeight<2);
+    sheetBody().scrollTop=0;fx.claudeGlanceText='Another newer message. '+'More words for the sheet to hold while Dan reads its top. '.repeat(16);
+    fx.history.state.glanceNextPoll=0;await fx.history.pollGlances();await until(()=>$('glance-large')?.textContent.includes('Another newer'));
+    check('scrolled back up to read, a refresh keeps the reading position',sheetBody().scrollTop===0);
+    await click($('glance-large').querySelector('.glance-large-close'),()=>!$('glance-large'));
+    check('Close puts the sheet away and leaves the glance open under its row',!!conductorItem().querySelector('.claude-glance')&&!fx.history.state.glanceLarge);
+    await click(conductorItem().querySelector('.claude-glance .glance-large-open'),()=>$('glance-large'));
+    await click(conductorItem().querySelector('.session-actions > .session-glance-chip'),()=>!conductorItem().querySelector('.claude-glance'));
+    check('closing the glance closes its sheet too',!$('glance-large')&&!fx.history.state.glanceLarge);
+    fx.claudeGlanceText='Checking the tree first.';
+    // Outdoor glare mode: this frame follows the phone page around it (opcGlare.apply); its glance turns bright and larger, and back.
+    await click(conductorItem().querySelector('.session-actions > .session-glance-chip'),()=>conductorItem()?.querySelector('.claude-glance .glance-msg[data-role=assistant] .glance-text'));
+    const gText=()=>conductorItem().querySelector('.claude-glance .glance-msg[data-role=assistant] .glance-text'),normal=[glanceStyle(gText()).fontSize,glanceStyle(gText()).color];
+    w.opcGlare.apply(true);await sleep(30);
+    check('in glare mode the frame\'s glance is bright and larger ('+normal.join(' ')+' → '+glanceStyle(gText()).fontSize+' '+glanceStyle(gText()).color+'), with no storage of its own',
+      d.documentElement.dataset.glare==='on'&&normal[0]==='10.5px'&&normal[1]==='rgb(184, 191, 203)'&&glanceStyle(gText()).fontSize==='14px'&&glanceStyle(gText()).color==='rgb(255, 255, 255)'&&
+      !fx.storage.some(([,key])=>/glare/.test(key)));
+    w.opcGlare.apply(false);await sleep(30);
+    check('and back to the normal glance',!d.documentElement.dataset.glare&&glanceStyle(gText()).fontSize==='10.5px'&&glanceStyle(gText()).color==='rgb(184, 191, 203)');
+    await click(conductorItem().querySelector('.session-actions > .session-glance-chip'),()=>!conductorItem().querySelector('.claude-glance'));
+    fx.claudeCall=null;
+    const before=fx.requests.length;
+    check('a Claude row still offers its copy control',itemOf('Manager with native subagents').querySelector('.session-copy').getAttribute('aria-label')==='Copy session UUID');
+    itemOf('Manager with native subagents').querySelector('.session-copy').click();await sleep(10);
+    check('the copy control copies the UUID through the inert clipboard and makes no other request',
+      fx.clipboardWrites.length===1&&fx.clipboardWrites[0]===fx.rows.manager.uuid&&fx.requests.length===before);
+
+    // The capability alone no longer draws an expander: the visible capable row's own optional-detail queue reads
+    // its native children once (peekChildren), and only then does it offer the expander these taps use.
+    itemOf('Manager with native subagents').scrollIntoView({block:'center'});await sleep(0);
+    const discovered=await until(()=>!!itemOf('Manager with native subagents')?.querySelector('.session-toggle')&&fx.subagentReads.some(([ref])=>ref==='session-1'));
+    check('a visible capable row with no known children discovers them once, and only then offers its expander',
+      discovered&&fx.subagentReads.filter(([ref])=>ref==='session-1').length===1&&!itemOf('Manager with native subagents').querySelector('.children-foot'));
+
+    const manager=()=>itemOf('Manager with native subagents').querySelector('.session-open');
+    let reads=fx.subagentReads.length;
+    await click(manager(),()=>fx.subagentReads.length===reads+1&&!!itemOf('Read the archive folder'));
+    check('tapping the Manager row itself opens its native subagents (one read), and tapping it again closes them with no read',
+      manager().getAttribute('role')==='button'&&manager().getAttribute('aria-expanded')==='true'&&fx.subagentReads[reads][0]==='session-1');
+    await click(manager(),()=>!itemOf('Read the archive folder'));
+    check('the Manager row reads closed and made no further read',manager().getAttribute('aria-expanded')==='false'&&fx.subagentReads.length===reads+1);
+
+    reads=fx.subagentReads.length;
+    await click(itemOf('Manager with native subagents').querySelector('.session-toggle'),()=>fx.subagentReads.length===reads+1&&!!itemOf('Read the archive folder'));
+    check('the expand control reads that session’s native subagents once, as inert read-only child rows, with no status or empty footer on success',
+      fx.subagentReads[reads][0]==='session-1'&&fx.subagentReads[reads][1]==='GET'&&
+      [...d.querySelectorAll('#sessions-list .sidebar-child')].map(n=>n.tagName).join(',')==='DIV,DIV'&&
+      [...d.querySelectorAll('#sessions-list .sidebar-child')].every(n=>!n.onclick&&!n.onkeydown)&&
+      !itemOf('Manager with native subagents').querySelector('.children-foot')&&
+      itemOf('Manager with native subagents').querySelector('.session-toggle').getAttribute('aria-expanded')==='true');
+
+    await click(itemOf('waits on its Conductor').querySelector('.session-toggle'),()=>!!kidsOf('Counting the waiting tasks'));
+    check('a native subagent the host reports running is marked active under its helper, still view-only',
+      kidsOf('Counting the waiting tasks').classList.contains('active')&&kidsOf('Counting the waiting tasks').title.includes('running now')&&
+      [...d.querySelectorAll('#sessions-list .sidebar-child')].every(n=>!n.onclick&&!n.onkeydown));
+
+    const select=$('sessions-role');
+    select.value='quick-worker';select.dispatchEvent(new w.Event('change'));
+    await until(()=>$('sessions-filter-status').textContent.startsWith('3 shown'));
+    check('the role filter re-homes the tree as flat breadcrumb rows, marks the active program and keeps OpenCode rows',
+      $('sessions-filter-status').textContent==='3 shown · 3 match the filter · 12 in the whole inventory · OpenCode: 3 sessions'&&
+      groupLabels()==='Running now · 1|Quick workers and helpers · quick-worker · 2'&&[...d.querySelectorAll('#sessions-list .session-item')].length===3&&
+      itemOf('a nested worker').querySelector('.session-crumb').textContent==='[ap:TREE01] ▸ -001 ▸'&&itemOf('a nested worker').classList.contains('in-active-program')&&
+      ocFree().querySelector('.session-crumb').textContent==='Quick workers ▸');
+
+    select.value='all';select.dispatchEvent(new w.Event('change'));
+    await until(()=>$('sessions-filter-status').textContent.startsWith('13 shown'));
+    check('clearing the filter restores every group over the full tree',
+      groupLabels().startsWith('Running now · 1 program · 2 sessions|Favorite programs · 0|Manager Sessions · 2|Quick programs · 1 program|')&&!!itemOf('-001'));
+
+    const rowOf=text=>itemOf(text).querySelector('.session-open');
+    await click(rowOf('quiet branch that folds away'),()=>!itemOf('quiet leaf under the quiet branch'));
+    check('a tap anywhere on a session row with sessions under it closes them',
+      rowOf('quiet branch that folds away').getAttribute('aria-expanded')==='false'&&rowOf('quiet branch that folds away').getAttribute('role')==='button');
+    await click(rowOf('-001'),()=>!itemOf('a nested worker')&&!itemOf('quiet branch that folds away'));
+    check('tapping the Conductor row closes its whole subtree',rowOf('-001').getAttribute('aria-expanded')==='false'&&!ocHelperRow());
+    await click(rowOf('-001'),()=>!!itemOf('a nested worker'));
+    check('reopening it restores each row’s own saved state all the way down: the quiet branch stays closed, the rest open',
+      !!itemOf('waits on its Conductor')&&!!ocHelperRow()&&!!itemOf('quiet branch that folds away')&&!itemOf('quiet leaf under the quiet branch'));
+    await click(rowOf('quiet branch that folds away'),()=>!!itemOf('quiet leaf under the quiet branch'));
+    const head=()=>groupOf('Running now').querySelector('.program-head');
+    await click(head(),()=>head().getAttribute('aria-expanded')==='false'&&!itemOf('-001'));
+    await click(head(),()=>!!itemOf('quiet leaf under the quiet branch'));
+    check('the program-name row (not itself a session) opens and closes the same way, inner states kept',head().getAttribute('aria-expanded')==='true'&&!!itemOf('a nested worker'));
+    check('a real touch tap on the program-name row is delivered (the row under the finger survives the touch pointer leaving)',await touchTap(head()));
+    await until(()=>head().getAttribute('aria-expanded')==='false'&&!itemOf('-001'));
+    check('a second real touch tap reopens it',await touchTap(head()));
+    await until(()=>!!itemOf('quiet leaf under the quiet branch'));
+    check('a real touch tap on a session row with sessions under it closes them',await touchTap(rowOf('a nested worker')));
+    await until(()=>!itemOf('waits on its Conductor')&&!ocHelperRow());
+    check('and a real touch tap on that row opens them again',await touchTap(rowOf('a nested worker')));
+    await until(()=>!!itemOf('waits on its Conductor')&&!!ocHelperRow());
+    check('a real touch tap on a section heading folds and unfolds it',await touchTap(groupOf('Other').querySelector('h3'))&&
+      await until(()=>groupOf('Other').querySelector('h3 .section-toggle').getAttribute('aria-expanded')==='false')!==false&&
+      await touchTap(groupOf('Other').querySelector('h3'))&&await until(()=>groupOf('Other').querySelector('h3 .section-toggle').getAttribute('aria-expanded')==='true')!==false);
+    const style=n=>w.getComputedStyle(n);
+    check('a double tap cannot select row text: rows, program names and headings are non-selectable and tap-optimised',
+      [rowOf('a nested worker'),head(),groupOf('Other').querySelector('h3')].every(n=>(style(n).webkitUserSelect || style(n).userSelect)==='none'&&style(n).touchAction==='manipulation'));
+
+    const fold=()=>groupOf('Running now').querySelector('.program-fold');
+    await click(fold(),()=>!itemOf('quiet leaf under the quiet branch'));
+    check('fold-to-active keeps every busy/waiting row and hides only the quiet branch, and the control then offers to open everything',
+      !itemOf('quiet leaf under the quiet branch')&&!!itemOf('waits on its Conductor')&&!!ocHelperRow()&&!!itemOf('quiet branch that folds away')&&fold().textContent==='⊞');
+    await click(fold(),()=>!!itemOf('quiet leaf under the quiet branch'));
+    check('opening everything brings the quiet branch back',fold().textContent==='⊟'&&!!itemOf('a nested worker')&&!!itemOf('quiet leaf under the quiet branch'));
+
+    const cycle=$('sessions-cycle'),section=text=>groupOf(text).querySelector('h3 .section-toggle').getAttribute('aria-expanded');
+    check('the phone has one two-tap control in place of ⊟ ⊞, offering Collapse first',
+      !$('sessions-collapse')&&!$('sessions-expand')&&cycle.textContent==='Collapse'&&cycle.dataset.next==='collapse');
+    await click(manager(),()=>manager().getAttribute('aria-expanded')==='false');
+    await click(manager(),()=>!!itemOf('Read the archive folder'));
+    check('a real touch tap reaches the two-tap control',await touchTap(cycle));await until(()=>cycle.textContent==='Show running');
+    check('first tap: every top-level row closes (the program, the freestanding tree, the Manager’s native list) and the home sections fold; Running now stays open',
+      section('Running now')==='true'&&section('Quick programs')==='false'&&section('Manager Sessions')==='false'&&
+      section('Quick workers and helpers')==='false'&&section('Other')==='false'&&head().getAttribute('aria-expanded')==='false'&&!itemOf('a nested worker')&&
+      !itemOf('Read the archive folder')&&!itemOf('under the freestanding worker')&&
+      rowOf('freestanding, outside any program').getAttribute('aria-expanded')==='false'&&cycle.dataset.next==='running');
+    await click(head(),()=>!!itemOf('quiet leaf under the quiet branch'));
+    check('opening the program by hand after the collapse restores its previous expanded state',
+      !!itemOf('a nested worker')&&!!itemOf('waits on its Conductor')&&!!ocHelperRow()&&!!itemOf('quiet branch that folds away'));
+    check('the second real touch tap reaches it too',await touchTap(cycle));await until(()=>cycle.textContent==='Collapse');
+    check('second tap: only what is busy or waiting opens — the busy Conductor, the waiting helper and the busy OpenCode helper — and the quiet branch closes',
+      head().getAttribute('aria-expanded')==='true'&&!!itemOf('-001')&&!!itemOf('a nested worker')&&!!itemOf('waits on its Conductor')&&!!ocHelperRow()&&
+      !!itemOf('quiet branch that folds away')&&!itemOf('quiet leaf under the quiet branch')&&
+      rowOf('quiet branch that folds away').getAttribute('aria-expanded')==='false'&&!!itemOf('freestanding, outside any program')&&
+      !itemOf('under the freestanding worker')&&section('Running now')==='true'&&section('Quick programs')==='false'&&section('Manager Sessions')==='false'&&
+      fold().textContent==='⊞');
+    await click(cycle,()=>cycle.textContent==='Show running');
+    await click(cycle,()=>cycle.textContent==='Collapse');
+    check('the two taps give the same minimal view again from the collapsed state',
+      !!itemOf('waits on its Conductor')&&!!ocHelperRow()&&!itemOf('quiet leaf under the quiet branch')&&section('Quick programs')==='false');
+    for(const name of ['Manager Sessions','Quick programs','Quick workers and helpers','Other'])
+      await click(groupOf(name).querySelector('h3'),()=>section(name)==='true');
+    await click(rowOf('quiet branch that folds away'),()=>!!itemOf('quiet leaf under the quiet branch'));
+    if(!itemOf('under the freestanding worker'))await click(rowOf('freestanding, outside any program'),()=>!!itemOf('under the freestanding worker'));
+
+    fx.rows.ocFreeWorker.busy=true;
+    const listPages=fx.sessionPages.length,ocReads=fx.ocReads;
+    await click($('sessions-refresh'),()=>fx.sessionPages.length>=listPages+2&&fx.ocReads>=ocReads+1&&ocFree()?.classList.contains('active'));
+    check('⟳ re-reads the whole list and the OpenCode rows and shows the host’s new busy state',
+      fx.sessionPages.length>=listPages+2&&fx.ocReads>=ocReads+1&&ocFree().classList.contains('active')&&
+      ocFree().querySelector('.session-meta').textContent.startsWith('OpenCode busy')&&
+      $('sessions-filter-status').textContent.includes('OpenCode: 3 sessions'));
+
+    await sleep(800); // let the phone's own 600 ms poll tick at least once with the sidebar-only branch
+    const allowed=new Set(['/api/claude/sessions','/api/claude/turns','/api/opencode/programs','/api/opencode/activity','/api/opencode/glance','/api/opencode/turns','/api/claude/subagents','/api/telemetry','/api/claude/glance','/api/pins']);
+    check('every request the phone made was a read-only GET from the seven shared endpoints — no events, context, mailbox, send, rename, control, target or focus work',
+      fx.requests.length>=6&&fx.requests.every(([url,method])=>method==='GET'&&allowed.has(new URL(url,location.href).pathname))&&
+      !fx.requests.some(([url])=>/events|context|mailbox|tool-selection|inspect|rename|send|control|reconnect|focus|launch/.test(url))&&
+      fx.channels.length===0&&fx.channelPosts.length===0);
+
+    const layout=d.querySelector('main').getBoundingClientRect(),aside=d.querySelector('aside').getBoundingClientRect(),scroll=$('sessions-scroll');
+    const rule=Math.abs(layout.height-(w.innerHeight-110))<2?'sessions.css body:not(.embedded) main (100vh − 110px)':
+      Math.abs(layout.height-(w.innerHeight-6))<2?'m-programs.css 100dvh − 6px (the phone page heads the view)':'another rule';
+    check('phone layout at 390px: main '+Math.round(layout.height)+'px of '+w.innerHeight+'px ('+rule+'), aside '+Math.round(aside.height)+'px, list '+Math.round(scroll.clientHeight)+'px, no horizontal overflow',
+      layout.height>=w.innerHeight-65&&aside.height>=layout.height-2&&scroll.clientHeight>w.innerHeight*.8&&scroll.scrollHeight>=scroll.clientHeight&&
+      d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&w.getComputedStyle($('sessions-role')).fontSize==='16px'&&
+      parseFloat(w.getComputedStyle($('sessions-role')).minHeight)>=40&&parseFloat(w.getComputedStyle($('sessions-cycle')).minHeight)>=40&&
+      $('sessions-cycle').getBoundingClientRect().right<=$('sessions-refresh').getBoundingClientRect().left+1&&
+      w.getComputedStyle(itemOf('a nested worker').querySelector('.session-name')).whiteSpace==='normal'&&
+      w.getComputedStyle(itemOf('a nested worker').querySelector('.name-text')).whiteSpace==='normal');
+
+    const nameText=itemOf('a nested worker').querySelector('.name-text'),nameBox=nameText.getBoundingClientRect(),copyBox=itemOf('a nested worker').querySelector('.session-copy').getBoundingClientRect();
+    check('the long nested name wraps to more than one line, and the touch copy control stays clear of it, on a 390px phone',
+      nameBox.height>=28&&nameBox.right<=copyBox.left+1&&copyBox.width>0&&copyBox.height>0&&
+      w.getComputedStyle(itemOf('a nested worker').querySelector('.session-copy')).opacity==='1');
+
+    check('the renderer never touched the conversation DOM it does not have: no error, rejection or failed status across list, filter, fold, glance and refresh',
+      fx.errors.length===0&&$('sessions-status').dataset.error==='false'&&!d.getElementById('history-events')&&!d.getElementById('history-target')&&
+      !d.querySelector('.focus-open')&&!d.querySelector('.session-rename'));
+
+    check('the twin transcript row stays a plain dim label, never a second conversation link',
+      itemOf('freestanding, outside any program').querySelector('.session-twin')!==null&&
+      itemOf('freestanding, outside any program').querySelector('.session-twin').textContent==='↳ its native transcript'&&
+      !itemOf('freestanding, outside any program').querySelector('.session-twin').onclick&&
+      w.getComputedStyle(itemOf('freestanding, outside any program').querySelector('.session-twin')).cursor==='default');
+
+    const sets=fx.storage.filter(([op])=>op==='set').map(([,key])=>key);
+    check('the phone wrote only its two display preferences and never a PC or phone-Manager key',
+      sets.length>0&&sets.every(key=>key==='pane_lineage_open'||key==='pane_sidebar_sections')&&
+      !fx.storage.some(([,key])=>/pane_m_v1|refine_|pane_draft|pane_target|pane_journal/.test(key))&&fx.clipboardWrites.length===1);
+
+    // The key to the telemetry: inside the collapsed "list info" block, plain words, laid out for a 390 px phone.
+    const info=d.querySelector('#sessions-scroll > details.mini-more'),key=$('telemetry-key');
+    check('the telemetry key sits inside the collapsed list info block, out of the way',!!info&&!info.open&&info.contains(key)&&
+      info.querySelector('summary').textContent==='list info · key to the telemetry'&&info.getBoundingClientRect().height<30);
+    info.open=true;await sleep(30);
+    const keyItems=[...key.querySelectorAll('ol > li')].map(li=>li.querySelector('b').textContent);
+    check('opened, it names the four moments in order, the run marks (▶️ first, ↪️ resumed) and "so far", explains the bracketed minutes and the dash, and fits the phone without sideways scrolling',
+      key.querySelector('h4').textContent==='Key to the telemetry data'&&keyItems.join('|')==='Start-up:|First edit:|Report:|End:'&&
+      key.textContent.includes('The minutes in brackets belong to the stretch that ends at that column\'s moment, always in the same column')&&
+      key.textContent.includes('343 (0) → 376 (3) → (419 KT, 8 min) → —')&&key.textContent.includes('Parentheses around a whole cell mean that stretch is still running')&&
+      key.textContent.includes('62 (0) → — (11 min) → — → 186 KT')&&key.textContent.includes('A dash means that moment hasn\'t happened yet (or never did).')&&
+      key.textContent.includes('opened by a mark: ▶️ the agent\'s first run, ↪️ each follow-up message that resumed it')&&
+      key.textContent.includes('line up in columns from line to line, and so far ends the line of a run still going')&&key.textContent.includes('A 0 means under half a minute')&&
+      key.getBoundingClientRect().height>300&&key.scrollWidth<=key.clientWidth+1&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&
+      w.getComputedStyle(key.querySelector('p')).fontSize==='12.5px');
+    info.open=false;await sleep(30);
+
+    // The reading position holds while the list redraws around it. Dan reads on Chrome for iOS (WebKit): no
+    // native scroll anchoring may be relied on, and a whole-list redraw would defeat it anyway.
+    frame.style.height='460px';await sleep(60);
+    const scroller=$('sessions-scroll'),reading=()=>itemOf('Manager with native subagents').querySelector('.session-open');
+    const at=()=>reading().getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+    const redraw=async done=>{const pages=fx.sessionPages.length;$('sessions-refresh').click();return until(()=>fx.sessionPages.length>=pages+2&&done());};
+    check('the list does not lean on the browser\'s scroll anchoring (WebKit has none): its own anchoring is the only one',
+      w.getComputedStyle(scroller).overflowAnchor==='none');
+    // Inside a program, the preceding row can be partly hidden by its sticky header. Holding that
+    // row's TOP is not holding the worker being read: late telemetry grows its bottom and pushes
+    // that worker off screen. Exercise the real renderer, not just a row outside the program.
+    const insideRead=()=>itemOf('a nested worker').querySelector('.session-open');
+    const insideAt=()=>insideRead().getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+    const oldTele=fx.history.state.tele.get(fx.rows.conductor.executionId);
+    scroller.scrollTop+=insideAt()-90;await sleep(400);
+    const insideY=insideAt(),headerBottom=groupOf('Running now').querySelector('.program-head').getBoundingClientRect().bottom-scroller.getBoundingClientRect().top;
+    const preceding=itemOf('-001').querySelector('.session-open').getBoundingClientRect();
+    check('precondition: the worker is read inside the expanded program, with its predecessor occluded by the sticky header',
+      Math.abs(insideY-90)<2&&preceding.top<scroller.getBoundingClientRect().top+headerBottom&&preceding.bottom>scroller.getBoundingClientRect().top);
+    const lateSegments=Array.from({length:7},(_,i)=>({...oldTele.segments[0],key:'late-'+i,kind:'follow_up',label:'resumed',short:'context 35.6 → 522 KT · 126 min',line:'resumed · context 35.6 → 522 KT · 126 min'}));
+    fx.history.state.tele.set(fx.rows.conductor.executionId,{...oldTele,segments:[...oldTele.segments,...lateSegments]});
+    fx.history.inventory(true);await sleep(60);
+    check('late telemetry in the partly occluded preceding row keeps the worker being read at the same pixel ('+Math.round((insideAt()-insideY)*100)/100+' px)',Math.abs(insideAt()-insideY)<1.5);
+    fx.history.state.tele.set(fx.rows.conductor.executionId,oldTele);fx.history.inventory(true);await sleep(60);
+    const beforeSiblings=[...fx.history.state.inventory],lateUuid='00000090-0000-4000-8000-000000000000',lateId='cc-'+lateUuid;
+    const lateSibling={...fx.rows.conductor,uuid:lateUuid,executionId:lateId,sessionRef:'session-delayed-sibling',role:'worker',displayRole:'worker',createdAt:1011.5,title:'A sibling arriving after the active row',liveState:{primary_turn_open:false},turnFacts:null,
+      scopes:[{scopeRef:'scope-delayed-sibling',label:'main'}],lineage:{program:'TREE01',kind:'seat',conductorN:1,conductorId:fx.rows.conductor.executionId,title:'A sibling arriving after the active row'}};
+    // The preference exists before its row is listed: saved expand state must apply when late children arrive.
+    fx.history.state.lineageOpen.set('s:'+lateId,true);
+    fx.history.state.inventory.push(lateSibling);fx.history.inventory(true);await sleep(60);
+    check('a late sibling inserted above the active branch inside a saved-expanded program leaves the read row in place',
+      !!itemOf('A sibling arriving after the active row')&&Math.abs(insideAt()-insideY)<1.5);
+    const programReadHead=()=>[...d.querySelectorAll('.program-head')].find(n=>n.dataset.anchor==='p:TREE01');
+    programReadHead().click();await sleep(0);programReadHead().click();await sleep(60);
+    scroller.scrollTop+=insideAt()-insideY;await sleep(400);
+    const childrenAfterOpen=Array.from({length:4},(_,i)=>{const uuid='0000009'+(i+1)+'-0000-4000-8000-000000000000';return {...lateSibling,uuid,executionId:'cc-'+uuid,sessionRef:'late-child-'+i,title:'Late child '+i,createdAt:1011.6+i/100,
+      lineage:{program:'TREE01',kind:'helper',conductorN:1,parentSeat:lateId,title:'Late child '+i}};});
+    fx.history.state.inventory.push(...childrenAfterOpen);fx.history.inventory(true);await sleep(60);
+    check('collapse/re-expand during loading keeps the saved inner branch open; its later descendants do not move the read row',
+      !!itemOf('Late child 3')&&Math.abs(insideAt()-insideY)<1.5);
+    fx.history.state.inventory=beforeSiblings;fx.history.inventory(true);await sleep(60);
+    scroller.scrollTop+=at()-60;await sleep(60);
+    const y0=at(),top0=scroller.scrollTop;
+    check('precondition: scrolled down to read the Manager row ('+Math.round(top0)+' px), Running now above it',
+      top0>150&&Math.abs(y0-60)<2&&groupOf('Running now').getBoundingClientRect().bottom<=itemOf('Manager with native subagents').getBoundingClientRect().top);
+    const seat2=(n,extra)=>({source:'host',role:'worker',displayRole:'worker',uuid:'000000'+n+'-0000-4000-8000-000000000000',executionId:'cc-000000'+n+'-0000-4000-8000-000000000000',
+      generation:1,targetRef:'target-'+n,sessionRef:'session-'+n,scopes:[{scopeRef:'scope-'+n,label:'main'}],title:'Session '+n,createdAt:1000+n,lifecycle:'live',capabilities:{},liveState:{},...extra});
+    const newTitle='[ap:TREE02]-001 · ⚡ A program that starts while Dan reads further down';
+    const newConductor=seat2(31,{role:'conductor',displayRole:'conductor',title:newTitle,liveState:{primary_turn_open:true},
+      lineage:{program:'TREE02',kind:'conductor',conductorN:1,quickProgram:true,managerSession:'198',entryAction:'start',title:newTitle}});
+    const newWorker=seat2(32,{displayRole:'quick-worker',title:'[ap:TREE02]-001 ▸ ⚡ quick worker · its first seat, busy too',liveState:{primary_turn_open:true},
+      lineage:{program:'TREE02',kind:'seat',quick:true,conductorN:1,parentSeat:newConductor.executionId,title:'[ap:TREE02]-001 ▸ ⚡ quick worker · its first seat, busy too'}});
+    fx.extra.push(newConductor,newWorker);
+    await redraw(()=>!!itemOf('its first seat, busy too'));
+    check('a new busy program drawn into Running now, above the row being read, leaves that row where it was on screen',
+      Math.abs(at()-y0)<1.5&&scroller.scrollTop>top0+40&&groupOf('Running now').textContent.includes('A program that starts while Dan reads'));
+    const grownTitle='[ap:TREE01]-001 · ⚡ Phone programs: one sidebar renderer, now with a much longer name that wraps to several more lines on a phone';
+    fx.rows.conductor.title=grownTitle;fx.rows.conductor.lineage={...fx.rows.conductor.lineage,title:grownTitle};
+    const top1=scroller.scrollTop;
+    await redraw(()=>groupOf('Running now').textContent.includes('wraps to several more lines'));
+    check('a row above that grows (a longer name wrapping to more lines) leaves the row being read in place',
+      Math.abs(at()-y0)<1.5&&scroller.scrollTop>top1+10);
+    fx.teleExtra=' · and a telemetry line long enough to change its height';fx.rows.conductor.turnFacts={...fx.rows.conductor.turnFacts,lastAt:1792300900};
+    const teleBefore=fx.teleReads.length;
+    await redraw(()=>fx.teleReads.length>teleBefore&&[...d.querySelectorAll('.tele-run')].some(n=>n.textContent.includes('long enough to change')));
+    await sleep(60);
+    check('telemetry re-read for a row above (its own redraw) leaves the row being read in place',Math.abs(at()-y0)<1.5);
+    newConductor.liveState={primary_turn_open:false};newWorker.liveState={primary_turn_open:false};
+    const top2=scroller.scrollTop;
+    await redraw(()=>!groupOf('Running now').textContent.includes('A program that starts while Dan reads'));
+    check('the program going quiet (its rows leave Running now above, and land in its home section below) leaves the row being read in place',
+      Math.abs(at()-y0)<1.5&&scroller.scrollTop<top2-40&&groupOf('Quick programs').textContent.includes('A program that starts while Dan reads'));
+    // A glance open above the row being read re-reads on its own (its refresh, pollGlances, run here at once instead of
+    // after GLANCE_POLL_MS) and grows: that row stays put.
+    const runningConductor=()=>[...groupOf('Running now').querySelectorAll('.session-item')].find(n=>n.querySelector('.role-word')?.textContent==='Conductor:');
+    runningConductor().querySelector('.session-actions > .session-glance-chip').click();
+    await until(()=>!!runningConductor()?.querySelector('.claude-glance .glance-msg'));
+    scroller.scrollTop+=at()-y0;await sleep(60);
+    const yG=at(),readsG=fx.claudeGlanceReads.length;
+    check('precondition: a glance open in Running now, above the row being read',
+      Math.abs(yG-y0)<1.5&&runningConductor().getBoundingClientRect().bottom<=itemOf('Manager with native subagents').getBoundingClientRect().top);
+    fx.claudeGlanceText='A longer latest message '+'that wraps onto several more lines on a phone and grows the glance above the row being read. '.repeat(3);
+    fx.history.state.glanceNextPoll=0;await fx.history.pollGlances();
+    const grew=await until(()=>fx.claudeGlanceReads.length===readsG+1&&
+      !!runningConductor()?.querySelector('.claude-glance .glance-msg[data-role=assistant] .glance-text')?.textContent.startsWith('A longer latest'));
+    check('the open glance re-reads by itself (one read) and grows above the row being read; that row stays where it was ('+Math.round((at()-yG)*100)/100+' px)',
+      grew&&Math.abs(at()-yG)<1.5);
+    runningConductor().querySelector('.session-actions > .session-glance-chip').click();await until(()=>!runningConductor()?.querySelector('.claude-glance'));
+    fx.claudeGlanceText='Checking the tree first.';scroller.scrollTop+=at()-y0;await sleep(60);
+    // WebKit (Chrome on iOS) keeps whole-pixel scroll positions and drops the fraction of any it is given, so each
+    // correction landed up to a pixel low and the next started from there: a creep. Emulated on the list's scroller here
+    // (Chrome keeps fractions), redraws growing and shrinking a row above must leave the row being read where it was.
+    const ownTop=Object.getOwnPropertyDescriptor(w.Element.prototype,'scrollTop');
+    Object.defineProperty(scroller,'scrollTop',{configurable:true,get(){return ownTop.get.call(this);},set(v){ownTop.set.call(this,Math.floor(v));}});
+    const yW=at(),altTitle='[ap:TREE01]-001 · ⚡ Phone programs: one sidebar renderer, now a little longer',creep=[];
+    for(let i=0;i<8;i++) {
+      const title=i%2?grownTitle:altTitle;fx.rows.conductor.title=title;fx.rows.conductor.lineage={...fx.rows.conductor.lineage,title};
+      await redraw(()=>groupOf('Running now').textContent.includes('wraps to several more lines')===!!(i%2));creep.push(Math.round((at()-yW)*100)/100);
+    }
+    delete scroller.scrollTop;
+    check('with whole-pixel scroll positions (WebKit), eight redraws growing and shrinking a row above leave the row being read within a pixel, no creep ('+creep.join(' ')+')',
+      creep.every(x=>Math.abs(x)<1)&&Number.isInteger(scroller.scrollTop));
+    // A finger on the list: nothing is redrawn under it; after the lift the redraw lands, the row still in place.
+    const list=$('sessions-list'),firstGroup=list.firstElementChild;
+    scroller.dispatchEvent(new w.Event('touchstart',{bubbles:true}));
+    newConductor.liveState={primary_turn_open:true};fx.delay=20;
+    const pagesTouch=fx.sessionPages.length;$('sessions-refresh').click();
+    await until(()=>fx.sessionPages.length>=pagesTouch+2);await sleep(120);fx.delay=0;
+    check('while a finger is on the list, a refresh does not rebuild the rows under it',list.firstElementChild===firstGroup&&
+      !groupOf('Running now').textContent.includes('A program that starts while Dan reads'));
+    scroller.dispatchEvent(new w.Event('touchend',{bubbles:true}));
+    await until(()=>groupOf('Running now').textContent.includes('A program that starts while Dan reads'));
+    check('after the lift the deferred redraw lands, and the row being read stays put',Math.abs(at()-y0)<1.5);
+    // A tap on a program head stuck at the top of the list (Dan is inside the program): it closes, and stays in view at the top.
+    const tree1=()=>[...groupOf('Running now').querySelectorAll(':scope > .program')].find(p=>p.textContent.includes('one sidebar renderer'));
+    scroller.scrollTop+=tree1().querySelector('.tree-children').getBoundingClientRect().top-scroller.getBoundingClientRect().top+40;await sleep(60);
+    const stuckHead=tree1().querySelector('.program-head'),stuckY=stuckHead.getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+    check('precondition: the program head is stuck at the top while its rows scroll under it',
+      Math.abs(stuckY)<2&&tree1().getBoundingClientRect().top<scroller.getBoundingClientRect().top-30);
+    stuckHead.click();await until(()=>tree1()?.querySelector('.program-head').getAttribute('aria-expanded')==='false');
+    const closedHead=tree1().querySelector('.program-head').getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+    check('tapping the stuck head closes the program and keeps its head where the finger was ('+Math.round(closedHead)+' px)',Math.abs(closedHead-stuckY)<2);
+    // A touch whose end never reaches the list (it ended outside it or on a replaced node, or the page was left
+    // mid-touch) must not freeze it: a deliberate tap redraws at once from the latest inventory, and a held
+    // background redraw lands within the cap, with no touchend ever sent.
+    const within=async(fn,ms)=>{const end=w.performance.now()+ms;while(w.performance.now()<end){if(fn())return true;await sleep(50);}return fn();};
+    const lostTouch=async(n,title)=>{
+      const row=seat2(n,{role:'conductor',displayRole:'conductor',title,liveState:{primary_turn_open:true},
+        lineage:{program:'TREE0'+n,kind:'conductor',conductorN:1,quickProgram:true,managerSession:'198',entryAction:'start',title}});
+      scroller.dispatchEvent(new w.Event('touchstart',{bubbles:true}));
+      fx.extra.push(row);fx.delay=20;const pages=fx.sessionPages.length;$('sessions-refresh').click();
+      await until(()=>fx.sessionPages.length>=pages+2);await sleep(120);fx.delay=0;
+    };
+    const runningHas=text=>groupOf('Running now').textContent.includes(text);
+    await lostTouch(5,'[ap:TREE05]-001 · ⚡ A program that a Collapse tap shows at once');
+    check('precondition: a touch with no end holds the background redraw',!runningHas('a Collapse tap shows at once'));
+    const tapAt=w.performance.now();$('sessions-cycle').click();
+    check('a deliberate tap (Collapse) redraws at once from the latest inventory, whatever the touch state ('+Math.round(w.performance.now()-tapAt)+' ms)',
+      await within(()=>runningHas('a Collapse tap shows at once'),300));
+    $('sessions-cycle').click();await sleep(60);
+    await lostTouch(6,'[ap:TREE06]-001 · ⚡ A program that arrives while a lost touch holds the list');
+    const heldAt=w.performance.now();
+    check('precondition: held again under a new touch that never ends',!runningHas('while a lost touch holds the list'));
+    const landed=await within(()=>runningHas('while a lost touch holds the list'),9000);
+    check('a touch that never ends cannot freeze the list: the held redraw lands within the cap ('+Math.round(w.performance.now()-heldAt)+' ms), no touchend sent',
+      landed&&w.performance.now()-heldAt<7000);
+    scroller.dispatchEvent(new w.Event('touchend',{bubbles:true}));await sleep(400);
+    // A refresh walk is long on the live pane (72 pages, about 45 s) and may fail on a later page; a new session on
+    // its first page must not wait for the whole walk.
+    const lateTitle='[ap:TREE07]-001 · ⚡ A program listed on the first page of a walk that fails later';
+    fx.extra.push(seat2(7,{role:'conductor',displayRole:'conductor',title:lateTitle,liveState:{primary_turn_open:true},
+      lineage:{program:'TREE07',kind:'conductor',conductorN:1,quickProgram:true,managerSession:'198',entryAction:'start',title:lateTitle}}));
+    fx.laterPageFails=true;const pagesLate=fx.sessionPages.length;$('sessions-refresh').click();
+    await until(()=>fx.sessionPages.length>=pagesLate+2);await sleep(200);
+    check('a refresh whose later page fails still shows the new session its first page listed',
+      runningHas('first page of a walk that fails later')&&/List unavailable/.test($('sessions-status').textContent));
+    fx.laterPageFails=false;
+    check('no error or rejection across the scroll-holding redraws',fx.errors.length===0);
+    // --- View's root widget: every tree row's own handle at its left, where a socket sits, where a tap came from, and
+    // "show it in Programs" (sessions.js treeHandle/handleName, programPosition, originOf, reveal)
+    fx.rows.freeWorker.socket='[ap:SOCKFW]';fx.rows.ocHelper.socket='[ap:SOCKOC]';
+    const resumedTitle='[ap:TREE01]-002 · ⚡ Phone programs: one sidebar renderer';
+    const resumed=seat2(41,{role:'conductor',displayRole:'conductor',title:resumedTitle,createdAt:1300,
+      lineage:{program:'TREE01',kind:'conductor',conductorN:2,quickProgram:true,managerSession:'184',entryAction:'resume',title:resumedTitle}});
+    const resumedSeat=seat2(42,{displayRole:'quick-worker',socket:'[ap:SOCKOC]',createdAt:1301,title:'[ap:TREE01]-002 ▸ ⚡ quick worker · the same socket, resumed',
+      lineage:{program:'TREE01',kind:'seat',quick:true,conductorN:2,parentSeat:resumed.executionId,title:'[ap:TREE01]-002 ▸ ⚡ quick worker · the same socket, resumed'}});
+    fx.extra.push(resumed,resumedSeat);
+    $('sessions-refresh').click();
+    await until(()=>w.opcSidebar.position('[ap:SOCKOC]')?.total===2&&w.opcSidebar.position('[ap:SOCKFW]'));
+    const two=w.opcSidebar.position('[ap:SOCKOC]','ses_treehelp1'),chain=c=>c.chain.map(l=>l.role+' '+(l.handle||'—')).join(' → ');
+    check('two sessions on one socket: two cards, the tapped one first and active, each its branch from its Conductor ['+two.cards.map(chain).join(' | ')+']',
+      two.kind==='socket'&&two.total===2&&two.cards[0].id==='ses_treehelp1'&&two.cards[0].active&&!two.cards[1].active&&
+      chain(two.cards[0])==='Conductor [ap:TREE01]-001 → Quick worker — → Helper [ap:SOCKOC]'&&chain(two.cards[1])==='Conductor [ap:TREE01]-002 → Quick worker [ap:SOCKOC]'&&
+      two.cards[0].program.core==='TREE01'&&two.cards[0].program.title.startsWith('Phone programs: one sidebar renderer')&&two.cards[1].chain[1].name==='the same socket, resumed'&&
+      two.cards[0].chain[2].status.startsWith('OpenCode'));
+    const untapped=w.opcSidebar.position('[ap:SOCKOC]');
+    check('with no session tapped: no active card, newest Conductor first',untapped.cards.every(c=>!c.active)&&untapped.cards[0].id===resumedSeat.executionId);
+    const prog=w.opcSidebar.position('[ap:TREE01]',resumed.executionId);
+    check('a program\'s root [ap:CORE]: its Conductors, the tapped one first, the program named',prog.kind==='program'&&prog.total===2&&prog.cards[0].id===resumed.executionId&&prog.cards[0].active&&
+      prog.cards.every(c=>c.chain.length===1&&c.chain[0].role==='Conductor')&&prog.program.core==='TREE01'&&prog.program.conductors===2);
+    const free=w.opcSidebar.position('[ap:sockfw]');
+    check('a freestanding quick worker (matched by core, any case): the forest, its Manager Session; an unknown handle is null',free.cards[0].program.forest===true&&
+      free.cards[0].chain.length===1&&free.cards[0].chain[0].handle==='[ap:SOCKFW]'&&w.opcSidebar.position('[ap:NOPE00]')===null&&w.opcSidebar.position('3f3754e2')===null);
+    await until(()=>itemOf('the same socket, resumed'));
+    const nameOf=text=>itemOf(text)?.querySelector('.name-text')?.textContent;
+    check('every tree row shows its handle at its left: a freestanding worker its socket, a helper its socket, a Conductor [ap:CORE]-NNN',
+      nameOf('freestanding, outside any program')==='[ap:SOCKFW] · freestanding, outside any program'&&ocHelperRow().querySelector('.name-text').textContent==='[ap:SOCKOC] · an OpenCode row under the program worker'&&
+      nameOf('the same socket, resumed')==='[ap:SOCKOC] · the same socket, resumed'&&[...d.querySelectorAll('.session-item .name-text')].some(n=>n.textContent==='[ap:TREE01]-002 · resumed'));
+    const opened=[];window.opcOpenInView=(handle,origin)=>opened.push([handle,origin]);
+    const freeName=itemOf('freestanding, outside any program').querySelector('.name-text');
+    w.opcOpenInView('[ap:SOCKFW]',{node:freeName});
+    w.opcOpenInView('[ap:TREE01]',{node:[...d.querySelectorAll('.session-item .name-text')].find(n=>n.textContent==='[ap:TREE01]-002 · resumed')});
+    w.opcOpenInView('[ap:OTHER1]',{node:freeName});w.opcOpenInView('[ap:SOCKFW]',{node:null});
+    check('a tap passes where it came from to the page around: a row\'s own socket or a Conductor\'s core is a Programs root with that session active and its position; anything else is from elsewhere',
+      opened.length===4&&opened[0][1].from==='programs'&&opened[0][1].active===fx.rows.freeWorker.executionId&&opened[0][1].position.cards[0].active&&
+      opened[1][1].from==='programs'&&opened[1][1].active===resumed.executionId&&opened[1][1].position.kind==='program'&&
+      opened[2][1].from==='outside'&&opened[2][1].where==='Programs'&&opened[3][1].from==='outside');
+    // show it in Programs: everything folded and filtered first
+    $('sessions-role').value='helper';$('sessions-role').onchange();await sleep(30);
+    const glancesBefore=d.querySelectorAll('.oc-glance, .claude-glance').length;
+    w.opcSidebar.reveal('s:'+resumedSeat.executionId);
+    await until(()=>itemOf('the same socket, resumed')?.classList.contains('reveal-flash'));
+    const seatRow=itemOf('the same socket, resumed'),sr=seatRow.getBoundingClientRect(),vb=scroller.getBoundingClientRect();
+    check('reveal: the filter back to every session, only its ancestors opened, scrolled into the middle of the list and flashed; no glance opened',
+      $('sessions-role').value==='all'&&sr.top>=vb.top&&sr.bottom<=vb.bottom&&Math.abs((sr.top+sr.bottom)/2-(vb.top+vb.bottom)/2)<vb.height/3&&
+      d.querySelectorAll('.oc-glance, .claude-glance').length===glancesBefore&&!seatRow.classList.contains('glancing'));
+    fx.history.state.reveal.at-=3000;await redraw(()=>true);  // past the 2.4 s flash without spending the page's virtual-time budget
+    check('the flash is short: a later redraw draws the row as it was',!itemOf('the same socket, resumed')?.classList.contains('reveal-flash'));
+    w.opcSidebar.reveal('p:TREE02');await sleep(30);
+    const progHead=[...d.querySelectorAll('.program-head')].find(n=>n.dataset.anchor==='p:TREE02'&&n.classList.contains('reveal-flash'));
+    check('reveal of a program row: its head flashed, in view',!!progHead&&progHead.getBoundingClientRect().top>=vb.top&&progHead.getBoundingClientRect().bottom<=vb.bottom);
+    check('no error or rejection across the root widget\'s answers and reveals',fx.errors.length===0);
+    // The stored Conductor title supplies the full name directly, with no lookup or delayed enrichment.
+    const fullTitle='PROGRAM · Millions of events: keep the Claude host and the Manager App fast as the stores grow — every program name readable on the phone';
+    for(const row of [fx.rows.conductor,resumed])row.title=row.lineage.title='[ap:TREE01]-'+(row===resumed?'002':'001')+' · '+fullTitle;
+    await fx.history.list();fx.history.inventory(true);
+    const fullHead=[...d.querySelectorAll('.program-head')].find(n=>n.dataset.anchor==='p:TREE01'),fullName=fullHead.querySelector('.program-title > .name-text');
+    fullHead.scrollIntoView({block:'center'});await sleep(30);
+    const range=d.createRange();range.selectNodeContents(fullName);const rects=[...range.getClientRects()],fullNameBox=fullName.getBoundingClientRect();
+    check('phone full name: the entire stored Conductor name wraps onto every line it needs, never clipped, and stays inside the row at 390px',
+      fullName.textContent===fullTitle&&rects.length>2&&getComputedStyle(fullName).whiteSpace==='normal'&&getComputedStyle(fullName).overflow==='visible'&&
+      fullName.scrollWidth<=fullName.clientWidth+1&&rects.every(r=>r.left>=fullNameBox.left-1&&r.right<=fullNameBox.right+1)&&
+      d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    // ---- Favorite programs (phone): the same section and program stars, the fixture's own pin transport, the
+    // two-tap fold control, and no 12-program paging.
+    const favGroup=()=>groupOf('Favorite programs');
+    const favHeading=()=>{const h=favGroup().querySelector('h3');return [h.children[1].textContent,h.children[2].textContent].join('');};
+    const favTitlesIn=g=>[...g.querySelectorAll(':scope > .program')].map(p=>p.querySelector('.program-title .name-text').textContent);
+    const favStubsIn=g=>[...g.querySelectorAll(':scope > .session-stub')].map(n=>n.textContent);
+    const favItemsIn=g=>[...g.children].filter(n=>n.classList.contains('program')||n.classList.contains('session-stub'));
+    const favNameOf=n=>n.classList.contains('program')?n.querySelector('.program-title .name-text').textContent:n.textContent.replace(/^↑ /,'').replace(/ · .*$/,'');
+    const favSaved=()=>JSON.parse(fx.store.get('pane_sidebar_sections')||'{}');
+    const favSeat=(n,core,title,quick,created,extra={})=>seat2(n,{role:'conductor',displayRole:'conductor',createdAt:created,
+      title:'[ap:'+core+']-001 · '+title,lineage:{program:core,kind:'conductor',conductorN:1,quickProgram:quick,managerSession:'300',entryAction:'start',title:'[ap:'+core+']-001 · '+title},...extra});
+    if(section('Favorite programs')==='false')await click(favGroup().querySelector('h3'),()=>section('Favorite programs')==='true');
+    const favOrder=groups().map(g=>g.dataset.group),favAt=favOrder.indexOf('programs:favorite');
+    check('Favorite programs: the phone draws the always-present section right below Running now and above Manager Sessions',
+      favAt>=0&&favAt===favOrder.indexOf('programs:running')+1&&favAt<favOrder.indexOf('managers')&&favHeading()==='Favorite programs · 0');
+    fx.history.state.stars={'session:claude:cc-00000001-0000-4000-8000-000000000000':{pinned_at:1}};fx.history.inventory();
+    check('Favorite programs: a session star never fills it on the phone either; only program:CORE stars count',
+      favHeading()==='Favorite programs · 0');
+    const favPins={'program:FAVF01':{pinned_at:1},'program:FAVF02':{pinned_at:2},'program:FAVQ01':{pinned_at:3},'program:FAVQ02':{pinned_at:4},'program:FAVR01':{pinned_at:5},'program:FAVR02':{pinned_at:6}};
+    Object.assign(fx.pins,favPins);
+    fx.extra.push(
+      favSeat(51,'FAVF01','Favorite full newer',false,6000,{lifecycle:'ended'}),
+      favSeat(52,'FAVF02','Favorite full older live',false,5000,{liveState:{primary_turn_open:false}}),
+      favSeat(53,'FAVL01','Favorite live unstarred',false,4000,{liveState:{primary_turn_open:false}}),
+      favSeat(54,'FAVQ01','Favorite quick newer',true,7000,{lifecycle:'ended'}),
+      favSeat(55,'FAVQ02','Favorite quick older',true,5500,{lifecycle:'ended'}),
+      favSeat(56,'FAVR01','Favorite running full',false,8000,{liveState:{primary_turn_open:true}}),
+      favSeat(57,'FAVR02','Favorite running quick',true,8100,{liveState:{primary_turn_open:true}}));
+    await redraw(()=>!!groupOf('Full programs')&&!!groupOf('Quick programs'));
+    Object.assign(fx.history.state.stars,fx.pins);fx.history.inventory();await sleep(30);
+    const favPhoneHead=favHeading(),favPhoneItems=favItemsIn(favGroup()).map(n=>(n.classList.contains('program')?'full:':'stub:')+favNameOf(n)).join('|'),favPhoneRun=favTitlesIn(groupOf('Running now')).join(',');
+    check('Favorite programs: running favorites keep their full row only in Running now and lead as plain yellow stubs, full then quick ['+favPhoneHead+' · '+favPhoneItems+' · running: '+favPhoneRun+']',
+      favHeading()==='Favorite programs · 6 programs'&&
+      favTitlesIn(groupOf('Running now')).includes('Favorite running full')&&favTitlesIn(groupOf('Running now')).includes('Favorite running quick')&&
+      !favTitlesIn(favGroup()).includes('Favorite running full')&&!favTitlesIn(favGroup()).includes('Favorite running quick')&&
+      favItemsIn(favGroup())[0]?.classList.contains('session-stub')&&favItemsIn(favGroup())[0].textContent==='↑ Favorite running full · shown at top'&&
+      favItemsIn(favGroup())[1]?.classList.contains('session-stub')&&favItemsIn(favGroup())[1].textContent==='↑ Favorite running quick · shown at top'&&
+      favItemsIn(favGroup())[0].children.length===0&&favItemsIn(favGroup())[1].children.length===0&&favItemsIn(favGroup()).slice(2).every(n=>n.classList.contains('program')));
+    check('Favorite programs: one flat list, full programs before quick, each kind newest-created first',
+      favItemsIn(favGroup()).slice(2).map(favNameOf).join('|')==='Favorite full newer|Favorite full older live|Favorite quick newer|Favorite quick older');
+    check('Favorite programs: an idle starred program is drawn fully in Favorite programs and leaves the stub at home that says where it is',
+      !favTitlesIn(groupOf('Full programs')).includes('Favorite full newer')&&
+      favStubsIn(groupOf('Full programs')).includes('↑ Favorite full newer · in Favorite programs')&&
+      favStubsIn(groupOf('Full programs')).includes('↑ Favorite full older live · in Favorite programs')&&
+      favStubsIn(groupOf('Quick programs')).includes('↑ Favorite quick newer · in Favorite programs'));
+    const favPhoneHomeOrder=[...groupOf('Full programs').children].filter(n=>n.classList.contains('program')||n.classList.contains('session-stub')).slice(0,4).map(favNameOf).join('|');
+    check('Favorite programs: at home a starred program ignores the live-first boost while an unstarred live program keeps it ['+favPhoneHomeOrder+']',
+      favPhoneHomeOrder==='Favorite live unstarred|Favorite running full|Favorite full newer|Favorite full older live');
+    const favPhonePosts=fx.pinPosts.length;
+    [...favGroup().querySelectorAll(':scope > .program')].find(p=>favNameOf(p)==='Favorite full newer').querySelector('.session-star').click();
+    check('Favorite programs: unstarring posts program:CORE through the phone\'s pin transport and sends the program home',
+      await until(()=>fx.pinPosts.length===favPhonePosts+1)&&
+      fx.pinPosts.at(-1).key==='program:FAVF01'&&fx.pinPosts.at(-1).pinned===false&&!Object.hasOwn(fx.pins,'program:FAVF01')&&
+      !favTitlesIn(favGroup()).includes('Favorite full newer')&&favTitlesIn(groupOf('Full programs')).includes('Favorite full newer'));
+    await click(favGroup().querySelector('h3'),()=>section('Favorite programs')==='false');
+    check('Favorite programs: its heading folds it, remembered through the existing section store',
+      favTitlesIn(favGroup()).length===0&&favStubsIn(favGroup()).length===0&&(favSaved().collapsed||[]).includes('programs:favorite'));
+    await click(favGroup().querySelector('h3'),()=>section('Favorite programs')==='true');
+    check('Favorite programs: unfolding it stores the open state again',!((favSaved().collapsed||[]).includes('programs:favorite')));
+    const favCycle=$('sessions-cycle');
+    favCycle.click();
+    check('Favorite programs: the phone\'s first tap folds it with the home sections, leaving Running now open',
+      await until(()=>favCycle.textContent==='Show running')&&section('Favorite programs')==='false'&&section('Running now')==='true'&&
+      favTitlesIn(groupOf('Running now')).includes('Favorite running full'));
+    favCycle.click();
+    check('Favorite programs: the second tap (fold to active) leaves it folded, with only Running now drawing full active work',
+      await until(()=>favCycle.textContent==='Collapse')&&section('Favorite programs')==='false'&&section('Running now')==='true'&&
+      favTitlesIn(groupOf('Running now')).includes('Favorite running full')&&favTitlesIn(groupOf('Running now')).includes('Favorite running quick'));
+    const favPaged=[];
+    for(let i=1;i<=14;i++){
+      const core='FAVP'+String(i).padStart(2,'0'),title='Paged favorite '+i;
+      favPaged.push(title);fx.extra.push(favSeat(60+i,core,title,true,9000+i,{lifecycle:'ended'}));
+      fx.pins['program:'+core]={pinned_at:10+i};
+    }
+    await redraw(()=>!!groupOf('Quick programs'));
+    Object.assign(fx.history.state.stars,fx.pins);fx.history.inventory();await click(favGroup().querySelector('h3'),()=>section('Favorite programs')==='true');
+    check('Favorite programs: every favorite is drawn on the phone (17 programs here, past the usual twelve) with no Show more foot',
+      favPaged.every(t=>favTitlesIn(favGroup()).includes(t))&&!favGroup().querySelector('.group-foot')&&
+      favGroup().querySelectorAll(':scope > .program').length===17&&favGroup().querySelectorAll(':scope > .session-stub').length===2);
+    check('Favorite programs: the favorite work made no page error or rejection',fx.errors.length===0);
+    // ---- U4.5 host load caption on the phone: the same static line inside .side-top, painted from the FIRST
+    // inventory page only. A later continuation carrying a different snapshot must neither repaint nor clear it.
+    const loadNode=()=>d.getElementById('sessions-host-load'),loadTop=d.querySelector('aside .side-top');
+    const loadText=()=>loadNode()?loadNode().textContent:'';
+    const loadHidden=()=>!!loadNode()&&(loadNode().hidden===true||getComputedStyle(loadNode()).display==='none'||getComputedStyle(loadNode()).visibility==='hidden');
+    const loadShown=()=>!!loadNode()&&!loadHidden()&&loadText()!=='';
+    const loadCleared=()=>!!loadNode()&&loadHidden()&&loadText()==='';
+    const loadRects=()=>{const r=d.createRange();r.selectNodeContents(loadNode());return [...r.getClientRects()];};
+    const loadOneLine=()=>loadRects().length===1&&loadRects()[0].right<=loadTop.getBoundingClientRect().right+1;
+    const loadNeutral=()=>!loadNode().querySelector('button,select,input,a,textarea')&&loadNode().getAttribute('role')!=='alert'&&
+      loadNode().dataset.error!=='true'&&!loadNode().classList.contains('error');
+    const loadControls=()=>[...d.querySelectorAll('.side-top .side-bar button, .side-top .side-bar select')].map(n=>[n.id,n.disabled]);
+    const loadControlsBefore=loadControls(),loadPostsBefore=fx.pinPosts.length,loadReadsBefore=fx.requests.length;
+    const loadStep=async(hostLoad,expectShown,expectText)=>{
+      await until(()=>fx.history.state.inventoryBusy===false);
+      fx.hostLoad=hostLoad;const pages=fx.sessionPages.length;$('sessions-refresh').click();
+      return until(()=>fx.sessionPages.length>=pages+2&&fx.history.state.inventoryBusy===false&&loadShown()===expectShown&&loadText()===expectText);
+    };
+    check('host load (phone 390 px): the page carries exactly one static caption line inside .side-top, and no dialog is involved',
+      d.querySelectorAll('#sessions-host-load').length===1&&loadNode().closest('.side-top')===loadTop&&!d.querySelector('[role=dialog],dialog'));
+    fx.laterHostLoad={rows_behind_sets:0,loop_lag_ms_max_60s:9000};
+    check('host load (phone): the first page paints "host catching up · 2 conversations" while the later page says the opposite — one neutral own line inside .side-top',
+      await loadStep({rows_behind_sets:2,loop_lag_ms_max_60s:1800},true,'host catching up · 2 conversations')&&
+      loadOneLine()&&loadNeutral()&&d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    fx.laterHostLoad=undefined;
+    check('host load (phone): exactly 1000 ms is not busy; the line is hidden and empty',
+      await loadStep({rows_behind_sets:0,loop_lag_ms_max_60s:1000},false,'')&&loadCleared());
+    check('host load (phone): no debt and loop lag above 1000 ms reads "host busy · lag 2.5 s"',
+      await loadStep({rows_behind_sets:0,loop_lag_ms_max_60s:2500},true,'host busy · lag 2.5 s')&&loadOneLine()&&loadNeutral());
+    check('host load (phone): catch-up wins over lag, and one is still "conversations"',
+      await loadStep({rows_behind_sets:1,loop_lag_ms_max_60s:2500},true,'host catching up · 1 conversations'));
+    check('host load (phone): an older host with no hostLoad field leaves no caption',
+      await loadStep(undefined,false,'')&&loadCleared());
+    check('host load (phone): a fresh behind-set answer repaints the line',
+      await loadStep({rows_behind_sets:4,loop_lag_ms_max_60s:0},true,'host catching up · 4 conversations'));
+    // A failed first page clears it: no stale line from the last good read.
+    const loadOkFetch=w.fetch;
+    w.fetch=async(url,opts)=>String(url).startsWith('/api/claude/sessions')&&!/[?&]role=Manager\b/.test(String(url))&&!/[?&]live=1\b/.test(String(url))
+      ?new Response('{}',{status:503}):loadOkFetch(url,opts);
+    $('sessions-refresh').click();
+    check('host load (phone): a failed inventory read clears the caption instead of leaving a stale one',
+      await until(()=>fx.history.state.inventoryBusy===false&&loadCleared()&&/List unavailable/.test($('sessions-status').textContent)));
+    w.fetch=loadOkFetch;
+    check('host load (phone): the caption work disabled no side-bar control and posted nothing',
+      JSON.stringify(loadControls())===JSON.stringify(loadControlsBefore)&&fx.pinPosts.length===loadPostsBefore);
+    const loadNewRequests=fx.requests.slice(loadReadsBefore);
+    check('host load (phone): no new health/load route, every request a GET, no dialog appeared and no page error',
+      loadNewRequests.every(([,method])=>method==='GET')&&loadNewRequests.every(([url])=>!/health|host-?load|hostload|loop[_-]?lag/i.test(String(url)))&&
+      loadNewRequests.every(([url])=>allowed.has(new URL(url,location.href).pathname))&&!d.querySelector('[role=dialog],dialog')&&fx.errors.length===0);
+  } catch(e) {
+    checks.push({name:e.message,passed:false});
+    try{diagnostics={status:d?d.getElementById('sessions-status')?.textContent:null,filter:d?d.getElementById('sessions-filter-status')?.textContent:null,
+      labels:d?[...d.querySelectorAll('#sessions-list > .session-group > h3')].map(h=>h.textContent).join('|'):null,
+      listText:d?d.getElementById('sessions-list')?.textContent.slice(0,800):null,ocItems:d?d.querySelectorAll('.oc-item').length:null,
+      glanceHtml:d?d.querySelector('.oc-glance')?.outerHTML.slice(0,700):null,
+      pages:fx.sessionPages,ocReads:fx.ocReads,glances:fx.glanceReads,subagents:fx.subagentReads,previewCalls:fx.previewCalls,
+      errors:fx.errors,requests:fx.requests.slice(0,10)};}catch(_){diagnostics='unavailable';}
+  }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks,diagnostics},null,2);
+  document.body.dataset.testPassed=String(checks.every(x=>x.passed));
+})();
+</script>

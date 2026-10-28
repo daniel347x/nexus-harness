@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Offline CodeNomad 0.20.1 watcher DOM fixture</title>
+<style>
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.session-cache-pane { border:1px solid; padding:10px; }
+</style>
+<!-- Structure/labels from 0.20.1 instance-shell2, message-section,
+     PromptContextControls, model-selector, thinking-selector and en/settings. -->
+<div class="session-cache-pane" data-session-id="ses_first" data-instance-id="fixture" data-session-active="true" aria-hidden="false" id="first">
+  <div class="message-stream-container" data-stream-active="true" data-session-id="ses_first" data-instance-id="fixture">Visible first session</div>
+  <div class="prompt-context-controls">
+    <div class="sidebar-selector"><div data-model-selector-control>
+      <input class="sr-only" data-model-selector aria-label="Model: GPT-6.1 Sol, provider: OpenAI, ID: openai/gpt-6.1-sol">
+      <button>Model: GPT-6.1 Sol</button>
+    </div></div>
+    <div class="sidebar-selector"><div data-thinking-selector-control>
+      <input class="sr-only" data-thinking-selector aria-label="Thinking: xhigh" id="think">
+      <button>Thinking: xhigh</button>
+    </div></div>
+  </div>
+</div>
+<div class="session-cache-pane" data-session-id="ses_second" data-instance-id="other-fixture" data-session-active="true" aria-hidden="false" id="second" style="display:none">
+  <div class="message-stream-container" data-stream-active="true" data-session-id="ses_second" data-instance-id="other-fixture">Second session</div>
+  <div class="prompt-context-controls">
+    <div data-model-selector-control><input class="sr-only" data-model-selector aria-label="Model: GPT-6.1 Astra, provider: OpenAI, ID: openai/gpt-6.1-astra"><button>Model</button></div>
+    <div data-thinking-selector-control><input class="sr-only" data-thinking-selector aria-label="Thinking: medium"><button>Thinking</button></div>
+  </div>
+</div>
+<div class="session-item-active" data-session-id="ses_first"><span class="session-item-title">First fixture</span></div>
+<div class="message-speaker-label">Assistant: wrong-model/xhigh</div>
+<pre id="results">running</pre>
+<script>
+const reports = [], checks = [];
+window.fetch = async (url, options) => {
+  if (url !== 'http://127.0.0.1:9911/api/active-session') throw new Error('No real network allowed');
+  reports.push(JSON.parse(options.body));
+  return { ok: true };
+};
+const wait = () => new Promise(resolve => setTimeout(resolve, 200));
+const latest = () => reports.at(-1);
+function check(ok, label) { checks.push({ label, ok: !!ok }); if (!ok) throw new Error(label); }
+</script>
+<script src="../watcher.js"></script>
+<script>
+(async () => {
+  try {
+    await wait();
+    check(latest().sessionId === 'ses_first', 'visible active stream, not hidden workspace');
+    check(latest().thinking.id === 'gpt-6.1-sol' && latest().thinking.variant === 'xhigh', 'native scoped model and xhigh');
+    const think = document.getElementById('think');
+    think.setAttribute('aria-label', 'Thinking: medium'); await wait();
+    check(latest().thinking.variant === 'medium', 'aria-label-only mutation reports medium');
+    think.setAttribute('aria-label', 'Thinking: Default'); await wait();
+    check(latest().thinking.variant === null && latest().thinking.id === 'gpt-6.1-sol', 'explicit Default differs from unknown');
+    think.removeAttribute('aria-label'); await wait();
+    check(latest().thinking === null && latest().sessionId === 'ses_first', 'absent selector label does not reset');
+    think.setAttribute('aria-label', 'Thinking: xhigh');
+    document.getElementById('first').style.display = 'none'; await wait();
+    check(latest().thinking === null, 'sidebar fallback never grabs hidden thinking controls');
+    document.getElementById('second').style.display = 'block'; await wait();
+    check(latest().sessionId === 'ses_second' && latest().thinking.id === 'gpt-6.1-astra', 'new workspace bound to its own model/session');
+    document.getElementById('first').style.display = 'block'; await wait();
+    check(latest().sessionId === null && latest().thinking === null, 'ambiguous visible streams fail closed');
+    document.getElementById('first').style.display = 'none';
+    document.getElementById('second').setAttribute('data-session-id', 'ses_wrong'); await wait();
+    check(latest().sessionId === 'ses_second' && latest().thinking === null, 'pane/stream session mismatch fails closed');
+    check(reports.every((r, i) => !i || r.sequence > reports[i-1].sequence), 'observations ordered');
+    document.body.dataset.testPassed = 'true';
+  } catch (e) {
+    document.body.dataset.testPassed = 'false'; checks.push({ error: String(e) });
+  }
+  document.getElementById('results').textContent = JSON.stringify(checks, null, 2);
+})();
+</script>

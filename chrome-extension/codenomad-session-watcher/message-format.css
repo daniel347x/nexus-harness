@@ -1,0 +1,6 @@
+/* Preserve a visibly blank text line between user and assistant Markdown blocks.
+ * Display only: message bytes, nested lists and code are untouched.
+ */
+.message-text:is([data-role="user"], [data-role="assistant"]) .markdown-body > :is(p, ul, ol, blockquote):not(:last-child) {
+  margin-block-end: 1lh;
+}

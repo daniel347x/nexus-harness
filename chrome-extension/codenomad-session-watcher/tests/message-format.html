@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CodeNomad message spacing regression</title>
+<style>
+  /* Relevant CodeNomad 0.20.1 baseline rules, with a fixed test font size. */
+  .message-text { font-size: 16px; line-height: 1.5; }
+  .markdown-body p { margin-top: 0; margin-bottom: 1rem; }
+  .markdown-body ul, .markdown-body ol { margin: .5rem 0; }
+  .markdown-body li > p { margin-top: 1rem; }
+  .markdown-body > :last-child { margin-bottom: 0 !important; }
+  pre { white-space: pre; }
+</style>
+<link rel="stylesheet" href="../message-format.css">
+<div class="message-text message-text-assistant" data-role="user">
+  <div class="markdown-body">
+    <p id="user-first">First paragraph.</p>
+    <p id="user-second">Second paragraph.</p>
+    <ul id="user-list"><li><p id="nested">A nested list paragraph.</p></li></ul>
+    <p id="user-last">Last paragraph.</p>
+  </div>
+</div>
+<div class="message-text message-text-assistant" data-role="assistant">
+  <div class="markdown-body">
+    <p id="assistant-first">Assistant paragraph.</p>
+    <p id="assistant-second">Another paragraph.</p>
+    <ul id="assistant-list"><li>A list item.</li></ul>
+    <p id="assistant-last">Last assistant paragraph.</p>
+  </div>
+</div>
+<div class="message-text" data-role="user"><pre id="code">line one
+
+line three</pre></div>
+<div class="message-text" data-role="assistant"><pre id="assistant-code">line one
+
+line three</pre></div>
+<div class="message-text" data-role="system">
+  <div class="markdown-body"><p id="other-role">Other UI content.</p><p>Another paragraph.</p></div>
+</div>
+<script>
+  const results = [];
+  function check(name, condition, detail) { results.push({ name, pass: Boolean(condition), detail }); }
+  function css(id) { return getComputedStyle(document.getElementById(id)); }
+  const first = document.getElementById('user-first');
+  const second = document.getElementById('user-second');
+  check('user paragraphs have one full blank-line gap',
+    second.getBoundingClientRect().top - first.getBoundingClientRect().bottom === 24,
+    second.getBoundingClientRect().top - first.getBoundingClientRect().bottom);
+  check('top-level list uses the same gap', css('user-list').marginBottom === '24px', css('user-list').marginBottom);
+  const assistantFirst = document.getElementById('assistant-first');
+  const assistantSecond = document.getElementById('assistant-second');
+  check('assistant paragraphs have one full blank-line gap',
+    assistantSecond.getBoundingClientRect().top - assistantFirst.getBoundingClientRect().bottom === 24,
+    assistantSecond.getBoundingClientRect().top - assistantFirst.getBoundingClientRect().bottom);
+  check('assistant top-level list uses the same gap',
+    css('assistant-list').marginBottom === '24px', css('assistant-list').marginBottom);
+  check('nested list paragraphs keep their original spacing',
+    css('nested').marginBottom === '16px', css('nested').marginBottom);
+  check('last paragraph has no trailing gap', css('user-last').marginBottom === '0px', css('user-last').marginBottom);
+  check('last assistant paragraph has no trailing gap',
+    css('assistant-last').marginBottom === '0px', css('assistant-last').marginBottom);
+  check('code block keeps literal blank lines',
+    css('code').whiteSpace === 'pre' && document.getElementById('code').textContent === 'line one\n\nline three',
+    css('code').whiteSpace);
+  check('assistant code block keeps literal blank lines',
+    css('assistant-code').whiteSpace === 'pre' && document.getElementById('assistant-code').textContent === 'line one\n\nline three',
+    css('assistant-code').whiteSpace);
+  check('other UI roles keep their original spacing',
+    css('other-role').marginBottom === '16px', css('other-role').marginBottom);
+  document.body.dataset.testResults = JSON.stringify(results);
+  document.body.dataset.testPassed = String(results.every(result => result.pass));
+</script>

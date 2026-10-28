@@ -1,0 +1,138 @@
+<!doctype html><meta charset="utf-8"><title>OpenCode conversations in the one viewer (actual markup)</title>
+<style>body{margin:0}iframe{width:1100px;height:760px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="history" title="Offline OpenCode conversation"></iframe><pre id="results">running…</pre>
+<script>
+// U2 · real sessions.html/CSS/Markdown renderer in headless Chrome; every request is answered by an inert double
+// built from U1's frozen page (opencode-conversation-events.json). A 737-row, ~4 MB real-data-shaped session
+// measures cold click → usable tail; the simulated server latency is U1's measured cold read (0.35 s), kept apart.
+(async()=>{
+  const results=[],timings={},check=(name,ok)=>{results.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,js,css,md]=await Promise.all(['sessions.html','sessions.js','sessions.css','message-markdown.js'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async name=>(await fetch(new URL(name,sharedBase))).text()));
+    const [marked,purify]=await Promise.all(['vendor/marked.umd.js','vendor/purify.min.js'].map(read));
+    const page=await (await fetch('opencode-conversation-events.json')).text();
+    const mock=`
+      window.fixture={errors:[],requests:[],inspects:[],latency:350,page:${page}};
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      const clone=v=>JSON.parse(JSON.stringify(v)),P=fixture.page;
+      // The count leader's shape: 737 rows from U1's own row kinds, prose rows carrying Markdown, ~4 MB in all.
+      const prose=i=>'## Step '+i+'\\n\\n'+'Real-data-shaped prose with **bold**, a list and code.\\n\\n- one\\n- two\\n\\n\`\`\`js\\nconst step = '+i+';\\n\`\`\`\\n\\n'+'A long line of stored assistant prose. '.repeat(1110);
+      fixture.rows=(n,tag)=>Array.from({length:n},(_,i)=>{const t=clone(P.events[i%P.events.length]);
+        const text=t.kind==='assistant' && !t.originKind && t.text?prose(i):t.text;
+        return {...t,text,textBytes:new TextEncoder().encode(text || '').length,recordRef:tag+i,uuid:tag+i,seq:i,
+          calls:t.calls.map(c=>({...c,callRef:'c'+tag+i+'_'+c.block,id:c.id+'_'+i,messageId:'m'+tag+i}))};});
+      fixture.sessions={
+        ses_bigsession001:{rows:fixture.rows(737,'b'),epoch:'oc_big',busy:true,title:'[ap:BIGBIG]-001 ▸ ⚡ quick worker · the count leader',directory:'/r/quick-worker'},
+        ses_fixture0001:{rows:clone(P.events),epoch:P.fileEpoch,busy:true,title:P.sessionInfo.title,directory:'/fixture/workspace',parentId:'ses_parent00001'},
+        ses_child000001:{rows:fixture.rows(4,'c'),epoch:'oc_child',busy:false,title:'the subagent child',directory:'/r/child'},
+      };
+      fixture.bytes=JSON.stringify(fixture.sessions.ses_bigsession001.rows).length;
+      const listed=[{id:'ses_bigsession001',program:null,kind:'seat',quick:true,title:fixture.sessions.ses_bigsession001.title,busy:true,model:'openai/gpt-6.1',cost:1.25,agent:'quick-sol61-fast',directory:'/r/quick-worker',createdAt:1000},
+        {id:'ses_fixture0001',program:null,kind:'seat',quick:true,title:'⚡ quick worker · handoff fixture',busy:true,model:'openai/gpt-6.1',cost:0.5,agent:'quick-worker',directory:'/fixture/workspace',createdAt:900}];
+      let box={schemaVersion:1,epoch:'mail',revision:1,selection:null};
+      const reply=(code,status,error)=>new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status,error}),{status:code});
+      function events(q) {
+        const s=fixture.sessions[q.get('id')];if(!s)return reply(404,'missing','OpenCode session missing');
+        if(s.fail)return reply(s.fail.code,s.fail.status,s.fail.error);
+        if(q.get('fileEpoch') && q.get('fileEpoch')!==s.epoch)return reply(409,'stale-epoch','OpenCode index discarded/rebuilt; resync the same session by position');
+        const n=s.rows.length,cursor=q.get('cursor');let start,change='snapshot',updates=[];
+        if(cursor?.startsWith('d_')){start=Number(cursor.slice(2));change='append';updates=(s.updates || []).splice(0);}
+        else if(cursor?.startsWith('f_'))start=Number(cursor.slice(2));else if(q.has('fromSeq'))start=Number(q.get('fromSeq'));else start=Math.max(0,n-100);
+        const rows=s.rows.slice(start,start+100),end=start+rows.length,hasMore=change==='snapshot' && end<n;
+        return {schemaVersion:1,backend:'opencode',source:'opencode',sessionRef:q.get('id'),scopeRef:'main',fileEpoch:s.epoch,events:rows,eventUpdates:updates,hasMore,nextCursor:hasMore?'f_'+end:null,
+          deltaCursor:'d_'+n,rowsAhead:end<n,status:'complete',change,busy:s.busy,sessionInfo:{id:q.get('id'),title:s.title,agent:'quick-worker',model:'openai/gpt-6.1',directory:s.directory || null,parentId:s.parentId || null},
+          leafRef:null,targetRef:null,indexLimit:null,branches:[],traces:[],summaryUpdates:[],subagentActivity:[],diagnostics:[]};
+      }
+      window.fetch=async(url,opts)=>{fixture.requests.push(url);let data;const u=new URL(url,'http://pane');
+        if(url.startsWith('/api/claude/sessions'))data={schemaVersion:1,backend:'claude',sessions:[],hasMore:false,status:'complete'};
+        else if(url==='/api/pins')data={schemaVersion:1,pins:{}};
+        else if(u.pathname==='/api/opencode/programs')data={schemaVersion:1,backend:'opencode',status:'complete',sessions:listed};
+        else if(u.pathname==='/api/opencode/events'){await new Promise(r=>setTimeout(r,fixture.latency));data=events(u.searchParams);}
+        else if(u.pathname==='/api/opencode/turns')data={schemaVersion:1,backend:'opencode',status:'unavailable',id:u.searchParams.get('id'),error:'fixture'};
+        else if(u.pathname==='/api/opencode/glance')data={schemaVersion:1,backend:'opencode',status:'complete',id:u.searchParams.get('id'),busy:true,messages:[{role:'user',time:1,chars:5,text:'hello'}]};
+        else if(url==='/api/opencode/inspect'){const b=JSON.parse(opts.body);fixture.inspects.push(b);
+          const part=Object.values(fixture.sessions).flatMap(s=>s.rows).flatMap(r=>r.calls).find(c=>c.callRef===b.callRef);
+          const selection={backend:'opencode',source:'opencode',origin:'pane',instanceId:'opencode-local',sessionId:b.id,messageId:b.messageId,partId:part?.id,partIndex:b.partIndex,callRef:b.callRef,fileEpoch:b.fileEpoch,selectorId:b.selectorId,sequence:b.sequence,observedAt:b.observedAt};
+          box={schemaVersion:1,epoch:'mail',revision:box.revision+1,selection};data={schemaVersion:1,backend:'opencode',ok:true,epoch:'mail',revision:box.revision,selection};}
+        else if(url==='/api/tool-selection')data=box;
+        else throw new Error('No live request: '+url);
+        return data instanceof Response?data:new Response(JSON.stringify(data));};
+    `;
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    const markup=html.replace(/<link[^>]+>/,'<style>'+css+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>${safe(marked)}<\/script><script>${safe(purify)}<\/script><script>${safe(md)}<\/script><script>${safe(js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script></body>`);
+    const frame=document.getElementById('history');
+    frame.srcdoc=markup;await new Promise(r=>frame.onload=r);await sleep(300);
+    const w=frame.contentWindow,d=w.document,api=w.fixture.api,el=id=>d.getElementById(id);
+    const until=async(cond,max=6000)=>{for(let t=0;t<max && !cond();t+=25)await sleep(25);return cond();};
+    const gap=()=>{const v=el('history-viewport');return v.scrollHeight-v.scrollTop-v.clientHeight;};
+    const rowOf=seq=>api.state.rows.get(api.state.order.find(k=>api.state.rows.get(k).seq===seq));
+    const ocItem=id=>[...d.querySelectorAll('#sessions-list .oc-item')].find(n=>n.querySelector('.session-open').title.includes(id));
+    check('production initializes without errors',w.fixture.errors.length===0);
+    await api.ocList();await until(()=>!!ocItem('ses_bigsession001'));
+    const big=ocItem('ses_bigsession001'),chip=big.querySelector('.oc-glance-chip'),chipBox=chip.getBoundingClientRect(),rowBox=big.getBoundingClientRect();
+    check('every desktop OpenCode row carries its own 💬 chip inside the row',getComputedStyle(chip).position==='absolute'&&chipBox.right<=rowBox.right+1&&chipBox.width>0&&chip.getAttribute('role')==='button');
+    // Cold click → usable tail (100 rows mounted, Following on the last pixel).
+    const t0=performance.now();big.querySelector('.session-open').click();
+    await until(()=>api.state.session?.id==='ses_bigsession001' && api.state.order.length===100 && !api.state.loading && gap()<=1,15000);
+    const cold=performance.now()-t0;Object.assign(timings,{coldClickToUsableTailMs:Math.round(cold),simulatedServerMs:w.fixture.latency,browserWorkMs:Math.round(cold-w.fixture.latency),
+      sessionRows:737,sessionRowBytes:w.fixture.bytes,tailRows:api.state.order.length});
+    check('cold click opens the 737-row ~4 MB session at its newest 100 rows, Following on its last pixel, within 5 s',api.state.order.length===100&&rowOf(736)&&gap()<=1&&cold<5000&&w.fixture.bytes>3500000);
+    check('the row click read the conversation, not a glance; no Claude conversation route',w.fixture.requests.some(u=>u.startsWith('/api/opencode/events?id=ses_bigsession001'))&&!w.fixture.requests.some(u=>/^\/api\/opencode\/glance|^\/api\/claude\/(events|subagents|inspect)/.test(u)));
+    check('the selected OpenCode row is outlined by its own id',ocItem('ses_bigsession001').classList.contains('selected')&&getComputedStyle(ocItem('ses_bigsession001').querySelector('.session-open')).outlineStyle==='solid');
+    const head=el('oc-header');
+    check('the header shows OpenCode, the role and title, the ses_ id with Copy and Open in CodeNomad',!head.hidden&&head.getBoundingClientRect().height>0&&/OpenCode/.test(head.textContent)&&/the count leader/.test(head.textContent)&&
+      /ses_bigsession001/.test(head.textContent)&&!!head.querySelector('.oc-header-copy')&&head.querySelector('.focus-open')?.disabled===false);
+    // Rendering: Markdown prose, readable thinking, quiet one-line markers, tool sizes and the separate child link.
+    const proseRow=api.state.order.map(k=>api.state.rows.get(k)).find(r=>r.node.querySelector('.event-prose h2'));
+    check('stored prose renders as Markdown with code-block copy',!!proseRow&&!!proseRow.node.querySelector('.code-wrap > .code-copy'));
+    const quiet=[...d.querySelectorAll('#history-events .history-event.event-quiet')];
+    check('empty and encrypted reasoning are quiet one-line markers, not blank cards',quiet.length>=8&&quiet.every(n=>n.getBoundingClientRect().height<34)&&
+      quiet.some(n=>/Thinking · encrypted; no readable text/.test(n.textContent))&&quiet.some(n=>/Thinking · empty/.test(n.textContent))&&quiet.every(n=>!!n.querySelector('.event-meta').textContent));
+    const thinking=[...d.querySelectorAll('.event-thinking .thinking-name')].map(n=>n.textContent);
+    check('readable reasoning is labelled Thinking, never a generated summary',thinking.length>0&&thinking.every(t=>t==='Thinking'));
+    const toolRow=api.state.order.map(k=>api.state.rows.get(k)).find(r=>r.node.querySelector('.oc-child-link'));
+    const bar=toolRow.node.querySelector('.tool-bar'),link=toolRow.node.querySelector('.oc-child-link');
+    check('In/Out sizes ride the tool bar; the child link is a separate button beside it, not inside it',bar.textContent.includes('In stored: '+w.opcToolText.size(62))&&bar.textContent.includes('Out stored: '+w.opcToolText.size(56))&&
+      link.tagName==='BUTTON'&&!bar.contains(link)&&link.previousElementSibling===bar&&getComputedStyle(link).display!=='none');
+    check('no row says Claude; the unknown part and message rows are labelled and shown',![...d.querySelectorAll('#history-events .event-role')].some(n=>/Claude/.test(n.textContent))&&
+      [...d.querySelectorAll('#history-events .event-role')].some(n=>/unknown part · future-part/.test(n.textContent)));
+    // Inspect: the exact OpenCode identity, an accepted highlight, no target.
+    bar.click();await until(()=>bar.classList.contains('accepted'));
+    const posted=w.fixture.inspects.at(-1);
+    check('a tool click posts the exact OpenCode identity and lights the accepted call',bar.classList.contains('accepted')&&Object.keys(posted).sort().join()==='backend,callRef,fileEpoch,id,messageId,observedAt,partIndex,schemaVersion,selectorId,sequence'&&posted.id==='ses_bigsession001');
+    // Selection preservation: a live replacement of a selected row waits; Following pauses visibly.
+    w.focus();const target=proseRow.node.querySelector('.event-prose');d.getSelection().selectAllChildren(target);await sleep(150);
+    const replaced={...JSON.parse(proseRow.signature),text:'## Replaced\n\nnew text'};w.fixture.sessions.ses_bigsession001.updates=[replaced];api.state.nextPoll=0;await sleep(1400);
+    // As in claude-follow: a selection pauses Following visibly where the frame has focus; either way "Following" lit means pinned.
+    const lit=el('history-follow').getAttribute('aria-pressed')==='true';
+    check('a selected row is not repainted under the selection; Following pauses visibly or stays pinned',d.getSelection().toString().includes('Real-data-shaped prose')&&!target.textContent.includes('new text')&&
+      (lit?gap()<=1:/text selected/.test(el('history-follow-label').textContent)));
+    d.getSelection().removeAllRanges();await until(()=>target.textContent.includes('new text'),3000);
+    check('the deferred replacement lands in place once the selection ends',proseRow.node.isConnected&&target.textContent.includes('new text'));
+    // ⤒ First reaches the first prompt; the window stays one contiguous run.
+    el('nav-start').click();await until(()=>api.state.rows.get(api.state.order[0])?.seq===0 && !api.state.loading,8000);await sleep(200);
+    const first=rowOf(0);
+    check('⤒ First reaches row 0 (the first prompt), held still at the top',!!first&&first.node.classList.contains('turn-user')&&el('history-follow').getAttribute('aria-pressed')==='false'&&
+      Math.abs(first.node.getBoundingClientRect().top-el('history-viewport').getBoundingClientRect().top)<40&&w.fixture.requests.some(u=>/events\?id=ses_bigsession001&fromSeq=0$/.test(u)));
+    // The child link opens the unlisted child in the same viewer.
+    const back=rowOf(5);back.node.querySelector('.oc-child-link').focus();check('the child link is keyboard-focusable',d.activeElement===back.node.querySelector('.oc-child-link'));
+    back.node.querySelector('.oc-child-link').click();await until(()=>api.state.session?.id==='ses_child000001' && api.state.order.length===4);
+    check('the child opens as its own conversation even though the sidebar does not list it',api.state.session.id==='ses_child000001'&&/the subagent child/.test(el('oc-header').textContent)&&!ocItem('ses_child000001'));
+    // Narrow width: the header and chips wrap instead of overflowing.
+    frame.style.width='460px';await sleep(250);
+    check('at a narrow width the header wraps without horizontal overflow',head.scrollWidth<=head.clientWidth+1&&head.getBoundingClientRect().right<=frame.getBoundingClientRect().width+1);
+    frame.style.width='1100px';await sleep(150);
+    // Errors stay visible: a session-limit refusal is a stated stop, not an empty view.
+    w.fixture.sessions.ses_fixture0001.fail={code:413,status:'session-limit',error:'OpenCode session exceeds 64 MiB; not cropped'};
+    ocItem('ses_fixture0001').querySelector('.session-open').click();await until(()=>api.state.blocked);
+    check('a byte-limit refusal is visible in the status and the edge',/exceeds 64 MiB; not cropped/.test(el('history-status').textContent)&&/Not updating/.test(el('history-follow-label').textContent)&&el('history-edge').hidden===false);
+    check('all transport mocked, no page errors',w.fixture.errors.length===0);
+  }catch(e){results.push({name:e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:results.filter(x=>x.passed).length,failed:results.filter(x=>!x.passed).length,timings,checks:results},null,2);
+  document.body.dataset.testPassed=String(results.length>0&&results.every(x=>x.passed));
+})();
+</script>

@@ -1,0 +1,87 @@
+/* The same sidebar, with touch-sized controls and wrapping names; no fork of its renderer. */
+.phone-programs { padding: 6px 6px 0; --side-fs: 14px; --tree-indent: 10px; }
+.phone-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* The phone page's frame is the viewport here; its own heading row names the view. */
+body.phone-programs main { grid-template-columns: minmax(0, 1fr); height: calc(100vh - 6px); height: calc(100dvh - 6px); min-height: 0; }
+.phone-programs aside { padding: 0; max-height: none; }
+.phone-programs .side-bar select { font-size: 16px; min-height: 40px; }
+.phone-programs button.icon { min-width: 36px; min-height: 40px; font-size: 20px; }
+/* One two-tap control: Collapse, then Show running (the smallest tree showing what is busy or waiting). */
+.phone-programs #sessions-cycle { flex: none; min-width: 112px; min-height: 40px; padding: 0 12px; font-size: 15px; font-weight: 600; white-space: nowrap; border-radius: 7px; }
+.phone-programs #sessions-cycle[data-next="running"] { border-color: var(--running-border); background: var(--running-bg); color: var(--running-text); }
+/* A tap anywhere on a row with sessions under it opens or closes them. Rows, program names and
+   headings are tap targets, not text: no double-tap selection or zoom (⧉ copies a UUID; glances stay selectable). */
+.phone-programs .session-open, .phone-programs .program-head, .phone-programs #sessions-list h3 {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.phone-programs .session-open[role="button"], .phone-programs .oc-item > .session-open { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* The row's controls are one horizontal band at the right, over its first two text lines: ⧉ and 💬 are
+   touch-sized side by side, never stacked, so a row keeps its own height. A leaf's row tap still opens its
+   glance; the always-visible 💬 offers the same action without changing its tree. */
+.phone-programs .session-item { grid-template-columns: minmax(0, 1fr) auto auto; --row-open-pad: 7px; --row-action-w: 36px; --row-action-fs: 20px; }
+.phone-programs .session-actions { grid-column: 3; }
+.phone-programs .session-actions > :is(.session-copy, .session-rename, .session-glance-chip, .oc-glance-chip) { width: var(--row-action-w); font-size: var(--row-action-fs); }
+.phone-programs .session-actions > .session-copy { opacity: 1; }
+.phone-programs .session-actions > :is(.session-glance-chip, .oc-glance-chip) { opacity: .8; }
+.phone-programs .session-actions > :is(.session-glance-chip, .oc-glance-chip)[aria-expanded="true"] { opacity: 1; background: var(--surface-3); }
+/* Read › keeps its place at the row's top right, just left of that band (a grid column of its own). */
+.phone-programs .session-item > .session-read { grid-column: 2; grid-row: 1; align-self: start; position: static; margin: 5px 2px 0 0; }
+.phone-programs .session-item.readable { --row-read-space: 56px; }
+.phone-programs .session-item > .session-open { padding: 7px 4px 7px calc(var(--row-gutter) - 2px); }
+.phone-programs .session-item .session-name { white-space: normal; flex-wrap: wrap; }
+.phone-programs .session-name > .name-text { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.phone-programs .session-item .session-meta, .phone-programs .session-item .session-note, .phone-programs .session-item .session-crumb { white-space: normal; overflow-wrap: anywhere; }
+/* The status still wraps in full on the phone; the models and the first/latest times stay whole units. */
+.phone-programs .session-meta.meta-times > .meta-status { display: inline; white-space: normal; }
+/* Telemetry: one line per run under the times, in columns (a row too narrow wraps between moments, still in columns); a tap on it opens its whole account under the row. */
+.phone-programs .session-item .session-tele { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.phone-programs .session-item .session-tele[aria-expanded="true"] { text-decoration: underline dotted; }
+.phone-programs .session-toggle, .phone-programs .tree-toggle { min-height: 26px; line-height: 26px; }
+.phone-programs .program-head { padding-block: 7px; min-height: 44px; }
+.phone-programs .program-title { flex-wrap: wrap; gap: 3px; }
+.phone-programs .program-title > .name-text { flex: 1 1 100%; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.phone-programs .program-meta { white-space: normal; overflow-wrap: anywhere; }
+.phone-programs .program-meta.meta-times > .meta-status { display: inline; white-space: normal; }
+.phone-programs .program-meters { margin-left: auto; }
+.phone-programs #sessions-list h3 { white-space: normal; padding-block: 6px; }
+.phone-programs .section-active { padding: 2px 4px; }
+.phone-programs .sidebar-child { padding: 5px 8px; }
+.phone-programs .sidebar-child .child-title, .phone-programs .sidebar-child .child-sub { display: block; overflow-wrap: anywhere; }
+.phone-programs .sidebar-child .child-sub { color: var(--side-meta); font-size: var(--fs-micro); }
+.phone-programs .sidebar-child.active { background: var(--running-bg); }
+.phone-programs .session-twin { cursor: default; white-space: normal; }
+/* Read › (top right, beside ⧉; on a native subagent, its top right) and an OpenCode glance's Read conversation ›:
+   open that conversation read-only in the phone's Chat. The row's first line keeps clear of the chip. */
+.phone-programs .session-read, .phone-programs .glance-read { display: inline-block; padding: 1px 8px; font-size: 12.5px; line-height: 20px; font-weight: 600;
+  white-space: nowrap; cursor: pointer; -webkit-user-select: none; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  border: 1px solid #4a6ea8; border-radius: 999px; color: #a9c4ec; background: #1d2431; }
+.phone-programs .sidebar-child { position: relative; }
+.phone-programs .sidebar-child > .session-read { position: absolute; top: 4px; right: 4px; }
+.phone-programs .sidebar-child.readable > .child-title { padding-right: 64px; }
+.phone-programs .glance-read { margin-left: auto; }
+/* ⤢ Large (an open glance's top right): that same glance as a sheet over the whole frame, in big bright type with every
+   message whole and the tool call unclipped; it follows the glance's own reads. Close sits under the thumb. */
+.phone-programs .glance-large-open { float: right; margin: -3px -3px 3px 8px; padding: 0 10px; font-size: 12.5px; line-height: 26px; font-weight: 600;
+  white-space: nowrap; cursor: pointer; -webkit-user-select: none; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  border: 1px solid #4a6ea8; border-radius: 999px; color: #a9c4ec; background: #1d2431; }
+#glance-large { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: #0d1016; color: #fff; }
+.glance-large-top { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-bottom: 1px solid #56627a; background: #151820; }
+.glance-large-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+#glance-large .glance-large-x { flex: none; width: 44px; height: 40px; padding: 0; font-size: 20px; color: #fff; background: transparent; border-color: transparent; }
+.glance-large-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 10px 14px 14px; }
+.glance-large-foot { flex: none; padding: 8px 10px max(10px, env(safe-area-inset-bottom)); border-top: 1px solid #56627a; background: #151820; }
+#glance-large .glance-large-close { width: 100%; height: 48px; font-size: 17px; font-weight: 650; color: #fff; border-color: #8796ad; border-radius: 10px; background: #283d5b; }
+#glance-large :is(.oc-glance, .claude-glance) { margin: 0; padding: 0; border: 0; background: transparent; font-size: 16px; line-height: 1.45; color: #f1f4f9; }
+#glance-large .glance-head { margin-bottom: 10px; font-size: 15px; color: #e3e8ef; }
+#glance-large .glance-msg { margin: 0 0 14px; padding-left: 10px; border-left-width: 4px; }
+#glance-large .glance-who { font-size: 14px; color: #d3dae5; }
+#glance-large .glance-text { display: block; overflow: visible; font-size: 18px; line-height: 1.45; color: #fff; }
+#glance-large .glance-call { margin: 4px 0 12px; padding-left: 10px; border-left: 4px solid rgba(150,190,250,.75); }
+#glance-large .glance-call-name { font-size: 17px; color: #d6e6ff; }
+#glance-large .glance-call-time { font-size: 15px; color: #e3e8ef; }
+#glance-large .glance-call[data-state=running] .glance-call-time { color: #ffe6b0; }
+#glance-large .glance-call-preview { display: block; overflow: visible; margin-top: 3px; font: 15px/1.45 var(--mono); color: #f1f4f9; }
+#glance-large .glance-foot { margin-top: 12px; font-size: 14px; color: #e3e8ef; }
+#glance-large .glance-copy { color: #e3e8ef; }
+#glance-large .glance-foot button.link { padding: 6px 4px; font-size: 15px; color: #c9e0ff; }
+#glance-large .glance-read { font-size: 15px; line-height: 32px; padding: 0 14px; color: #d6e6ff; border-color: #7d9fd6; }
+#glance-large .glance-error { color: #ffd0d0; }

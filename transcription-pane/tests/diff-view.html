@@ -1,0 +1,142 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared recorded diff actual-DOM checks</title>
+<link rel="stylesheet" href="../static/diff-view.css"><link rel="stylesheet" href="../static/glare.css">
+<style>body{background:#10141d;color:#eee;font:16px system-ui;margin:12px} .phone{width:390px;max-width:100%}.wide{width:960px;max-width:100%}pre#results{white-space:pre-wrap}</style>
+</head><body><h1>Recorded diff · phone and desk</h1>
+<h2>390px · Auto inline</h2><div id="phone" class="phone"></div>
+<h2>960px · Auto side-by-side</h2><div id="wide" class="wide"></div>
+<h2>Large recorded file · Show all</h2><div id="large" class="phone"></div>
+<h2>Unavailable and empty</h2><div id="unavailable" class="phone"></div><div id="empty" class="phone"></div>
+<pre id="results"></pre>
+<script src="../static/vendor/highlight.min.js"></script><script src="../static/diff-view.js"></script>
+<script>
+(async()=>{
+  const checks=[],check=(name,ok)=>checks.push({name,passed:!!ok});
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const $=(selector,root=document)=>root.querySelector(selector),$$=(selector,root=document)=>[...root.querySelectorAll(selector)];
+  const codeDiff={complete:true,source:'claude-structured-patch',files:[{path:'src/example.js',status:'modified',additions:3,deletions:2,hunks:[
+    {oldStart:41,oldLines:4,newStart:61,newLines:5,lines:[' /* multiline','  * still a comment */','-const old = "λ <>&";','-return old;','+const next = "λ <>&";','+const extra = 2;','+return next;', '\\ No newline at end of file']},
+    {oldStart:80,oldLines:1,newStart:101,newLines:1,lines:[' const tail = true;']}
+  ]}]};
+  try {
+    const phone=$('#phone'),wide=$('#wide'),large=$('#large');
+    const start=performance.now(),p=opcDiffView.mount(phone,codeDiff,{layout:'auto',wrap:true});
+    const mountMs=performance.now()-start;
+    const w=opcDiffView.mount(wide,codeDiff,{layout:'auto',wrap:false});
+    await delay(100);
+    check('frozen shared entry point',Object.isFrozen(opcDiffView));
+    check('390px container is inline',$('.opc-diff',phone).dataset.layout==='inline');
+    check('960px container is split',$('.opc-diff',wide).dataset.layout==='split');
+    check('actual container width, not wide window',innerWidth>900&&phone.getBoundingClientRect().width===390);
+    check('file path/status/counts',$('.opc-diff-file-head',phone).textContent.includes('src/example.jsmodified+3−2'));
+    check('true old/new start', $('.opc-diff-old',phone).textContent==='41'&&$('.opc-diff-new',phone).textContent==='61');
+    check('multiline token continuation is comment',$$('.hljs-comment',$$('.opc-diff-code',phone)[2]).map(n=>n.textContent).join('')===' * still a comment */');
+    check('syntax keyword colored',$('.hljs-keyword',phone)&&getComputedStyle($('.hljs-keyword',phone)).color!==getComputedStyle($('.opc-diff-code',phone)).color);
+    check('original Unicode and punctuation',$$('.opc-diff-code',phone).some(n=>n.textContent==='const old = "λ <>&";'));
+    check('green/red and non-color signs',$('.opc-diff-add .opc-diff-sign',phone).textContent==='+'&&$('.opc-diff-del .opc-diff-sign',phone).textContent==='−'&&getComputedStyle($('.opc-diff-add',phone)).backgroundColor!==getComputedStyle($('.opc-diff-del',phone)).backgroundColor);
+    check('inline shows deletion run before addition run',$$('.opc-diff-del',phone).at(-1).getBoundingClientRect().bottom<=$('.opc-diff-add',phone).getBoundingClientRect().top);
+    check('unmatched addition has blank opposite cell',$$('.opc-diff-row',wide).some(row=>row.querySelector('.opc-diff-blank')&&row.querySelector('.opc-diff-add')));
+    check('no-newline marker has no numbers',$('.opc-diff-marker',phone).textContent==='\\ No newline at end of file'&&!$('.opc-diff-marker .opc-diff-number',phone));
+    check('omitted context labelled',$$('.opc-diff-gap',phone).some(n=>n.textContent.includes('Omitted context')));
+    check('touch-sized native controls',$('select',phone).getBoundingClientRect().height>=44&&$('.opc-diff-choice',phone).getBoundingClientRect().height>=44);
+    const first=$('.opc-diff-code',phone);p.update(JSON.parse(JSON.stringify(codeDiff)));
+    check('identical data preserves code DOM',$('.opc-diff-code',phone)===first);
+    const selection=getSelection(),range=document.createRange();range.selectNodeContents(first);selection.removeAllRanges();selection.addRange(range);
+    const selected=selection.toString();p.setWrap(false);
+    check('CSS-only Wrap preserves nodes and selected text',$('.opc-diff-code',phone)===first&&selection.toString()===selected&&getComputedStyle(first).whiteSpace==='pre');
+    const changed=JSON.parse(JSON.stringify(codeDiff));changed.files[0].path='latest.js';p.update(changed);
+    check('changed update defers under real selection',$('.opc-diff-path',phone).textContent==='src/example.js');
+    selection.removeAllRanges();document.dispatchEvent(new Event('selectionchange'));await delay(20);
+    check('latest deferred update paints after selection',$('.opc-diff-path',phone).textContent==='latest.js');
+    p.setLayout('split');p.update(codeDiff);check('manual layout survives update',$('.opc-diff',phone).dataset.layout==='split');
+    p.setLayout('auto');wide.style.width='650px';wide.getBoundingClientRect();w.setLayout('auto');
+    // dump-dom virtual time doesn't deliver subsequent animation/resize frames reliably.
+    // The Node lifecycle test drives the observer callback; here prove real geometry remeasurement.
+    check('Auto remeasures resized container',$('.opc-diff',wide).dataset.layout==='inline');wide.style.width='960px';w.setLayout('auto');
+    const long=JSON.parse(JSON.stringify(codeDiff));long.files[0].hunks=[{oldStart:0,oldLines:0,newStart:1,newLines:1,lines:['+'+'const long = "'+'x'.repeat(2000)+'";']}];
+    p.update(long);p.setWrap(false);await delay(20);
+    const longCode=$('.opc-diff-code',phone);
+    check('unwrapped overflow stays inside code scroller',longCode.scrollWidth>longCode.clientWidth&&getComputedStyle(longCode).overflowX==='auto');
+    check('component never widens 390px container',$('.opc-diff',phone).getBoundingClientRect().width<=390&&phone.scrollWidth<=390);
+    p.setWrap(true);await delay(20);
+    check('Wrap soft-wraps long line',getComputedStyle(longCode).whiteSpace==='pre-wrap'&&longCode.scrollWidth<=longCode.clientWidth+1);
+    const dark=getComputedStyle($('.opc-diff',phone)).getPropertyValue('--diff-dim');document.documentElement.dataset.glare='on';
+    check('glare brightens dim variables',getComputedStyle($('.opc-diff',phone)).getPropertyValue('--diff-dim')!==dark);
+    check('glare lifts code and controls type',getComputedStyle(longCode).fontSize==='15px'&&getComputedStyle($('select',phone)).fontSize==='15px');
+    delete document.documentElement.dataset.glare;
+    // WO-1: measure glyphs, not just the grid tracks (overflow can fuse numbers).
+    const gutterMeasurements=[];
+    const textBox=node=>{const range=document.createRange();range.selectNodeContents(node);return range.getBoundingClientRect();};
+    function gutterCheck(host,label) {
+      const gaps=[];
+      for(const cell of $$('.opc-diff-cell',host).filter(node=>node.getBoundingClientRect().width&&node.querySelector('.opc-diff-code'))) {
+        const numbers=$$('.opc-diff-number',cell).filter(node=>node.textContent&&getComputedStyle(node).display!=='none');
+        const sign=$('.opc-diff-sign',cell),code=$('.opc-diff-code',cell);
+        const signBox=sign.textContent.trim()?textBox(sign):sign.getBoundingClientRect();
+        numbers.forEach((number,i)=>gaps.push((numbers[i+1]?textBox(numbers[i+1]).left:signBox.left)-textBox(number).right));
+        gaps.push(code.getBoundingClientRect().left-signBox.right);
+        check(label+' right aligned '+cell.dataset.side+' '+numbers.map(n=>n.textContent).join('/'),numbers.every(number=>getComputedStyle(number).textAlign==='right'&&Math.abs(textBox(number).right-(number.getBoundingClientRect().right-parseFloat(getComputedStyle(number).paddingRight)))<.1));
+      }
+      const minGap=Math.min(...gaps);gutterMeasurements.push({label,minGap,gaps});
+      check(label+' number/sign/code glyphs do not overlap',gaps.length>0&&minGap>=0);
+      const marker=$('.opc-diff-marker',host),code=$('.opc-diff-code',host);
+      check(label+' marker aligned with code',Math.abs(marker.getBoundingClientRect().left+parseFloat(getComputedStyle(marker).paddingLeft)-code.getBoundingClientRect().left)<.1);
+    }
+    function numbered(oldStart,newStart) {
+      const value=JSON.parse(JSON.stringify(codeDiff));
+      value.files[0].hunks=[{oldStart,oldLines:2,newStart,newLines:2,lines:[' const context = true;','-const before = 1;','+const after = 2;','\\ No newline at end of file']}];
+      return value;
+    }
+    // Match today's tracks in pixels using a 1ch probe with the cell's real font.
+    function commonWidths(host,label,expected) {
+      const cell=$('.opc-diff-cell',host),probe=document.createElement('span');probe.style.cssText='position:absolute;width:1ch';cell.append(probe);
+      const ch=probe.getBoundingClientRect().width;probe.style.width='11ch';const markerIndent=probe.getBoundingClientRect().width;probe.remove();
+      const widths=getComputedStyle(cell).gridTemplateColumns.split(' ').map(parseFloat);
+      check(label+' <=4-digit gutters unchanged',expected.every((n,i)=>Math.abs(widths[i]-n*ch)<.1));
+      check(label+' <=4-digit marker indent unchanged',Math.abs(parseFloat(getComputedStyle($('.opc-diff-marker',host)).paddingLeft)-markerIndent)<.1);
+    }
+    p.update(numbered(9998,9998));w.update(numbered(9998,9998));
+    commonWidths(phone,'inline',[4.5,4.5,2]);commonWidths(wide,'split',[5.5,2]);
+    for(const [digits,oldStart,newStart] of [[5,14812,24812],[6,123456,123460]]) {
+      const value=numbered(oldStart,newStart);p.update(value);w.update(value);
+      for(const [host,label] of [[phone,'390px inline'],[wide,'960px split']]) {
+        check(`${digits}-digit ${label} true context values`,$('[data-context] .opc-diff-old',host).textContent===String(oldStart)&&$('[data-context] .opc-diff-new',host).textContent===String(newStart));
+        gutterCheck(host,`${digits}-digit ${label}`);
+      }
+      const before=$('.opc-diff-code',phone);p.update(JSON.parse(JSON.stringify(value)));
+      check(`${digits}-digit identical update preserves DOM`,$('.opc-diff-code',phone)===before);
+      document.documentElement.dataset.glare='on';gutterCheck(phone,`${digits}-digit glare inline`);gutterCheck(wide,`${digits}-digit glare split`);delete document.documentElement.dataset.glare;
+    }
+    // Width must include incremented coordinates, not just the hunk's start.
+    const crossing=numbered(99999,99999);p.update(crossing);gutterCheck(phone,'six-digit boundary crossing');
+    p.update(numbered(9998,9998));w.update(numbered(9998,9998));
+    commonWidths(phone,'inline after large update',[4.5,4.5,2]);commonWidths(wide,'split after large update',[5.5,2]);
+    window.gutterMeasurements=gutterMeasurements;
+    const big={complete:true,source:'opencode-unified-patch',files:[{path:'large.py',status:'added',additions:3501,deletions:0,hunks:[{oldStart:0,oldLines:0,newStart:1,newLines:3501,lines:Array.from({length:3501},(_,i)=>'+value_'+i+' = '+i)}]}]};
+    const bigStart=performance.now(),b=opcDiffView.mount(large,big,{layout:'auto',wrap:true}),largeMountMs=performance.now()-bigStart;
+    check('initial large view shows exactly 2000',$$('.opc-diff-code',large).length===2000&&$('.opc-diff-count',large).textContent==='Showing 2,000 of 3,501 lines');
+    check('large plain fallback is visible',$('.opc-diff-syntax',large).textContent.includes('Plain code · large hunk'));
+    $('.opc-diff-show',large).click();check('Show all yields before append',$$('.opc-diff-code',large).length===2000);
+    for(let i=0;i<100&&!$('.opc-diff-show',large).hidden;i++)await delay(30);
+    check('Show all reaches final line',$$('.opc-diff-code',large).length===3501&&$$('.opc-diff-code',large).at(-1).textContent==='value_3500 = 3500');
+    check('Show all exposes completion',$('.opc-diff-count',large).textContent==='Showing 3,501 of 3,501 lines'&&$('.opc-diff-show',large).hidden);
+    const u=opcDiffView.mount($('#unavailable'),{files:[],source:'unavailable',complete:false,reason:'Shell command; no structured edit diff recorded (it may have edited files).'});
+    check('honest unavailable reason',$('.opc-diff-reason',$('#unavailable')).textContent.includes('may have edited files'));
+    check('a no-files diff shows its reason first, with no inert control row (Layout, Wrap, Showing 0 of 0)',$('.opc-diff-controls',$('#unavailable')).hidden&&
+      $('.opc-diff-controls',$('#unavailable')).getBoundingClientRect().height===0);
+    const e=opcDiffView.mount($('#empty'),{files:[{path:'empty.txt',status:'added',additions:0,deletions:0,hunks:[]}],source:'recorded-new-content',complete:false,reason:'new content; previous content not recorded'});
+    check('empty creation and incomplete reason (a file: its controls stay)',$('#empty').textContent.includes('empty file')&&$('#empty').textContent.includes('previous content not recorded')&&
+      !$('.opc-diff-controls',$('#empty')).hidden&&$('.opc-diff-controls',$('#empty')).getBoundingClientRect().height>0);
+    const saved=hljs;globalThis.hljs=null;p.update(codeDiff);check('missing highlighter remains readable',$('.opc-diff-code',phone).textContent==='/* multiline'&&$('.opc-diff-syntax',phone).textContent.includes('Plain code'));globalThis.hljs=saved;
+    p.update(null);check('null clears diff',$('.opc-diff',phone).hidden);
+    b.update({...big,reason:'changed'});$('.opc-diff-show',large).click();b.destroy();await delay(80);
+    check('destroy cancels pending expansion',large.children.length===0);
+    check('no document horizontal widening',document.documentElement.scrollWidth<=innerWidth);
+    window.timings={mountMs,largeMountMs,note:'Chrome performance.now synchronous mount only; not iPhone or first-paint timing'};
+  } catch(error) {check('fixture completed: '+error.stack,false);}
+  const passed=checks.filter(c=>c.passed).length,failed=checks.length-passed;
+  window.testResults={passed,failed,checks,timings:window.timings,gutterMeasurements:window.gutterMeasurements};document.body.dataset.testPassed=String(failed===0);
+  $('#results').textContent=JSON.stringify(window.testResults,null,2);
+})();
+</script></body></html>

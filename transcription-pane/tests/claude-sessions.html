@@ -1,0 +1,633 @@
+<!doctype html><meta charset="utf-8"><title>Isolated Claude history browser fixture</title>
+<style>body{margin:0}iframe{width:900px;height:900px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="history" title="Offline history"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const results=[],check=(name,ok)=>{results.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,js,css,readAloudCss,refineDefaults,refineCore,readAloud]=await Promise.all(
+      ['sessions.html','sessions.js','sessions.css','read-aloud.css','refine-defaults.js','refine-core.js','read-aloud.js'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async name=>(await fetch(new URL(name,sharedBase))).text()));
+    const reading=await read('tool-reading.js'); // sessions.html loads it too: tool rows' and glances' call times
+    const quotaHalt=await read('quota-halt.js'); // and the usage-limit halt's wording
+    const managerOrder=await read('manager-order.js');
+    const mock=`
+      window.fixture={requests:[],messages:[],errors:[],previewCalls:0,pins:{},pinPosts:[],extraSessions:[],mail:{epoch:'mail',revision:1,selection:null},
+        ra:{item:null,config:{configured:true,voiceId:'fixturevoice',voiceName:'Fixture voice',modelId:'eleven_multilingual_v2',playbackRate:1.35,chunkChars:1000},
+          audios:[],fetches:[],releases:new Map(),holds:new Set(),seconds:[],provider:[],posts:[],holdProviderAfter:0,held:false,providerRelease:null}};
+      addEventListener('error',e=>fixture.errors.push(e.message));
+      // A deterministic audio element: metadata arrives a turn after src, real lengths come from the fixture's
+      // X-Read-Aloud-Seconds header (read-aloud.js keeps them per part), and play/pause are observable without a device.
+      class FixtureAudio {
+        constructor(){this._src='';this.readyState=0;this.duration=NaN;this.currentTime=0;this.paused=true;this.error=null;
+          this.playbackRate=1;this.defaultPlaybackRate=1;this.listeners={};fixture.ra.audios.push(this);}
+        get src(){return this._src;}
+        set src(v){this._src=v;this.readyState=0;this.currentTime=0;if(!v)return;
+          setTimeout(()=>{if(this._src===v){this.readyState=1;for(const f of this.listeners.loadedmetadata||[])f();}},0);}
+        addEventListener(t,f){(this.listeners[t]=this.listeners[t]||[]).push(f);}
+        removeEventListener(t,f){this.listeners[t]=(this.listeners[t]||[]).filter(g=>g!==f);}
+        play(){this.paused=false;if(this.onplay)this.onplay();return Promise.resolve();}
+        pause(){this.paused=true;if(this.onpause)this.onpause();}
+        removeAttribute(){this._src='';} load(){}
+      }
+      window.Audio=FixtureAudio;
+      const envelope=x=>({schemaVersion:1,backend:'claude',...x});
+      fixture.session={sessionRef:'session',uuid:'native-uuid',title:'Safe history',cwd:'unknown',source:'windows-history',scopes:[{scopeRef:'scope',label:'main'},{scopeRef:'trace',label:'agent:a'}]};
+      fixture.event=(n,text='Prose '+n)=>({recordRef:'r'+n,uuid:'uuid-'+n,kind:'assistant',status:'stored',text,calls:[]});
+      fixture.call={...fixture.event(0),calls:[{callRef:'call0',block:0,id:'id0',name:'mcp__workflowy__system',status:'pending-or-missing',inputBytes:0,outputBytes:null,previewData:{schemaVersion:1,status:'unavailable',reason:'fixture'}}]};
+      fixture.page=events=>envelope({sessionRef:'session',scopeRef:'scope',fileEpoch:'epoch',leafRef:'leaf',targetRef:'target',events,branches:[{leafRef:'leaf',uuid:'leaf-uuid'}],traces:['agent:a'],diagnostics:[],status:'complete',change:'snapshot',hasMore:false,deltaCursor:'delta'});
+      fixture.data=fixture.page([fixture.call,fixture.event(1,'<img src=x onerror=alert(1)>\\n\\t'+ '🌈'.repeat(100001))]);
+      fixture.sleeping={sessionRef:'collected-session',uuid:'collected-uuid',title:'Collected Manager',cwd:'unknown',source:'host',role:'Manager',
+        state:'exited',lifecycle:'sleeping',close_reason:'collected',generation:1,executionId:'cc-collected-uuid',
+        capabilities:{history:true,nativeInput:false,controls:false,reconnect:true},scopes:[{scopeRef:'collected-scope',label:'main'}]};
+      window.BroadcastChannel=class{postMessage(m){fixture.messages.push(m);fixture.channel=this;}};
+      window.fetch=async(url,opts)=>{if(String(url).startsWith('/api/opencode/'))return new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status:'unavailable',error:'offline fixture',sessions:[]})); // its own channel
+      fixture.requests.push([url,opts]);let data;
+        if(String(url)==='https://openrouter.ai/api/v1/chat/completions'){
+          const ra=fixture.ra;ra.provider.push(JSON.parse(opts.body));
+          if(!ra.held&&ra.provider.length>ra.holdProviderAfter){ra.held=true;await new Promise((resolve,reject)=>{ra.providerRelease={resolve,reject};opts.signal?.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});});}
+          const n=ra.provider.length;return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:ra.spoken[n-1]||('## Section '+n+'\\n\\nSPOKEN '+n+'.')}}]}));
+        }
+        if(url.startsWith('/api/claude/sessions')){const q=new URLSearchParams(String(url).split('?')[1]||'');const firstAnswer=!q.get('cursor')&&q.get('live')!=='1'&&q.get('role')!=='Manager';
+          data=envelope({sessions:[fixture.session,fixture.sleeping,...fixture.extraSessions],hasMore:false,status:'complete',
+            ...(firstAnswer&&fixture.hostLoad!==undefined?{hostLoad:fixture.hostLoad}:{})});}
+        else if(url==='/api/pins'){const body=opts?.method==='POST'?JSON.parse(opts.body):null;
+          if(body){const pins={...fixture.pins};if(body.pinned)pins[body.key]={pinned_at:Date.now()/1000};else delete pins[body.key];fixture.pins=pins;fixture.pinPosts.push(body);}
+          data={schemaVersion:1,pins:fixture.pins};}
+        else if(url.startsWith('/api/claude/events'))data=fixture.data;
+        else if(url==='/api/claude/inspect'){const c=JSON.parse(opts.body);fixture.mail={epoch:'mail',revision:fixture.mail.revision+1,selection:{...c}};data=fixture.mail;}
+        else if(url.startsWith('/api/read-aloud/item')){
+          const ra=fixture.ra,body=opts?.body?JSON.parse(opts.body):null;
+          if(!body)data={schemaVersion:1,backend:'read-aloud',found:!!ra.item,id:ra.item?ra.item.id:'none',...(ra.item?{item:ra.item}:{}),config:ra.config};
+          else{ra.posts.push(body);const seg=body.segment||0,chunks=[];
+            for(let k=0;k<=seg;k++)chunks.push({index:k,text:'## Section '+(k+1)+'\\n\\nSPOKEN '+k+'.',chars:34,cached:true,bytes:10,seconds:3});
+            const item={id:'item-passes',key:body.key,sourceHash:body.sourceHash,text:chunks.map(c=>c.text).join('\\n\\n'),chunks,
+              meta:{model:'fixture/model',thinking:'medium',passes:seg+1,contextTurns:0,cost:0.01},createdAt:1,complete:body.done===true,voice:null};
+            data={schemaVersion:1,backend:'read-aloud',found:true,id:item.id,item,config:ra.config};}
+        }
+        else if(url==='/api/read-aloud/audio'){
+          const ra=fixture.ra,payload=JSON.parse(opts.body);ra.fetches.push(payload.chunk);
+          if(ra.holds.has(payload.chunk))await new Promise((resolve,reject)=>{ra.releases.set(payload.chunk,{resolve,reject});opts.signal?.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});});
+          return new Response(new Blob(['RA '+payload.chunk]),{headers:{'Content-Type':'audio/mpeg','X-Read-Aloud-Seconds':String(ra.seconds[payload.chunk]??3)}});
+        }
+        else if(url==='/api/read-aloud/settings')data={schemaVersion:1,backend:'read-aloud',configured:true,key:{set:true,masked:'••••'},voiceId:'v',
+          voiceName:'Fixture voice',modelId:'eleven_multilingual_v2',defaultModelId:'eleven_multilingual_v2',voices:[],models:[],rewrite:{provider:null,model:null,thinking:null}};
+        else if(url.startsWith('/api/read-aloud/context'))data={schemaVersion:1,backend:'read-aloud',source:'claude',status:'stored',text:'',historyBoundaries:[],turns:0,users:[],bytes:0,historyMode:'whole',excluded:0};
+        else if(url.startsWith('/api/history/programs'))data={schemaVersion:1,backend:'history',status:'empty',units:[],claude:[],opencode:[],hasMore:false,total:{units:0,sessions:0},archive:{lastSweepAt:null}};
+        else if(url==='/api/tool-selection')data=fixture.mail;else throw new Error('No live request: '+url);
+        return new Response(JSON.stringify(data));};
+    `;
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    const markup=html.replace(/<link[^>]+>/g,'<style>'+css+'\n'+readAloudCss+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+       .replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>${safe(reading)}<\/script><script>${safe(quotaHalt)}<\/script><script>${safe(managerOrder)}<\/script><script>${safe(refineDefaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(readAloud)}<\/script><script>const actualPreview=opcToolPreview;window.opcToolPreview={...actualPreview,preview:(...args)=>{fixture.previewCalls++;return actualPreview.preview(...args);}};<\/script><script>${safe(js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script></body>`);
+    const frame=document.getElementById('history');frame.srcdoc=markup;await new Promise(r=>frame.onload=r);await sleep(100);
+    const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id),api=w.fixture.api;
+    // The unwindowed Manager-family lane (role=Manager summaries and the OpenCode program inventory) is not a
+    // history read: every desktop list read starts it, and it must not disturb the real read counts.
+    const familyRead=([u])=>/[?&]role=Manager\b/.test(String(u)) || String(u).startsWith('/api/opencode/programs');
+    const otherReads=()=>w.fixture.requests.filter(([u])=>u!=='/api/pins' && !familyRead([u]));
+    check('production initializes without errors',w.fixture.errors.length===0);
+    check('inventory labels unknown/workspace and read-only source',el('sessions-list').textContent.includes('windows-history')&&el('sessions-list').textContent.includes('unknown'));
+    const pinnedDefault=el('sessions-pinned');
+    check('with nothing selected the only (unnumbered) Manager pins by the newest fallback and its home row is a stub',
+      !pinnedDefault.hidden&&pinnedDefault.textContent.includes('Collected Manager')&&
+      pinnedDefault.textContent.includes('sleeping (reconnects on Send) · Send reconnects it')&&
+      el('sessions-list').textContent.includes('↑ Collected Manager · pinned at top')&&api.state.session===null);
+    check('list does not automatically browse/target/inspect',api.state.session===null&&w.fixture.messages.length===0&&otherReads().length===1);
+    [...el('sessions-list').querySelectorAll('.session-open')].find(b=>!b.textContent.includes('Collected Manager')).click();await sleep(50);
+    check('full >200K safe prose and physical whitespace',el('history-events').textContent.endsWith('🌈'.repeat(100001))&&el('history-events').querySelector('.event-prose').nextSibling!==null);
+    check('HTML-looking prose stays text',!el('history-events').querySelector('img')&&el('history-events').textContent.includes('<img'));
+    check('shared production preview consumer invoked',w.fixture.previewCalls===1);
+    check('known empty versus missing stored sizes',el('history-events').textContent.includes('In stored: 0 KiB')&&el('history-events').textContent.includes('Out stored: —'));
+    check('three-line default',getComputedStyle(el('history-events').querySelector('.tool-preview')).webkitLineClamp==='3');
+    el('history-density').value='5';el('history-density').dispatchEvent(new w.Event('change'));
+    check('five-line display-only choice',getComputedStyle(el('history-events').querySelector('.tool-preview')).webkitLineClamp==='5'&&otherReads().length===2);
+    el('history-tools').checked=true;el('history-tools').dispatchEvent(new w.Event('change'));
+    check('tools filter retains underlying events/cursor',api.state.order.length===2&&getComputedStyle(el('history-events').children[1]).display==='none');
+    el('history-tools').checked=false;el('history-tools').dispatchEvent(new w.Event('change'));
+    const first=el('history-events').firstChild,scroll=el('history-viewport');api.reconcile([w.fixture.event(0)],'delta','epoch');
+    // Restore call row after an intentional changed-event projection, then check unchanged keyed path.
+    api.reconcile([w.fixture.call],'delta','epoch');const mounted=el('history-events').firstChild;api.reconcile([w.fixture.call],'delta','epoch');
+    check('unchanged keyed event stays mounted',mounted===el('history-events').firstChild);
+    api.setFollow(false,{byScroll:true}); // Dan scrolled up: following pauses
+    scroll.scrollTop=20;const anchor=el('history-events').firstChild,y=anchor.getBoundingClientRect().top;
+    api.reconcile([w.fixture.event(-1,'older\npage')],'older','epoch');
+    check('prepend preserves actual pixel anchor',Math.abs(anchor.getBoundingClientRect().top-y)<1);
+    const before=scroll.scrollTop;api.reconcile([w.fixture.event(2,'new appended prose')],'delta','epoch');
+    check('scrolled-up append retains viewport and new count',scroll.scrollTop===before&&api.state.newCount>0);
+    await api.latest();check('Jump latest deliberate',scroll.scrollTop+scroll.clientHeight>=scroll.scrollHeight-2);
+    el('history-events').querySelector('.tool-bar').click();await sleep(50);
+    check('deliberate Inspect ACK marker',el('history-events').querySelector('.tool-bar').getAttribute('aria-pressed')==='true');
+    check('Inspect has no target message or body GET',w.fixture.messages.length===0&&w.fixture.requests.every(([u])=>!u.includes('tool-record')&&!u.includes('artifact')));
+    w.fixture.mail={epoch:'mail',revision:99,selection:null};await api.poll();
+    check('Close replacement removes accepted marker',el('history-events').querySelector('.tool-bar').getAttribute('aria-pressed')==='false');
+    el('history-target').click();await sleep(1600);
+    check('standalone viewer does not claim applied',el('target-status').textContent.includes('standalone sessions is read-only'));
+    el('history-target').click();
+    check('standalone sends no hello or target despite another integrated editor',w.fixture.messages.length===0);
+    check('standalone gives explicit integrated-panel instructions',el('target-status').textContent.includes('inside the pane you want to target'));
+    frame.style.width='420px';await sleep(50);
+    check('narrow page no horizontal widening',d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    // New Manager's launch fields (↳ Sub-session's first message, the default first messages) are the only text boxes.
+    check('both Manager backends and reconnectable native targeting are explained, with no second editor',![...d.querySelectorAll('textarea')].some(t=>!t.closest('#claude-new-manager-row'))&&d.body.textContent.includes('selecting a validated OpenCode Manager or live/reconnectable Claude Manager targets Send/Refine automatically'));
+    check('all transport mocked no source errors',w.fixture.errors.length===0);
+    w.fixture.data={...w.fixture.page([w.fixture.event(1)]),
+      contextReadout:{state:'measured',occupancy_tokens:294246,window_tokens:null,measured_at:1792005183.797},
+      sourceProgress:{indexedBytes:1888752,sourceBytes:1888752,status:'complete',kind:'native-transcript'}};
+    await api.browse(w.fixture.session);
+    check('actual history markup shows measured tokens, as-of time and transcript source progress, and the ribbon names the viewed session',
+      el('history-session-name').textContent==='Safe history'&&
+      el('history-activity').textContent.endsWith(' · context 294K · as of '+new Date(1792005183.797*1000).toTimeString().slice(0,5))&&
+      el('history-window').textContent.includes('viewer memory')&&!el('history-window').textContent.includes('stored view bytes')&&
+      /viewer source 1\.9 MB \/ 1\.9 MB indexed \(transcript\)/.test(el('history-window').textContent));
+    w.fixture.data={...w.fixture.page([w.fixture.event(9)]),status:'index-limit',targetRef:null,
+      indexLimit:{message:'Later history not indexed; only the indexed prefix is available.',indexedRecords:229,indexedBytes:3000000,sourceBytes:5933058},hasMore:true,nextCursor:'prefix-later'};
+    await api.browse(w.fixture.session);
+    check('saturated indexed prefix remains visible with truthful later-history marker',el('history-events').textContent.includes('Prose 9')&&/Later history not indexed.*Indexed 229 records/s.test(el('history-status').textContent));
+    check('prefix continuation enabled without pretending incomplete history is a target',!el('history-more').disabled&&el('history-target').disabled);
+    w.fixture.data={...w.fixture.data,events:[w.fixture.event(10)],hasMore:false,nextCursor:null};await api.page(api.state.next);
+    check('whole indexed prefix pages exhaust but retain later-history warning',api.state.rows.has('r9')&&api.state.rows.has('r10')&&api.state.next===null&&/Later history not indexed/.test(el('history-status').textContent));
+    frame.style.width='900px';await sleep(30);
+    w.fixture.data=w.fixture.page([{...w.fixture.event(20,'Dan asks'),kind:'user'},w.fixture.event(21,'Working on it'),{...w.fixture.call,recordRef:'r22',uuid:'uuid-22'},
+      {...w.fixture.event(23,''),kind:'user',toolResults:1},{...w.fixture.event(24,''),kind:'user',toolResults:0,isMeta:true},w.fixture.event(25,'Final answer')]);
+    api.setFollow(true);await api.browse(w.fixture.session);await sleep(30);
+    const turn=n=>api.state.rows.get('r'+n).node,edge=n=>getComputedStyle(turn(n)).borderLeftColor;
+    check('actual turns: yours green, final red, mid-round prose and tools gentle; tool-result carriers fold, meta becomes a flag',
+      edge(20)==='rgb(63, 207, 122)'&&edge(25)==='rgb(255, 107, 97)'&&turn(21).classList.contains('turn-mid')&&turn(22).classList.contains('turn-tools')&&
+      getComputedStyle(turn(23)).display==='none'&&!!turn(24).querySelector('.event-flag')&&getComputedStyle(turn(24).querySelector('.event-label')).display==='none');
+    check('top collapses to the status ribbon: retained controls sit behind the expander, the follow ribbon stays visible',
+      !el('history-more-info').open&&!el('history-target').checkVisibility()&&!el('history-latest').checkVisibility()&&el('history-follow').checkVisibility()&&el('history-activity').checkVisibility()&&el('history-follow').getAttribute('aria-pressed')==='true');
+    el('history-more-info').open=true;await sleep(10);
+    check('the expander reveals every retained control',['history-latest','history-target','history-reload','history-tools','history-scope'].every(id=>el(id).checkVisibility()));
+    el('history-more-info').open=false;await sleep(10);
+    // Round 2: subagent groups sit after their primary turn and its folded records, in their own color.
+    const act=(n,agent,after,status='stored')=>({key:'a'+n,agent,after,ordinal:100+n,time:Date.now()/1000-60+n,type:'call',name:'Read',id:'c'+n,block:0,
+      callRef:'sub'+n,status,previewData:{schemaVersion:1,status:'unavailable',reason:'fixture'}});
+    w.fixture.data={...w.fixture.data,subagents:[{agent:'A',index:0,description:'Bake-off',state:'running'},{agent:'B',index:3,description:'Research',state:'completed'}],
+      subagentActivity:[act(1,'A','r22'),act(2,'B','r22'),act(3,'A','r22','pending-or-missing')]};
+    await api.browse(w.fixture.session);await sleep(30);
+    const run=d.querySelector('.subagent-run'),groups=run?[...run.children]:[];
+    check('subagent activity: one group per subagent after the primary turn and its folded carriers, before the next turn',
+      groups.length===2&&run.previousElementSibling===api.state.rows.get('r24').node&&run.nextElementSibling===api.state.rows.get('r25').node&&
+      groups[0].open&&groups[0].querySelectorAll('.sg-entry').length===2&&/Bake-off.*2 calls/.test(groups[0].textContent));
+    check('tiny flag-row look in per-subagent colors; the running call is yellow',
+      getComputedStyle(groups[0]).fontSize==='10.5px'&&getComputedStyle(groups[0].querySelector('.sg-mark')).color==='rgb(230, 162, 60)'&&
+      getComputedStyle(groups[1].querySelector('.sg-mark')).color==='rgb(129, 199, 132)'&&groups[0].querySelectorAll('.sg-entry')[1].classList.contains('running'));
+    el('ribbon-subagents').click();await sleep(10);
+    check('the Subagents chip folds each group to its header row',!groups[0].open&&groups[0].querySelector('summary').checkVisibility()&&!groups[0].querySelector('.sg-entry').checkVisibility());
+    el('ribbon-subagents').click();await sleep(10);
+    // Round 3: a group Dan folds by hand stays folded (remembered per group); every other group opens expanded.
+    groups[1].querySelector('summary').click();await sleep(20);
+    const closedKey='native-uuid|r22|B',stored=()=>{try{return w.localStorage.getItem('pane_subagent_groups_closed');}catch(_){return null;}};
+    check('folding one group by hand is remembered for that group only',!groups[1].open&&groups[0].open&&api.state.groupClosed.has(closedKey)&&(stored()===null||stored().includes(closedKey)));
+    await api.browse(w.fixture.session);await sleep(30);
+    const again=[...d.querySelector('.subagent-run').children];
+    check('after a reload of the conversation the folded group stays folded and the others open',again[0].open&&!again[1].open);
+    again[1].querySelector('summary').click();await sleep(20);
+    check('reopening it by hand forgets the fold',again[1].open&&!api.state.groupClosed.has(closedKey));
+    const label=turn(22).querySelector('.event-label');
+    check('round 3: tool turn headers always shown, a little faded; mid-round prose on a dim red ground',
+      getComputedStyle(label).display==='flex'&&Number(getComputedStyle(label).opacity)<1&&getComputedStyle(turn(21)).backgroundColor!=='rgba(0, 0, 0, 0)'&&
+      getComputedStyle(turn(21)).backgroundColor!==getComputedStyle(turn(25)).backgroundColor);
+    // ---- round 7: the session list's divider, one-line rows, the program tree and an OpenCode glance (real markup and CSS)
+    const aside=d.querySelector('aside'),main=d.querySelector('main'),divider=el('sessions-divider');
+    const share=()=>aside.getBoundingClientRect().width/main.getBoundingClientRect().width*100;
+    check('round 7: a wider default session list (34%, was 25%) beside a visible divider',Math.abs(share()-34)<3&&divider.getBoundingClientRect().width>=6&&getComputedStyle(divider).cursor==='col-resize');
+    divider.focus();for(let i=0;i<3;i++)divider.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    check('round 7: Right arrow widens it and the width is remembered',Math.abs(share()-40)<3&&w.localStorage.getItem('pane_sidebar_width')==='40');
+    divider.dispatchEvent(new w.KeyboardEvent('keydown',{key:'End',bubbles:true}));check('round 7: the width stops at its maximum (70%)',Math.abs(share()-70)<3);
+    const r=divider.getBoundingClientRect();divider.dispatchEvent(new w.PointerEvent('pointerdown',{pointerId:1,button:0,clientX:r.x+2,clientY:r.y+20,bubbles:true}));
+    divider.dispatchEvent(new w.PointerEvent('pointermove',{pointerId:1,clientX:r.x+2-main.getBoundingClientRect().width*0.3,clientY:r.y+20,bubbles:true}));
+    divider.dispatchEvent(new w.PointerEvent('pointerup',{pointerId:1,bubbles:true}));
+    check('round 7: dragging the divider sets the width (70% → 40%)',Math.abs(share()-40)<3&&w.localStorage.getItem('pane_sidebar_width')==='40');
+    const cc=n=>'cc-0000000'+n+'-0000-4000-8000-000000000000',seatRow=(n,lineage,extra={})=>({sessionRef:'tree'+n,uuid:'0000000'+n+'-0000-4000-8000-000000000000',executionId:cc(n),generation:1,source:'host',role:'worker',displayRole:'quick-worker',
+      state:'ready',lifecycle:'live',cwd:'/home/dan',createdAt:2000+n,title:lineage.title,lineage,capabilities:{history:true},scopes:[{scopeRef:'tree-scope'+n,label:'main'}],...extra});
+    const conductor=seatRow(1,{program:'TREE01',kind:'conductor',conductorN:1,quickProgram:true,managerSession:'184',title:'[ap:TREE01]-001 · ⚡ A long program title that would certainly have wrapped onto a second and third line in the old narrow sidebar'},{role:'conductor',displayRole:'conductor'});
+    const lead=seatRow(2,{program:'TREE01',kind:'seat',quick:true,conductorN:1,title:'[ap:TREE01]-001 ▸ ⚡ quick worker · Pane round 7: programs nested in the sidebar, role word first, OpenCode rows, adjustable sidebar width'});
+    const selectedBefore=api.state.session,generationBefore=api.state.generation;
+    api.state.inventory=[...api.state.inventory,conductor,lead];
+    api.state.oc={rows:[{id:'ses_glance0001',program:'TREE01',kind:'helper',quick:true,parentSeat:cc(2),conductorN:1,title:'[ap:TREE01]-001 ▸ ⚡ quick helper · [ap:HELP01]',busy:false,outcome:'succeeded',model:'openrouter/x/flash',cost:0.002,createdAt:2005}],status:'complete',error:null,stale:false};
+    api.inventory();
+    const program=d.querySelector('.program');
+    check('round 7: the program row heads its tree (title from its Conductor, core, Manager Session, size) and opens while live',
+      program && /A long program title/.test(program.querySelector('.program-title').textContent)&&/\[ap:TREE01\] · from Manager-Session-184 · 3 sessions/.test(program.querySelector('.program-meta').textContent)&&program.querySelectorAll('.session-item').length===3);
+    const names=[...program.querySelectorAll('.session-name')];
+    check('round 7: role word first, one line per name (ellipsis, no wrapping)',names.map(n=>n.querySelector('.role-word').textContent).join(',')==='Conductor:,Quick worker:,Helper:'&&
+      names.every(n=>n.getBoundingClientRect().height<parseFloat(getComputedStyle(n).lineHeight || '20')*1.6+2)&&getComputedStyle(names[1].querySelector('.name-text')).textOverflow==='ellipsis');
+    const depth=n=>n.getBoundingClientRect().left;
+    check('round 7: nested by indentation: Conductor → its quick worker → that worker\'s OpenCode helper',depth(names[0])<depth(names[1])&&depth(names[1])<depth(names[2]));
+    w.fixture.glance=0;const oldFetch=w.fetch;w.fetch=async(url,opts)=>String(url).startsWith('/api/opencode/glance')?(w.fixture.glance++,new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status:'complete',id:'ses_glance0001',busy:false,outcome:'succeeded',messages:[{role:'assistant',time:2006,chars:9,text:'all done.'}]}))):oldFetch(url,opts);
+    // U2: the desktop row itself opens the conversation; its 💬 chip alone is the glance.
+    program.querySelector('.oc-item .oc-glance-chip').click();await sleep(80);
+    check('round 7: an OpenCode row\'s 💬 chip opens a glance under it and never changes the conversation view',
+      d.querySelector('.oc-glance')?.textContent.includes('all done.')&&d.querySelector('.oc-glance').textContent.includes('ses_glance0001')&&w.fixture.glance===1&&api.state.session===selectedBefore&&api.state.generation===generationBefore);
+    // ---- round 8: Open in CodeNomad on the glance (real markup): one request with the session's folder, then its state
+    const focusPosts=[];const glanceFetch=w.fetch;w.fetch=async(url,opts)=>{if(String(url)==='/api/focus-request'){const b=opts?.body?JSON.parse(opts.body):null;if(b)focusPosts.push(b);
+      return new Response(JSON.stringify({schemaVersion:1,request:{nonce:(b || focusPosts.at(-1)).nonce,state:'pending',missingTab:null,noPage:false,outcome:null}}));}return glanceFetch(url,opts);};
+    const focusButton=d.querySelector('.oc-glance .focus-open');
+    check('round 8: the glance offers Open in CodeNomad, disabled while OpenCode gave no folder',focusButton?.textContent==='Open in CodeNomad'&&focusButton.disabled===true);
+    api.state.oc.rows[0].directory='/mnt/e/repos/quick-worker';api.inventory();
+    d.querySelector('.oc-glance .focus-open').click();await sleep(80);
+    check('round 8: a click posts the session and its folder and says it is waiting, the conversation view unchanged',
+      focusPosts.length===1&&focusPosts[0].sessionId==='ses_glance0001'&&focusPosts[0].directory==='/mnt/e/repos/quick-worker'&&
+      /waiting for CodeNomad/.test(d.querySelector('.oc-glance .focus-status')?.textContent || '')&&d.querySelector('.oc-glance .focus-open').disabled===true&&
+      api.state.session===selectedBefore&&api.state.generation===generationBefore);
+    // ---- glance parity: a Claude row's 💬 opens the same glance (its transcript's tail, read by the server), and both
+    // backends' glances show the running or latest tool call with the conversation row's own preview and time.
+    const claudeGlances=[];w.fixture.claudeGlance={schemaVersion:1,backend:'claude',status:'complete',uuid:lead.uuid,model:'claude-opus-5-5',lastAt:2012,partial:false,
+      messages:[{role:'user',time:2001,chars:6,text:'go now'},{role:'assistant',time:2010,chars:24,text:'Checking the tree first.'}],
+      call:{name:'Bash',status:'stored',open:false,time:2006,resultTime:2012.3,previewData:{schemaVersion:1,status:'available',value:{kind:'object',entries:[['command',{kind:'string',characters:6,jsonCharacters:8,head:'ls -la',tail:'ls -la'}]]}}},
+      read:{mode:'tail',bytes:1048576,window:1000,size:4000000,ms:4.1}};
+    const focusFetch=w.fetch;w.fetch=async(url,opts)=>{if(String(url).startsWith('/api/claude/glance?')){claudeGlances.push(String(url));return new Response(JSON.stringify(w.fixture.claudeGlance));}return focusFetch(url,opts);};
+    const leadItem=()=>[...d.querySelector('.program').querySelectorAll('.session-item')].find(i=>i.querySelector('.role-word')?.textContent==='Quick worker:');
+    const leadChip=()=>leadItem().querySelector('.session-actions > .session-glance-chip');
+    const rail=leadItem().querySelector(':scope > .session-actions'),chip=rail?.querySelector('.session-glance-chip'),copyChip=rail?.querySelector('.session-copy'),pencil=rail?.querySelector('.session-rename');
+    const chipBox=chip?.getBoundingClientRect(),copyBox=copyChip?.getBoundingClientRect(),pencilBox=pencil?.getBoundingClientRect(),leadBox=leadItem().getBoundingClientRect();
+    check('glance parity: a Claude row\'s ✎ ⧉ 💬 are one horizontal rail beside its first two lines, inside the row, closed',
+      !!rail&&chip?.textContent==='💬'&&chip.getAttribute('aria-expanded')==='false'&&!!pencil&&!!copyChip&&
+      pencilBox.right<=copyBox.left+1&&copyBox.right<=chipBox.left+1&&Math.abs(chipBox.top-copyBox.top)<2&&Math.abs(chipBox.bottom-copyBox.bottom)<2&&
+      chipBox.top>=leadBox.top-1&&chipBox.bottom<=leadBox.bottom+1&&chipBox.right<=leadBox.right+1&&!leadItem().querySelector('.claude-glance'));
+    const generationNow=api.state.generation,sessionNow=api.state.session;
+    chip.click();await sleep(80);
+    const cg=()=>leadItem()?.querySelector('.claude-glance');
+    check('glance parity: the 💬 reads /api/claude/glance once for that UUID (its folder as the hint); the conversation view is untouched',
+      claudeGlances.length===1&&claudeGlances[0]==='/api/claude/glance?uuid='+lead.uuid+'&cwd=%2Fhome%2Fdan'&&!!cg()&&
+      api.state.session===sessionNow&&api.state.generation===generationNow&&
+      leadChip().getAttribute('aria-expanded')==='true'&&leadItem().classList.contains('glancing'));
+    check('glance parity: the Claude glance shows its messages as the OpenCode one does, its head the row\'s state, model and newest record, its UUID with copy, no CodeNomad button',
+      [...cg().querySelectorAll('.glance-msg .glance-text')].map(n=>n.textContent).join('|')==='go now|Checking the tree first.'&&
+      cg().querySelector('.glance-msg[data-role=assistant] .glance-who').textContent.startsWith('said')&&cg().querySelector('.glance-id').textContent===lead.uuid&&
+      /^idle · Opus 5\.5 · latest record /.test(cg().querySelector('.glance-head').textContent)&&!cg().querySelector('.focus-open')&&
+      getComputedStyle(cg().querySelector('.glance-msg[data-role=assistant]')).borderLeftColor!==getComputedStyle(d.querySelector('.oc-glance .glance-msg[data-role=assistant]')).borderLeftColor);
+    const callBox=()=>cg().querySelector('.glance-call');
+    check('glance parity: below the messages, the latest tool call: its name, the conversation row\'s own preview and its total time (callDuration)',
+      callBox()&&callBox().previousElementSibling===cg().querySelector('.glance-messages')&&callBox().querySelector('.glance-call-name').textContent==='Bash'&&
+      callBox().querySelector('.glance-call-preview').textContent===w.opcToolPreview.preview(w.fixture.claudeGlance.call.previewData,'Bash',{descriptor:true})&&
+      callBox().querySelector('.glance-call-preview').textContent.includes('ls -la')&&callBox().querySelector('.glance-call-time').textContent==='6.3s'&&
+      callBox().dataset.state==='done'&&getComputedStyle(callBox().querySelector('.glance-call-preview')).webkitLineClamp==='3');
+    // Its refresh: only open glances, one read each, and an unchanged answer redraws nothing.
+    const glanceNode=cg();api.state.glanceNextPoll=0;await api.pollGlances();
+    check('glance parity: the open glance re-reads on its own; an unchanged answer (its read timing aside) leaves the drawn glance in place',
+      claudeGlances.length===2&&cg()===glanceNode&&api.state.glanceNextPoll>Date.now()+3000);
+    w.fixture.claudeGlance={...w.fixture.claudeGlance,lastAt:2030,read:{mode:'growth',bytes:900,window:1900,size:4000900,ms:0.4},
+      call:{name:'Edit',status:'pending-or-missing',open:true,time:Date.now()/1000-65,resultTime:null,previewData:{schemaVersion:1,status:'available',value:{kind:'object',entries:[['file_path',{kind:'string',characters:6,jsonCharacters:8,head:'/a.txt',tail:'/a.txt'}]]}}}};
+    await api.pollGlances();
+    check('glance parity: a call with no result while the session is not busy says "no result yet", with no time',
+      claudeGlances.length===3&&cg()!==glanceNode&&callBox().querySelector('.glance-call-name').textContent==='Edit'&&callBox().dataset.state==='open'&&
+      callBox().querySelector('.glance-call-time').textContent==='no result yet');
+    lead.primary_turn_open=true;api.inventory();
+    check('glance parity: the same call while the session is busy is running, with its time so far',
+      callBox().dataset.state==='running'&&/^1m 0[4-7]s so far$/.test(callBox().querySelector('.glance-call-time').textContent)&&
+      callBox().querySelector('.glance-who').textContent.startsWith('tool call running')&&/busy/.test(cg().querySelector('.glance-head').textContent));
+    lead.primary_turn_open=false;
+    leadChip().click();await sleep(50);
+    check('glance parity: the 💬 closes it, and a closed glance is never read again',!cg()&&(api.state.glanceNextPoll=0,await api.pollGlances(),claudeGlances.length===3));
+    // The OpenCode glance shows its call the same way (its busy fact decides running).
+    // This assertion exercises a pre-activity server's legacy glance shape; fast activity is tested separately.
+    api.state.ocActivity=null;api.state.ocActivityNextPoll=Date.now()+60000;
+    const ocCallFetch=w.fetch;w.fetch=async(url,opts)=>String(url).startsWith('/api/opencode/glance')?new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status:'complete',id:'ses_glance0001',busy:true,
+      messages:[{role:'assistant',time:2006,chars:9,text:'all done.'}],call:{name:'bash',status:'pending-or-missing',open:true,time:Date.now()/1000-8.2,resultTime:null,
+      previewData:{schemaVersion:1,status:'available',value:{kind:'object',entries:[['command',{kind:'string',characters:9,jsonCharacters:11,head:'pytest -q',tail:'pytest -q'}]]}}}})):ocCallFetch(url,opts);
+    d.querySelector('.oc-glance .glance-foot button.link').click();await sleep(80);
+    const ocCall=d.querySelector('.oc-glance .glance-call');
+    check('glance parity: the OpenCode glance shows its running call the same way, its time so far',
+      ocCall?.dataset.state==='running'&&ocCall.querySelector('.glance-call-name').textContent==='bash'&&ocCall.querySelector('.glance-call-preview').textContent.includes('pytest -q')&&
+      /^8s so far$/.test(ocCall.querySelector('.glance-call-time').textContent));
+    // ---- usage-limit halt (host quota_halt): a ⛔ on the halted worker's row (the whole line on hover and in its
+    // glance), the conversation banner for a halted Manager, both gone when the halt clears or names an older generation.
+    const hm=t=>{const at=new Date(t*1000);return String(at.getHours()).padStart(2,'0')+':'+String(at.getMinutes()).padStart(2,'0');};
+    const resets=Date.now()/1000+600,when='(?:[A-Z][a-z]{2} )?'+hm(resets);
+    const halt=(over={})=>({status:'halted',generation:1,halt_id:'h1',rate_limit_type:'five_hour',resets_at:resets,authority:'usage-limit lockout: five_hour',...over});
+    lead.quota_halt=halt();api.inventory();
+    const flag=()=>leadItem().querySelector('.halt-flag');
+    const workerLine=new RegExp('^⛔ Halted: Max usage limit reached \\(five-hour\\), resets '+when+'\\. Nothing resumes by itself; its Conductor \\(or the Manager\\) resumes it\\.$');
+    check('usage-limit halt: a halted worker\'s row carries ⛔ after its name, the whole line on hover',
+      flag()?.textContent==='⛔'&&workerLine.test(flag().title)&&leadItem().querySelector('.session-name').contains(flag())&&
+      leadItem().querySelector('.session-open').title.split('\n')[0]===flag().title&&leadItem().classList.contains('halted'));
+    leadChip().click();await sleep(80);
+    check('usage-limit halt: its glance says the same line under its head',workerLine.test(cg()?.querySelector('.glance-halt')?.textContent || '')&&
+      cg().querySelector('.glance-halt').previousElementSibling===cg().querySelector('.glance-head'));
+    lead.quota_halt=halt({generation:0});api.inventory();
+    check('usage-limit halt: a halt of an older generation (resumed since) shows nothing',!flag()&&!cg()?.querySelector('.glance-halt'));
+    lead.quota_halt=null;lead.last_quota_halt=halt({cleared_by_input:'m1'});api.inventory();
+    check('usage-limit halt: cleared (quota_halt null, last_quota_halt kept) the row and glance lose it',!flag()&&!leadItem().classList.contains('halted')&&!cg()?.querySelector('.glance-halt'));
+    leadChip().click();await sleep(30);
+    const manager={sessionRef:'halted-manager',uuid:'0000000f-0000-4000-8000-000000000000',executionId:'cc-0000000f-0000-4000-8000-000000000000',generation:3,source:'host',role:'Manager',displayRole:'manager',
+      state:'ready',lifecycle:'live',cwd:'/home/dan',createdAt:3000,title:'Manager-Session-208',capabilities:{history:true},scopes:[{scopeRef:'hm-scope',label:'main'}],
+      liveState:{state:'ready',quota_halt:halt({generation:3,rate_limit_type:'seven_day',status:'closed'})}};
+    api.state.inventory=[...api.state.inventory,manager];api.state.session=manager;api.state.liveState=null;api.inventory();api.activity();
+    const banner=el('history-halt');
+    check('usage-limit halt: the halted Manager\'s conversation shows the ⛔ banner under the activity line, its own Send advice',
+      !banner.hidden&&banner.checkVisibility()&&new RegExp('^⛔ Halted: Max usage limit reached \\(weekly\\), resets '+when+'\\. Nothing resumes by itself\\. Switch accounts or wait for the reset, then Send: it reconnects on the current login\\.$').test(banner.textContent)&&
+      banner.previousElementSibling===el('history-activity')&&getComputedStyle(banner).borderTopColor==='rgb(255, 92, 92)');
+    check('usage-limit halt: the Managers section row carries the ⛔ too',[...d.querySelectorAll('.session-item.halted')].some(i=>i.textContent.includes('Manager-Session-208')));
+    manager.liveState.quota_halt=halt({generation:3,resets_at:Date.now()/1000-120});api.activity();
+    check('usage-limit halt: a reset already passed reads "reset since"',new RegExp('\\(five-hour\\), reset since '+'(?:[A-Z][a-z]{2} )?'+hm(Date.now()/1000-120)+'\\. ').test(banner.textContent));
+    api.state.liveState={state:'ready',quota_halt:null,last_quota_halt:halt({generation:3})};api.state.liveStateAt=Date.now()+1000;api.activity();api.inventory();
+    check('usage-limit halt: the next accepted input clears it (the newer state read wins): banner hidden, row marker gone',
+      banner.hidden&&!banner.checkVisibility()&&banner.textContent===''&&![...d.querySelectorAll('.session-item.halted')].length);
+    // Manager rows: a context gauge in the green dot's place, from the list row's lastContext alone.
+    const gaugeRow=(n,title,lifecycle,extra={})=>({...manager,sessionRef:'gauge-'+n,uuid:'000000'+n+'-0000-4000-8000-000000000000',executionId:'cc-000000'+n+'-0000-4000-8000-000000000000',
+      title,lifecycle,liveState:{state:'ready'},capabilities:{history:true,nativeInput:lifecycle==='live',controls:lifecycle==='live'},...extra});
+    api.state.inventory=[...api.state.inventory,gaugeRow('a1','Manager-Session-209','live',{lastContext:{tokens:300000,window:1000000,at:Date.now()/1000}}),
+      gaugeRow('a2','Manager-Session-207','ended',{lastContext:{tokens:500000,window:1000000,at:Date.now()/1000-3600}}),gaugeRow('a3','Manager-Session-206','sleeping')];api.inventory();
+    const rowOf=name=>[...d.querySelectorAll('.session-item')].find(i=>i.querySelector('.name-text')?.textContent===name),gauge=name=>rowOf(name)?.querySelector('.manager-gauge');
+    check('Manager gauge: a live Manager row shows the context pie ("live · 30% context") and no green ::after dot',
+      rowOf('Manager-Session-209')?.classList.contains('live')&&rowOf('Manager-Session-209').classList.contains('has-gauge')&&gauge('Manager-Session-209').dataset.open==='true'&&
+      gauge('Manager-Session-209').dataset.known==='true'&&gauge('Manager-Session-209').style.getPropertyValue('--gauge-fill')==='30.0'&&gauge('Manager-Session-209').title==='live · 30% context'&&
+      getComputedStyle(rowOf('Manager-Session-209').querySelector('.session-name'),'::after').content==='none'&&getComputedStyle(gauge('Manager-Session-209')).backgroundImage.includes('conic-gradient'));
+    check('Manager gauge: a closed Manager row is a gray ring, filled gray with its last share when the row carries it ("closed · last 50%" / "closed")',
+      gauge('Manager-Session-207')?.dataset.open==='false'&&gauge('Manager-Session-207').dataset.known==='true'&&gauge('Manager-Session-207').title==='closed · last 50%'&&
+      gauge('Manager-Session-206')?.dataset.open==='false'&&gauge('Manager-Session-206').dataset.known==='false'&&gauge('Manager-Session-206').title==='closed'&&
+      getComputedStyle(gauge('Manager-Session-206')).backgroundImage==='none');
+    check('usage-limit halt: no page errors',w.fixture.errors.length===0);
+    // Full stored Conductor names use the row's actual available width, without title enrichment. The
+    // desktop layout is deliberately unchanged: one line, badge beside the name, the old widgets at the right.
+    const fullTitle='PROGRAM · Millions of events: keep the Claude host and the Manager App fast';
+    conductor.title=conductor.lineage.title='[ap:TREE01]-001 · '+fullTitle;
+    conductor.liveState={primary_turn_open:true};api.state.inventoryAt=Date.now();
+    api.state.lineageOpen.set('p:TREE01',false);frame.style.width='1400px';api.setSideWidth(70);api.inventory(true);await sleep(30);
+    const root=()=>d.querySelector('.program-head'),name=()=>root().querySelector('.program-title > .name-text');
+    const nr=name().getBoundingClientRect(),badge=root().querySelector('.rollup-badge'),br=badge?.getBoundingClientRect();
+    check('desktop full name: beyond 60 characters, one line, fully visible when the row really has room, with the badge immediately to its right',
+      name().textContent===fullTitle&&fullTitle.length>60&&name().scrollWidth<=name().clientWidth+1&&getComputedStyle(name()).whiteSpace==='nowrap'&&
+      !!badge&&Math.abs(br.left-nr.right-6)<1.5&&Math.abs(br.top-nr.top)<8);
+    check('desktop full name: favourites, fold, count/duration bars, total, age and green dot retain the existing right-side layout',
+      !!root().querySelector('.session-star')&&!!root().querySelector('.program-fold')&&root().querySelectorAll('.program-meters > span').length===3&&
+      root().querySelector('.program-meters').getBoundingClientRect().right<=root().getBoundingClientRect().right&&
+      getComputedStyle(root().querySelector('.program-title'),'::after').width==='7px');
+    api.setSideWidth(40);await sleep(30);
+    check('desktop full name: ellipsis starts only when the row runs out of real space; the badge and meters are still inside it',
+      name().scrollWidth>name().clientWidth+1&&getComputedStyle(name()).textOverflow==='ellipsis'&&
+      root().querySelector('.program-meters').getBoundingClientRect().right<=root().getBoundingClientRect().right+1);
+    // A real click on any sub-session: the primary and a closed sibling stay at the top in letter order.
+    const primary=gaugeRow('b1','Manager-Session-226','live'),a=gaugeRow('b2','Manager-Session-226-a','live'),b=gaugeRow('b3','Manager-Session-226-b','sleeping');
+    api.state.inventory.push(b,a,primary);api.inventory(true);
+    rowOf('Manager-Session-226-a').querySelector('.session-open').click();await sleep(30);
+    const pinnedNames=()=>[...el('sessions-pinned').querySelectorAll('.session-open .session-name > .name-text')].map(n=>n.textContent).join('|');
+    check('desktop sub-session click: primary, a, b stay together at the top including the closed sibling, only a selected',
+      pinnedNames()==='Manager-Session-226|Manager-Session-226-a|Manager-Session-226-b'&&
+      el('sessions-pinned').querySelectorAll('.session-item.selected').length===1&&rowOf('Manager-Session-226-a').classList.contains('selected'));
+    rowOf('Manager-Session-226-b').querySelector('.session-open').click();await sleep(30);
+    check('desktop closed sub-session click: exactly the same primary-first family order',pinnedNames()==='Manager-Session-226|Manager-Session-226-a|Manager-Session-226-b');
+    // ---- Read Aloud on the actual desktop conversation page: the real shared read-aloud.js/css, its saved reading
+    // and audio served by inert fixtures, and a deterministic audio element (no device, no provider, no ElevenLabs).
+    const ra=w.fixture.ra,until=async(fn,ms=3000)=>{const end=Date.now()+ms;while(Date.now()<end){if(fn())return;await sleep(10);}throw new Error('read-aloud fixture wait did not settle');};
+    w.localStorage.setItem('refine_provider','openrouter');w.localStorage.setItem('refine_openrouter_api_key','offline-not-a-key');
+    w.localStorage.setItem('refine_openrouter_model','fixture/model');w.localStorage.setItem('refine_think_level','medium');
+    const raChunks=[
+      {index:0,text:'## The plan\n\nFirst paragraph, with <img src=x onerror=bad()> kept as text.',chars:74,cached:true,bytes:100,seconds:3},
+      {index:1,text:'### Tests\n\nSecond paragraph, with <b>not markup</b> kept as text.',chars:68,cached:true,bytes:100,seconds:3},
+      {index:2,text:'## Results\n\nThird paragraph about the results.',chars:45,cached:false,bytes:null,seconds:3},
+      {index:3,text:'## Next steps\n\nFourth paragraph about what follows.',chars:50,cached:false,bytes:null,seconds:3}];
+    ra.item={id:'item-desktop',key:{backend:'claude',conversation:'native-uuid',message:'uuid-25',part:'text'},sourceHash:'0'.repeat(64),
+      text:raChunks.map(c=>c.text).join('\n\n'),chunks:raChunks,meta:{model:'fixture/model',thinking:'medium',passes:1,contextTurns:2,contextBytes:2048,cost:0.01},
+      createdAt:1,complete:true,voice:null};
+    ra.seconds=[3,3,3,3];
+    await api.browse(w.fixture.session);await sleep(80);
+    const speak25=api.state.rows.get('r25').node.querySelector('.event-speak');
+    check('Read Aloud: the actual turn row carries its 🔊 beside the copy button, not a fixture-only control',!!speak25&&!speak25.hidden&&
+      speak25.getAttribute('aria-label')==='Read message aloud'&&speak25.nextElementSibling===api.state.rows.get('r25').node.querySelector('.event-copy'));
+    speak25.click();await until(()=>d.querySelector('.ra-overlay'));
+    const overlay=d.querySelector('.ra-overlay'),blocks=()=>[...overlay.querySelectorAll('.ra-chunk')],stateText=()=>overlay.querySelector('.ra-state').textContent;
+    await until(()=>blocks().length===4&&/^Playing part 1 of 4/.test(stateText()));
+    const audio=ra.audios[0],index=()=>w.opcReadAloud.current.player.index;
+    check('Read Aloud: the pop-over is one modal dialog over the conversation with its controls and listening text',
+      overlay.getAttribute('role')==='dialog'&&overlay.getAttribute('aria-modal')==='true'&&overlay.parentNode===d.body&&
+      !!overlay.querySelector('.ra-play')&&!!overlay.querySelector('.ra-seek')&&!!overlay.querySelector('.ra-text'));
+    check('Read Aloud: a new reading renders each paragraph-sized chunk as its own tappable block, headings as real h2/h3',
+      blocks().length===4&&blocks()[0].querySelector('h2')?.textContent==='The plan'&&blocks()[1].querySelector('h3')?.textContent==='Tests'&&
+      blocks()[0].getAttribute('role')==='button'&&blocks()[0].getAttribute('tabindex')==='0'&&/^\d+:\d\d \/ \d+:\d\d/.test(overlay.querySelector('.ra-time').textContent));
+    check('Read Aloud: chunk text is safe text (no HTML injection) and selectable',blocks()[0].textContent.includes('<img src=x onerror=bad()>')&&
+      !overlay.querySelector('.ra-text img')&&!overlay.querySelector('.ra-text b')&&getComputedStyle(blocks()[0]).userSelect==='text');
+    check('Read Aloud: listening blocks are thumb-sized targets on the desktop page too',blocks().every(b=>b.getBoundingClientRect().height>=44));
+    const sel=w.getSelection(),range=d.createRange();range.selectNodeContents(blocks()[2]);sel.removeAllRanges();sel.addRange(range);
+    blocks()[2].click();await sleep(30);
+    check('Read Aloud: selecting text in a block and clicking it never starts playback',String(sel)!==''&&index()===0&&!ra.fetches.includes(2));
+    sel.removeAllRanges();
+    blocks()[2].dispatchEvent(new w.PointerEvent('pointerdown',{button:0,isPrimary:true,pointerId:1,clientX:10,clientY:10,bubbles:true}));
+    blocks()[2].dispatchEvent(new w.PointerEvent('pointermove',{clientX:10,clientY:70,bubbles:true}));
+    blocks()[2].click();await sleep(30);
+    check('Read Aloud: a drag across a block is not a play command',index()===0&&!ra.fetches.includes(2));
+    blocks()[2].dispatchEvent(new w.PointerEvent('pointerdown',{button:0,isPrimary:true,pointerId:1,clientX:10,clientY:10,bubbles:true}));
+    await sleep(500);blocks()[2].click();await sleep(30);
+    check('Read Aloud: a long press is not a play command',index()===0&&!ra.fetches.includes(2));
+    blocks()[1].focus();blocks()[1].dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));await until(()=>index()===1&&stateText()==='Playing part 2 of 4');
+    check('Read Aloud: Enter on a focused block starts exactly that part ['+stateText()+']',stateText()==='Playing part 2 of 4');
+    blocks()[3].focus();blocks()[3].dispatchEvent(new w.KeyboardEvent('keydown',{key:' ',bubbles:true,cancelable:true}));await until(()=>index()===3&&stateText()==='Playing part 4 of 4');
+    check('Read Aloud: Space on a focused block starts it too ['+stateText()+']',stateText()==='Playing part 4 of 4');
+    const seek=overlay.querySelector('.ra-seek');seek.value='1';seek.dispatchEvent(new w.Event('input',{bubbles:true}));seek.dispatchEvent(new w.Event('change',{bubbles:true}));
+    await until(()=>index()===0&&Math.abs(audio.currentTime-1)<0.3&&stateText()==='Playing part 1 of 4');
+    check('Read Aloud: the existing seek bar still moves playback inside the reading',Math.abs(Number(seek.value)-1)<0.5&&stateText()==='Playing part 1 of 4');
+    overlay.querySelector('.ra-forward').click();await until(()=>index()===3&&/^Playing part 4 of 4/.test(stateText()));
+    check('Read Aloud: +10s crosses part boundaries ['+stateText()+']',/^Playing part 4 of 4/.test(stateText()));
+    overlay.querySelector('.ra-back').click();await until(()=>index()===0&&/^Playing part 1 of 4/.test(stateText()));
+    check('Read Aloud: −10s crosses back ['+stateText()+']',/^Playing part 1 of 4/.test(stateText()));
+    const rate=overlay.querySelector('.ra-rate');rate.value='1.75';rate.dispatchEvent(new w.Event('change',{bubbles:true}));
+    check('Read Aloud: the existing speed control applies at once and is kept in this browser',audio.playbackRate===1.75&&w.localStorage.getItem('pane_read_aloud_rate_v1')==='1.75');
+    overlay.querySelector('.ra-restart').click();await until(()=>index()===0&&audio.currentTime===0);
+    check('Read Aloud: ⏮ restarts the whole reading',index()===0&&audio.currentTime===0);
+    overlay.querySelector('.ra-close').click();await sleep(20);
+    check('Read Aloud: ✕ closes the pop-over and stops its audio',!d.querySelector('.ra-overlay')&&ra.audios.every(a=>a.paused));
+    // A long turn with no saved reading: the rewrite's passes land one by one, each pass's blocks appended to the
+    // end without moving (or re-rendering) the blocks already tappable.
+    ra.item=null;ra.posts=[];ra.provider=[];ra.held=false;ra.holdProviderAfter=1;ra.providerRelease=null;ra.spoken=[];
+    const long='## Opening\n\n'+'A sentence that fills the first rewrite pass with words. '.repeat(28)+'\n\n## Second\n\n'+'A second topic that continues the same message. '.repeat(28);
+    const passes=w.opcReadAloud.splitPasses(long);
+    check('Read Aloud: the fixture turn needs more than one rewrite pass',passes.length>=2);
+    api.reconcile([w.fixture.event(30,long)],'delta','epoch');await sleep(30);
+    api.state.rows.get('r30').node.querySelector('.event-speak').click();await until(()=>d.querySelector('.ra-overlay'));
+    const overlay2=d.querySelector('.ra-overlay'),blocks2=()=>[...overlay2.querySelectorAll('.ra-chunk')],state2=()=>overlay2.querySelector('.ra-state').textContent;
+    await until(()=>blocks2().length===1&&/pass 2 of \d+/.test(overlay2.querySelector('.ra-job').textContent)&&/^Playing part 1 of 1\+/.test(state2()));
+    const firstBlock=blocks2()[0];
+    check('Read Aloud: a long turn starts on its first pass, shows the rewrite progress and offers Cancel',
+      /^Playing part 1 of 1\+/.test(state2())&&firstBlock.querySelector('h2')?.textContent==='Section 1'&&overlay2.querySelector('.ra-cancel').hidden===false);
+    ra.providerRelease.resolve();
+    await until(()=>blocks2().length===passes.length&&overlay2.querySelector('.ra-job').textContent===''&&overlay2.querySelector('.ra-cancel').hidden===true);
+    check('Read Aloud: each later pass appends tappable blocks without moving the earlier ones, then finishes',
+      blocks2().length===passes.length&&blocks2()[0]===firstBlock&&overlay2.querySelector('.ra-regenerate').disabled===false&&
+      blocks2().every(b=>b.getAttribute('role')==='button')&&blocks2()[passes.length-1].querySelector('h2')?.textContent==='Section '+passes.length);
+    check('Read Aloud: the passes were saved as one run, each except the last incomplete',
+      ra.posts.length===passes.length&&new Set(ra.posts.map(p=>p.run)).size===1&&ra.posts.map(p=>p.segment).join(',')===passes.map((_,k)=>k).join(',')&&
+      ra.posts.every((p,k)=>p.done===(k===passes.length-1)));
+    ra.held=false;ra.holdProviderAfter=0;ra.providerRelease=null;ra.provider=[];
+    overlay2.querySelector('.ra-regenerate').click();
+    await until(()=>overlay2.querySelector('.ra-cancel').hidden===false);
+    check('Read Aloud: ↻ Regenerate starts a fresh rewrite with Cancel offered',/Rewriting for listening/.test(state2()));
+    overlay2.querySelector('.ra-cancel').click();
+    await until(()=>/^Cancelled · nothing was saved\./.test(state2()));
+    check('Read Aloud: Cancel stops the rewrite, says nothing was saved, and leaves no Cancel',
+      /^Cancelled · nothing was saved\./.test(state2())&&overlay2.querySelector('.ra-cancel').hidden===true);
+    overlay2.querySelector('.ra-close').click();await sleep(20);
+    check('Read Aloud: closing after a cancelled rewrite leaves no sheet and no audio playing',!d.querySelector('.ra-overlay')&&ra.audios.every(a=>a.paused));
+    check('Read Aloud: the read-aloud work made no page errors',w.fixture.errors.length===0);
+    w.fetch=oldFetch;
+    // ---- Favorite programs (desktop): one always-present section below Running now, program stars only, the
+    // fixture's own pin transport, folding with the shared controls, and no 12-program paging.
+    const favWait=async(fn,ms=3000)=>{const end=Date.now()+ms;while(Date.now()<end){try{if(fn())return true;}catch(_){/* a redraw may be in flight */}await sleep(10);}return false;};
+    const favGroups=()=>[...el('sessions-list').children].filter(n=>n.classList.contains('session-group'));
+    const favGroupOf=key=>favGroups().find(g=>g.dataset.group===key);
+    const favHeading=g=>{const h=g.querySelector('h3');return [h.children[1].textContent,h.children[2].textContent].join('');};
+    const favTitles=g=>[...g.querySelectorAll(':scope > .program')].map(p=>p.querySelector('.program-title > .name-text').textContent);
+    const favStubs=g=>[...g.querySelectorAll(':scope > .session-stub')].map(n=>n.textContent);
+    const favContentOf=g=>[...g.children].filter(n=>n.classList.contains('program')||n.classList.contains('session-stub'));
+    const favName=n=>n.classList.contains('program')?n.querySelector('.program-title > .name-text').textContent:n.textContent.replace(/^↑ /,'').replace(/ · .*$/,'');
+    const favSectionOpen=key=>favGroupOf(key)?.querySelector('h3 .section-toggle').getAttribute('aria-expanded');
+    const favStoredSections=()=>JSON.parse(w.localStorage.getItem('pane_sidebar_sections')||'{}');
+    api.state.stars={};api.inventory();
+    const favOrder=favGroups().map(g=>g.dataset.group),favAt=favOrder.indexOf('programs:favorite');
+    check('Favorite programs: the empty section is always drawn directly below Running now and above Manager Sessions, titled Favorite programs',
+      favAt>=0&&favAt===favOrder.indexOf('programs:running')+1&&favAt<favOrder.indexOf('managers')&&
+      favHeading(favGroupOf('programs:favorite'))==='Favorite programs · 0');
+    api.state.stars={'session:claude:cc-00000001-0000-4000-8000-000000000000':{pinned_at:1}};api.inventory();
+    check('Favorite programs: session stars never fill it; only an existing program:CORE star does',
+      favHeading(favGroupOf('programs:favorite'))==='Favorite programs · 0');
+    api.state.stars={};
+    const favProgram=(n,core,title,quick,created,extra={})=>{
+      const uuid='0000fa'+String(n).padStart(2,'0')+'-0000-4000-8000-000000000000';
+      const row=seatRow(n,{program:core,kind:'conductor',conductorN:1,quickProgram:quick,managerSession:'300',title:'[ap:'+core+']-001 · '+title},
+        {uuid,executionId:'cc-'+uuid,sessionRef:'favorite-'+n,createdAt:created,role:'conductor',displayRole:'conductor',...extra});
+      w.fixture.extraSessions.push(row);api.state.inventory.push(row);return row;
+    };
+    favProgram(51,'FAVF01','Favorite full newer',false,6000,{lifecycle:'ended'});
+    favProgram(52,'FAVF02','Favorite full older live',false,5000,{liveState:{primary_turn_open:false}});
+    favProgram(53,'FAVL01','Favorite live unstarred',false,4000,{liveState:{primary_turn_open:false}});
+    favProgram(54,'FAVQ01','Favorite quick newer',true,7000,{lifecycle:'ended'});
+    favProgram(55,'FAVQ02','Favorite quick older',true,5500,{lifecycle:'ended'});
+    favProgram(56,'FAVR01','Favorite running full',false,8000,{liveState:{primary_turn_open:true}});
+    favProgram(57,'FAVR02','Favorite running quick',true,8100,{liveState:{primary_turn_open:true}});
+    const favPins={'program:FAVF01':{pinned_at:1},'program:FAVF02':{pinned_at:2},'program:FAVQ01':{pinned_at:3},'program:FAVQ02':{pinned_at:4},'program:FAVR01':{pinned_at:5},'program:FAVR02':{pinned_at:6}};
+    w.fixture.pins={...favPins};api.state.stars={...favPins};
+    api.inventory();await sleep(30);
+    const favNow=()=>favGroupOf('programs:favorite'),favItems=()=>favContentOf(favGroupOf('programs:favorite')),favRun=()=>favGroupOf('programs:running');
+    check('Favorite programs: running favorites keep their full row only in Running now and lead the section as plain yellow stubs, full then quick',
+      favHeading(favNow())==='Favorite programs · 6 programs'&&
+      favTitles(favRun()).includes('Favorite running full')&&favTitles(favRun()).includes('Favorite running quick')&&
+      !favTitles(favNow()).includes('Favorite running full')&&!favTitles(favNow()).includes('Favorite running quick')&&
+      favItems()[0]?.classList.contains('session-stub')&&favItems()[0].textContent==='↑ Favorite running full · shown at top'&&
+      favItems()[1]?.classList.contains('session-stub')&&favItems()[1].textContent==='↑ Favorite running quick · shown at top'&&
+      favItems()[0].children.length===0&&favItems()[1].children.length===0&&favItems().slice(2).every(n=>n.classList.contains('program')));
+    check('Favorite programs: one flat list, the full programs before the quick ones, each kind in home order (newest created first)',
+      favItems().slice(2).map(favName).join('|')==='Favorite full newer|Favorite full older live|Favorite quick newer|Favorite quick older');
+    check('Favorite programs: an idle starred program is drawn fully in Favorite programs and leaves one stub at home saying where it is',
+      !favTitles(favGroupOf('programs:full')).includes('Favorite full newer')&&
+      favStubs(favGroupOf('programs:full')).includes('↑ Favorite full newer · in Favorite programs')&&
+      favStubs(favGroupOf('programs:full')).includes('↑ Favorite full older live · in Favorite programs')&&
+      favStubs(favGroupOf('programs:quick')).includes('↑ Favorite quick newer · in Favorite programs'));
+    const favHomeOrder=[...favGroupOf('programs:full').children].filter(n=>n.classList.contains('program')||n.classList.contains('session-stub')).slice(0,4).map(favName).join('|');
+    check('Favorite programs: at home a starred program ignores the live-first boost, while an unstarred live program keeps it ['+favHomeOrder+']',
+      favHomeOrder==='Favorite live unstarred|Favorite running full|Favorite full newer|Favorite full older live');
+    const favPosts=w.fixture.pinPosts,favPostsBefore=favPosts.length;
+    [...favNow().querySelectorAll(':scope > .program')].find(p=>favName(p)==='Favorite full newer').querySelector('.session-star').click();
+    check('Favorite programs: unstarring posts the program key through the real pin transport and sends the program back home',
+      await favWait(()=>favPosts.length===favPostsBefore+1)&&
+      favPosts.at(-1).key==='program:FAVF01'&&favPosts.at(-1).pinned===false&&!Object.hasOwn(w.fixture.pins,'program:FAVF01')&&
+      !favTitles(favNow()).includes('Favorite full newer')&&favTitles(favGroupOf('programs:full')).includes('Favorite full newer')&&
+      favStubs(favGroupOf('programs:full')).every(s=>!s.includes('Favorite full newer')));
+    favNow().querySelector('h3').click();
+    check('Favorite programs: its heading folds the section, remembered in the existing section store',
+      favSectionOpen('programs:favorite')==='false'&&favTitles(favNow()).length===0&&favStubs(favNow()).length===0&&
+      (favStoredSections().collapsed||[]).includes('programs:favorite'));
+    favNow().querySelector('h3').click();
+    check('Favorite programs: unfolding it stores the open state again',
+      favSectionOpen('programs:favorite')==='true'&&!((favStoredSections().collapsed||[]).includes('programs:favorite')));
+    el('sessions-collapse').click();await sleep(20);
+    check('Favorite programs: the desktop collapse-all control folds it with the home sections, leaving Running now open',
+      favSectionOpen('programs:favorite')==='false'&&favSectionOpen('programs:running')==='true'&&
+      favTitles(favRun()).includes('Favorite running full')&&(favStoredSections().collapsed||[]).includes('programs:favorite'));
+    el('sessions-collapse').click();await sleep(20);
+    check('Favorite programs: the second click (fold to active) leaves it folded, with only Running now drawing full active work',
+      favSectionOpen('programs:favorite')==='false'&&favSectionOpen('programs:running')==='true'&&
+      favTitles(favRun()).includes('Favorite running full')&&favTitles(favRun()).includes('Favorite running quick'));
+    const favPaged=[];
+    for(let i=1;i<=14;i++){
+      const core='FAVP'+String(i).padStart(2,'0'),title='Paged favorite '+i;
+      favPaged.push(title);favProgram(60+i,core,title,true,9000+i,{lifecycle:'ended'});
+      w.fixture.pins['program:'+core]={pinned_at:10+i};api.state.stars['program:'+core]={pinned_at:10+i};
+    }
+    api.inventory();await sleep(30);
+    favNow().querySelector('h3').click();
+    check('Favorite programs: every favorite is drawn (17 programs here, well past the usual twelve) with no Show more foot',
+      favPaged.every(t=>favTitles(favNow()).includes(t))&&!favNow().querySelector('.group-foot')&&
+      favNow().querySelectorAll(':scope > .program').length===17&&favNow().querySelectorAll(':scope > .session-stub').length===2);
+    const favRunPosts=w.fixture.pinPosts.length;
+    [...favRun().querySelectorAll(':scope > .program')].find(p=>favName(p)==='Favorite running quick').querySelector('.session-star').click();
+    check('Favorite programs: unstarring a running favorite keeps its full row in Running now and drops only its stub',
+      await favWait(()=>w.fixture.pinPosts.length===favRunPosts+1)&&
+      w.fixture.pinPosts.at(-1).key==='program:FAVR02'&&favTitles(favRun()).includes('Favorite running quick')&&
+      !favStubs(favNow()).some(s=>s.includes('Favorite running quick')));
+    favGroupOf('programs:quick').querySelector('h3').click();await sleep(20);
+    check('Favorite programs: unstarred at Running now it returns to the old stub rule at home',favStubs(favGroupOf('programs:quick')).includes('↑ Favorite running quick · shown at top'));
+    check('Favorite programs: the favorite work made no page errors',w.fixture.errors.length===0);
+    // ---- U4.5 host load caption (desktop): the static #sessions-host-load line in .side-top is painted by the
+    // real list() read from the FIRST inventory answer's optional hostLoad — catch-up first, then loop lag over
+    // 1 s, else hidden and empty. No new read, no control change, no POST; 📦 History never shows live load.
+    frame.style.width='900px';await sleep(30);
+    const loadNode=()=>el('sessions-host-load'),loadTop=d.querySelector('.side-top');
+    const loadText=()=>loadNode()?loadNode().textContent:'';
+    const loadHidden=()=>!!loadNode()&&(loadNode().hidden===true||getComputedStyle(loadNode()).display==='none'||getComputedStyle(loadNode()).visibility==='hidden');
+    const loadShown=()=>!!loadNode()&&!loadHidden()&&loadText()!=='';
+    const loadCleared=()=>!!loadNode()&&loadHidden()&&loadText()==='';
+    const loadRects=()=>{const r=d.createRange();r.selectNodeContents(loadNode());return [...r.getClientRects()];};
+    const loadOneLine=()=>loadRects().length===1&&loadRects()[0].right<=loadTop.getBoundingClientRect().right+1;
+    const loadNeutral=()=>!loadNode().querySelector('button,select,input,a,textarea')&&loadNode().getAttribute('role')!=='alert'&&
+      loadNode().dataset.error!=='true'&&!loadNode().classList.contains('error');
+    const loadControls=()=>[...d.querySelectorAll('.side-top .side-bar button, .side-top .side-bar select')].map(n=>[n.id,n.disabled]);
+    const loadControlsBefore=loadControls(),loadPostsBefore=w.fixture.pinPosts.length,loadReadsBefore=w.fixture.requests.length;
+    const loadStep=async hostLoad=>{w.fixture.hostLoad=hostLoad;await api.list();await sleep(40);};
+    check('host load: the page carries exactly one static caption line inside the existing .side-top top bar, and no dialog is involved',
+      d.querySelectorAll('#sessions-host-load').length===1&&loadNode().closest('.side-top')===loadTop&&!d.querySelector('[role=dialog],dialog'));
+    await loadStep(undefined);
+    check('host load: an older host with no hostLoad field leaves no caption at all',loadCleared());
+    await loadStep({rows_behind_sets:3,loop_lag_ms_max_60s:2400});
+    check('host load: the first inventory answer with behind sets says "host catching up · 3 conversations" — one neutral own line in .side-top',
+      loadShown()&&loadText()==='host catching up · 3 conversations'&&loadOneLine()&&loadNeutral());
+    await loadStep({rows_behind_sets:1,loop_lag_ms_max_60s:9000});
+    check('host load: catch-up wins over loop lag, and one is still "conversations"',
+      loadShown()&&loadText()==='host catching up · 1 conversations');
+    frame.style.width='420px';await sleep(50);
+    check('host load: at 420 px the caption stays a visible line of its own inside the narrow side bar and never widens the page',
+      loadShown()&&loadNeutral()&&loadNode().getBoundingClientRect().right<=loadTop.getBoundingClientRect().right+1&&
+      d.documentElement.scrollWidth<=d.documentElement.clientWidth+1);
+    frame.style.width='900px';await sleep(30);
+    await loadStep({rows_behind_sets:0,loop_lag_ms_max_60s:1500});
+    check('host load: no debt and loop lag above 1000 ms reads "host busy · lag 1.5 s"',
+      loadShown()&&loadText()==='host busy · lag 1.5 s'&&loadOneLine()&&loadNeutral());
+    await loadStep({rows_behind_sets:0,loop_lag_ms_max_60s:1000});
+    check('host load: exactly 1000 ms is not busy; the line is hidden and empty',loadCleared());
+    await loadStep({rows_behind_sets:0,loop_lag_ms_max_60s:0});
+    check('host load: a load fact with nothing behind and no lag is hidden and empty',loadCleared());
+    await loadStep({rows_behind_sets:4,loop_lag_ms_max_60s:0});
+    check('host load: a fresh behind-set answer repaints the line',loadShown()&&loadText()==='host catching up · 4 conversations');
+    const loadOkFetch=w.fetch;
+    w.fetch=async(url,opts)=>String(url).startsWith('/api/claude/sessions')&&!/[?&]role=Manager\b/.test(String(url))
+      ?new Response('{}',{status:503}):loadOkFetch(url,opts);
+    await api.list();await sleep(40);
+    check('host load: a failed inventory read clears the caption instead of leaving a stale one',
+      loadCleared()&&/List unavailable/.test(el('sessions-status').textContent));
+    w.fetch=loadOkFetch;
+    await loadStep({rows_behind_sets:2,loop_lag_ms_max_60s:0});
+    const loadHistoryBase=w.fixture.requests.length;
+    await api.setView('history');await sleep(40);
+    const loadHistoryNew=w.fixture.requests.slice(loadHistoryBase);
+    check('host load: switching the list to 📦 History hides the caption, reads the archive, and starts no live inventory or health read',
+      loadCleared()&&loadHistoryNew.every(([,o])=>(o?.method||'GET')==='GET')&&
+      loadHistoryNew.some(([u])=>/\/api\/history\/programs/.test(String(u)))&&
+      !loadHistoryNew.some(([u])=>/\/api\/claude\/sessions|health|host-?load/i.test(String(u))));
+    await api.setView('week');await sleep(40);
+    check('host load: back on the live list the next first answer paints it again',
+      loadShown()&&loadText()==='host catching up · 2 conversations');
+    check('host load: the caption work disabled no side-bar control and posted nothing',
+      JSON.stringify(loadControls())===JSON.stringify(loadControlsBefore)&&w.fixture.pinPosts.length===loadPostsBefore);
+    const loadNewRequests=w.fixture.requests.slice(loadReadsBefore);
+    check('host load: no new health/load route, every request a GET, and no dialog appeared',
+      loadNewRequests.every(([,o])=>(o?.method||'GET')==='GET')&&
+      loadNewRequests.every(([u])=>!/health|host-?load|hostload|loop[_-]?lag/i.test(String(u)))&&!d.querySelector('[role=dialog],dialog'));
+    check('host load: the caption work made no page errors',w.fixture.errors.length===0);
+  }catch(e){results.push({name:e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:results.filter(x=>x.passed).length,failed:results.filter(x=>!x.passed).length,checks:results},null,2);
+  window.testResults={passed:results.filter(x=>x.passed).length,failed:results.filter(x=>!x.passed).length};document.body.dataset.testPassed=String(results.every(x=>x.passed));
+})();
+</script>

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+    <title>🎙️ Manager App · OpenCode / Claude</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="account-switch.css">
+  <link rel="stylesheet" href="status-toast.css">
+  <link rel="stylesheet" href="teams-break.css">
+  <link rel="stylesheet" href="diff-view.css">
+  <link rel="stylesheet" href="read-aloud.css">
+</head>
+<body>
+  <header>
+    <div class="title">🎙️ Manager App</div>
+    <button id="glimpse-link" type="button" class="mini" title="View: a NEXUS Dock, slice group or node, rendered as the Workflowy extension's dock renders it, with its history. Claude mode: in the conversation column (💬 brings the conversation back); OpenCode mode: over this pane, with Close. Dictation stays as it is">📄 View</button>
+    <div id="status" class="status">starting…</div>
+    <button id="status-history" type="button" class="mini" title="Full Send, Refine and other status messages from this page">Status</button>
+    <div id="claude-account" class="account-switch" data-oc-accounts role="group" aria-label="Claude account">
+      <span class="account-label">Claude · active</span>
+      <span class="pill" data-account-current>—</span>
+      <span class="account-identity" data-account-identity></span>
+      <button type="button" class="mini" data-account="personal">Personal</button>
+      <button type="button" class="mini" data-account="work">Work</button>
+      <details class="account-details" data-account-details>
+        <summary>Quota &amp; switching</summary>
+        <div class="account-sheet">
+          <strong data-account-viewing></strong>
+          <div data-account-quotas></div>
+          <div class="account-quota-foot"><span data-account-quota-status></span><button type="button" class="mini" data-account-refresh>Refresh quota</button></div>
+          <div class="account-actions"><button type="button" data-account-switch disabled>Switch</button><button type="button" data-account-cancel hidden>Cancel switch</button></div>
+          <div class="account-hint">Switch restarts the Claude host after running work finishes, then resumes the Manager. Account names only view quota.</div>
+        </div>
+      </details>
+      <span class="account-status" data-account-status role="status"></span>
+    </div>
+    <div id="chatgpt-account" class="account-switch" data-chatgpt-accounts role="group" aria-label="GPT account">
+      <span class="account-label">GPT · active</span><span class="pill" data-gpt-current>—</span>
+      <details class="account-details" data-gpt-details>
+        <summary>Quota &amp; switching · GPT</summary>
+        <div class="account-sheet">
+          <div class="gpt-account-buttons" data-gpt-accounts></div>
+          <strong data-gpt-viewing></strong><span class="m-plan" data-gpt-plan></span>
+          <div data-gpt-quotas></div>
+          <div class="account-quota-foot"><span data-gpt-quota-status></span><button type="button" class="mini" data-gpt-refresh>Refresh quota / active</button></div>
+          <div class="account-actions"><button type="button" data-gpt-switch disabled>Switch</button></div>
+          <div data-gpt-banked></div>
+          <div class="account-hint">Names only view quota. Switch selects the native saved login for new OpenCode requests, without restarting anything or stopping Claude. A captured in-flight request, including retries, keeps its old login.</div>
+          <details class="gpt-help" data-gpt-enrollment><summary>Enroll another saved ChatGPT login</summary><p>In WSL run <code>opencode auth login openai --method chatgpt-token-sharing</code> and approve the intended ChatGPT subscription. Keep the first login saved. Inspect labels/IDs with <code>opencode auth list --format json</code>; enrollment can change the active login. Reload these accounts afterwards.</p><p>Quota enrollment is separate and optional: one file-backed Codex home per login plus <code>chatgpt-accounts.json</code>. See the app README, “ChatGPT accounts”. Missing quota never prevents native Switch.</p></details>
+          <div class="account-status" data-gpt-status role="status"></div>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <div id="pane-layout">
+  <div id="pane-editor">
+  <div id="editor-main">
+  <section id="target-row" class="row">
+    <label for="backend-select">surface</label>
+    <select id="backend-select" aria-label="Conversation surface"><option value="opencode">OpenCode / CodeNomad (legacy)</option><option value="claude">Managers · Claude / OpenCode</option></select>
+    <span class="label">→</span>
+    <span id="target-pill" class="pill pill-none">no session</span>
+    <select id="target-select" title="Which session Send and Refine use"></select>
+  </section>
+  <div id="backend-status" class="small dim fold" role="status">OpenCode / CodeNomad</div>
+  <button id="claude-reselect" class="mini" hidden>Reselect current Manager</button>
+  <div id="native-context-choice" class="small fold" hidden>
+    <label><input id="native-no-context" type="checkbox"> Refine without conversation context</label>
+    <span class="dim">Explicit choice only. A failed required context read blocks Refine and keeps the full original. Refine uses your independent provider, not native subscription inference.</span>
+  </div>
+  <section id="claude-manager-panel" class="small" aria-label="Native Manager controls" hidden>
+    <div id="claude-effective" role="status">Model unknown · thinking unknown · pending</div>
+    <div id="claude-manager-observation" class="fold" role="status"></div>
+    <div id="claude-incidents" class="incidents" role="status" hidden></div>
+    <div id="claude-way-out" class="row" role="status" hidden><span id="claude-way-out-text"></span>
+      <button id="claude-send-release" class="mini" title="After checking the conversation: release a Send whose delivery was never confirmed, so Send opens. It is never resent; its text stays in originals and in its receipt." hidden>I checked — release it</button>
+      <button id="claude-journal-export" class="mini" title="Download the unreadable Send/control journal (originals included), keep a copy here when there is room, record the disposition, then clear it so Send opens. Nothing is resent." hidden>Export &amp; clear journal</button></div>
+    <div class="row claude-choices">
+      <label>Manager model <select id="claude-model"><option value="claude-haiku-5-5">Haiku 5.5</option><option value="claude-sonnet-5-5">Sonnet 5.5</option><option value="claude-opus-5-5">Opus 5.5</option><option value="claude-fable-5-1">Fable 5.1</option></select></label>
+      <button id="claude-model-apply" class="mini">Apply model</button>
+      <label>thinking <select id="claude-effort"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="xhigh">xhigh</option><option value="max">max</option></select></label>
+      <button id="claude-effort-apply" class="mini">Apply thinking</button>
+    </div>
+    <div class="row fold">
+      <button id="claude-state-refresh" class="mini">Refresh state / receipts</button>
+      <button id="claude-settings-recheck" class="mini" title="Ask Claude Code for the applied model and thinking now. A matching readback clears a stale settings hold; nothing is changed or sent.">Re-check settings</button>
+      <button id="claude-wait" class="mini">Wait (keep draft)</button>
+    </div>
+    <div class="dim fold">Next turns only · model changes may invalidate cache · no global defaults changed. Max native inference; Refine keeps its independent API billing. Context is the last completed model call’s input. Inspector, subagent and context notices do not revoke Send.</div>
+    <div id="claude-send-receipt" class="fold" role="status">No pane Send receipt</div>
+    <div id="claude-control-receipt" class="fold" role="status">No pane control receipt</div>
+  </section>
+
+  <section id="opencode-manager-panel" class="small" aria-label="OpenCode Manager controls" hidden>
+    <div id="opencode-effective" role="status"></div>
+    <div id="opencode-observation" role="status"></div>
+    <div id="opencode-context" role="status"></div>
+    <div class="row">
+      <label>Manager model <select id="opencode-model"></select></label>
+      <label>thinking <select id="opencode-variant"><option value="">Default</option></select></label>
+      <button id="opencode-model-apply" class="mini">Apply model / thinking</button>
+      <button id="opencode-refresh" class="mini">Refresh state / receipts</button>
+    </div>
+    <button id="opencode-send-release" class="mini" hidden>I checked — release it</button>
+    <pre id="opencode-receipts" class="fold" role="status"></pre>
+  </section>
+
+  <section id="ctx-row" class="row small">
+    <span class="label">context</span>
+    <span id="ctx-info" class="dim">—</span>
+    <button id="ctx-refresh" class="mini" title="Re-read the context now">↻</button>
+    <button id="ctx-view" class="mini" title="Show exactly what Refine will send as context">view</button>
+    <span class="spacer"></span>
+    <button id="claude-fold" class="mini" aria-expanded="false" aria-controls="claude-manager-panel" title="Show or hide the session details: receipts, status, refresh/wait, Re-check settings, Refine-without-context, New Manager">▸ details</button>
+  </section>
+
+  <section class="row small fold">
+    <span class="label">cache</span>
+    <span id="cache-info" class="dim">—</span>
+  </section>
+
+  <main id="work-area">
+  <section id="dictation-area" aria-label="Dictation">
+  <textarea id="transcript" spellcheck="true" data-teams-break placeholder="Dictate here (Wispr Flow types into this box).&#10;&#10;Alt+R = ✨ Refine (selection, or everything)   ·   Ctrl+Enter / Ctrl+Alt+Shift+Enter / Shift+F11 / F4 = 📤 Send   ·   Ctrl+M = Teams message break"></textarea>
+
+  <section class="row buttons">
+    <span id="refine-slot"><button id="refine-btn" class="btn btn-refine">✨ Refine</button></span>
+    <button id="send-btn" class="btn btn-send">📤 Send</button>
+    <button id="claude-interrupt-now" class="btn btn-interrupt" hidden title="Stop the Manager’s current turn. Your draft stays.">■ Interrupt</button>
+    <button id="restore-btn" class="btn btn-quiet" title="Put the last sent message back in the box">↩ last sent</button>
+    <button id="recovery-btn" class="btn btn-quiet" title="View/restore recent full originals saved before Refine and Send">↩ originals</button>
+    <button id="teams-break-btn" class="btn btn-quiet" data-teams-break-for="transcript" title="Insert a Teams message break (speaker, date, optional comment) at the cursor · Ctrl+M in the box">🗨 Teams break</button>
+    <span id="cost-info" class="dim small"></span>
+  </section>
+
+  </section>
+  <div id="inspector-outer-divider" class="inspector-divider" role="separator" tabindex="0" aria-label="Resize dictation and tool inspector" aria-orientation="horizontal" hidden></div>
+  <section id="tool-inspector" aria-label="Selected tool call">
+    <div class="row small inspector-head">
+      <details id="inspector-details">
+        <summary title="Source details and read status of the selected call"><span id="inspector-title">No tool call selected · click a tool in the conversation</span> <span id="inspector-time" class="dim"></span></summary>
+        <div id="inspector-origin" class="small dim"></div>
+        <button id="inspector-retry" class="mini" title="Read the selected call again">refresh</button>
+      </details>
+      <button id="inspector-artifact-read" class="mini" hidden>Read saved artifact</button>
+    </div>
+    <div id="inspector-note" class="small" role="status"></div>
+    <section id="inspector-diff" aria-label="Recorded diff of the selected call" hidden></section>
+    <div id="inspector-content">
+      <section id="inspector-input-region" class="inspector-region">
+        <div class="row small inspector-caption"><strong id="inspector-input-label">Input</strong><span class="spacer"></span><label class="inspector-pretty"><input id="inspector-wrap-input" type="checkbox" checked aria-label="Word wrap input" aria-controls="inspector-input"> Word wrap</label><label class="inspector-pretty"><input id="inspector-pretty-input" type="checkbox" checked aria-label="Pretty JSON input" aria-controls="inspector-input"> Pretty JSON</label><label class="inspector-pretty"><input id="inspector-readable-input" type="checkbox" checked aria-label="Readable text input" aria-controls="inspector-input"> Readable text</label><button id="inspector-copy-input" class="mini" title="Copy original input text, without display formatting">copy raw input</button></div>
+        <pre id="inspector-input" tabindex="0" aria-label="Full available tool input"></pre>
+      </section>
+      <div id="inspector-divider" class="inspector-divider" role="separator" tabindex="0" aria-label="Resize tool input and output" aria-orientation="horizontal"></div>
+      <section class="inspector-region inspector-output-region">
+        <div class="row small inspector-caption"><strong id="inspector-output-label">Output</strong><span class="spacer"></span><label class="inspector-pretty"><input id="inspector-wrap-output" type="checkbox" checked aria-label="Word wrap output" aria-controls="inspector-output"> Word wrap</label><label class="inspector-pretty"><input id="inspector-pretty-output" type="checkbox" checked aria-label="Pretty JSON output" aria-controls="inspector-output"> Pretty JSON</label><label class="inspector-pretty"><input id="inspector-readable-output" type="checkbox" checked aria-label="Readable text output" aria-controls="inspector-output"> Readable text</label><button id="inspector-copy-output" class="mini" title="Copy original output text, without display formatting">copy raw output</button></div>
+        <pre id="inspector-output" tabindex="0" aria-label="Full available tool output"></pre>
+      </section>
+    </div>
+    <details id="inspector-artifact" hidden>
+      <summary id="inspector-artifact-label">Saved artifact · recorded result unchanged</summary>
+      <button id="inspector-artifact-copy" class="mini" disabled>copy saved artifact</button>
+      <pre id="inspector-artifact-text" tabindex="0" aria-label="Separate saved artifact"></pre>
+    </details>
+  </section>
+  </main>
+
+  <details id="settings">
+    <summary>⚙ Refine settings</summary>
+    <div class="row small">
+      <label>provider <select id="provider-select">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openrouter">OpenRouter</option>
+        <option value="deepinfra">DeepInfra</option>
+      </select></label>
+      <label>model <select id="model-select"></select></label>
+      <button id="model-add" class="mini" title="Add a model id">➕</button>
+      <button id="model-remove" class="mini" title="Remove the selected model">🗑️</button>
+      <label>thinking <select id="think-select">
+        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+        <option value="xhigh">xhigh</option><option value="max">max</option>
+      </select></label>
+      <button id="key-clear" class="mini" title="Clear the stored API key for this provider">🔑 clear key</button>
+    </div>
+    <div class="row small">
+      <label>Refine context <select id="history-mode" title="Whole conversation sends every earlier prose turn; Budgeted history keeps the newest turns within the KB budget">
+        <option value="whole">Whole conversation</option>
+        <option value="budgeted">Budgeted history</option>
+      </select></label>
+      <label>budget <input id="ctx-kb" type="number" min="5" max="400" step="5"> KB</label>
+      <span class="dim">(your messages and the assistant's replies; tool calls never included. The budget applies to Budgeted history.)</span>
+    </div>
+    <div class="row small">
+      <label>Refine output cap <input id="output-tokens" type="number" min="1024" step="1"> tokens</label>
+      <button id="output-reset" class="mini">Use model default</button>
+      <span id="output-note" class="dim"></span>
+    </div>
+
+    <h4>📜 Prompt</h4>
+    <div class="row small">
+      <select id="part-select"></select>
+      <button id="part-save" class="mini">Save</button>
+      <button id="part-restore" class="mini">Restore default</button>
+      <span id="part-note" class="dim"></span>
+    </div>
+    <textarea id="part-text" class="code" rows="12"></textarea>
+    <!-- 🔊 Read Aloud settings beside its prompt parts (read-aloud.js settingsPanel; read only when opened). -->
+    <div id="read-aloud-settings" data-read-aloud-settings></div>
+
+    <h4>📖 Dictionary <span id="dict-count" class="dim"></span></h4>
+    <div class="row small">
+      <input id="dict-file" type="file" accept=".json,.txt">
+      <button id="dict-save" class="mini">Save pasted list</button>
+    </div>
+    <textarea id="dict-text" class="code" rows="4" placeholder='["GLIMPSE", "Acme", "read_text_snippet"]'></textarea>
+
+    <h4>⇪ Import settings from the TypingMind widget</h4>
+    <div class="small dim">In TypingMind, open DevTools (F12) → Console, paste this, press Enter. It copies your Refine settings (keys included) to the clipboard and answers "Copied N Refine settings: …". Then paste below straight away, before you copy anything else.</div>
+    <div class="row small">
+      <code id="export-snippet" class="snippet"></code>
+      <button id="export-copy" class="mini">copy</button>
+    </div>
+    <textarea id="import-text" class="code" rows="3" placeholder='{"refine_provider":"anthropic", ...}'></textarea>
+    <div class="row small"><button id="import-btn" class="mini">Import</button><span id="import-note" class="dim"></span></div>
+  </details>
+
+  <dialog id="ctx-dialog" aria-labelledby="ctx-title">
+    <div class="row"><strong id="ctx-title">What Refine will send</strong><span class="spacer"></span><button id="ctx-close" class="mini">close</button></div>
+    <div id="ctx-body"></div>
+  </dialog>
+  <dialog id="recovery-dialog">
+    <div class="row"><strong>Recent originals</strong><span class="spacer"></span><button id="recovery-close" class="mini">close</button></div>
+    <p class="small dim">Browser-local, this origin only. Native legacy originals: up to 10 / 2 MiB total. OpenCode Manager originals and Send journals retain their complete text in separate slots without cropping. Not a server backup; clearing browser data removes these.</p>
+    <select id="recovery-select" aria-label="Saved original"></select>
+    <textarea id="recovery-text" readonly rows="16" aria-label="Full saved original"></textarea>
+    <button id="recovery-restore" class="btn">Restore to box</button>
+  </dialog>
+
+  </div>
+  <div id="tool-divider" class="column-divider" role="separator" tabindex="0" aria-label="Resize transcription and tool columns" aria-orientation="vertical"></div>
+  <div id="tool-column" aria-label="Selected tool call column"></div>
+  </div>
+  <div id="main-divider" class="column-divider" role="separator" tabindex="0" aria-label="Resize transcription control and conversation" aria-orientation="vertical"></div>
+  <aside id="claude-viewer" aria-label="Manager conversations and history" hidden>
+    <iframe id="claude-sessions-frame" title="Manager sessions and live timeline" allow="fullscreen"></iframe>
+  </aside>
+  </div>
+  <!-- OpenCode mode has no conversation column: View opens as a sheet over this pane (loaded on first use), with Close.
+       Claude mode opens View in the conversation column's own View pane instead (sessions.html). -->
+  <section id="view-sheet" role="dialog" aria-modal="true" aria-label="View" hidden>
+    <div class="view-sheet-head"><strong>📄 View</strong><span class="dim small">dictation stays as it is</span><span class="spacer"></span><button id="view-sheet-close" type="button" class="mini">Close</button></div>
+    <iframe id="desktop-view-frame" title="View: NEXUS documents" allow="fullscreen"></iframe>
+  </section>
+
+  <script src="refine-defaults.js"></script>
+  <script src="refine-core.js"></script>
+  <script src="read-aloud.js"></script>
+  <script src="refine-view.js"></script>
+  <script src="opencode-manager.js"></script>
+  <script src="status-toast.js"></script>
+  <script src="app.js"></script>
+  <script src="account-switch.js"></script>
+  <script src="chatgpt-accounts.js"></script>
+  <script src="tool-record-text.js"></script>
+  <script src="vendor/marked.umd.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="message-markdown.js"></script>
+  <script src="tool-reading.js"></script>
+  <script src="vendor/highlight.min.js"></script>
+  <script src="diff-view.js"></script>
+  <script src="tool-inspector.js"></script>
+  <script src="teams-break.js"></script>
+  <script src="handle-links.js"></script>
+</body>
+</html>

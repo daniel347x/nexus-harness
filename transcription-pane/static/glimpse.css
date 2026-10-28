@@ -1,0 +1,337 @@
+/* The View page (glimpse.html): host layout, controls and the document's container only.
+   The document's own rules are the extension's shared glimpse-md-render.css (+ KaTeX), loaded before this sheet;
+   nothing here restyles what the shared renderer draws. glare.css (loaded after) lifts the small print below. */
+:root { color-scheme: dark; font: 16px/1.45 system-ui, -apple-system, sans-serif; background: #151922; color: #e4e8ef;
+  /* the phone page's surface variables (m.css), so glare.css re-points them here too */
+  --line: #394254; --control: #202837; --control-border: #59667d; --dim: #b8c2d4; --faint: #7d8594; --link: #9ac3ff;
+  --running-bg: rgba(233,196,121,.16); --running-text: #f0d39a; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body { overflow: hidden; -webkit-text-size-adjust: 100%; }
+a { color: var(--link); }
+/* 16 px controls everywhere: iOS zooms into any focused field smaller than that. Thumb-sized buttons. */
+textarea, input, select, button { font: inherit; font-size: 16px; color: inherit; border: 1px solid var(--control-border); border-radius: 6px; background: var(--control); }
+textarea, input, select { width: 100%; min-width: 0; padding: 8px; }
+textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+button { min-height: 44px; padding: 8px 12px; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; white-space: nowrap; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* One screen: the two history rows (always), one thin Controls bar folding the chooser, the document toolbar and the
+   as-of line, the status lines, then the document filling the rest and scrolling inside itself, never the page. */
+#g-page { height: 100vh; height: 100svh; max-width: 1100px; margin: auto; display: flex; flex-direction: column; gap: 6px;
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+html[data-glare-follow] #g-page { padding: 4px 2px 2px; }
+/* The Controls bar: a hairline with a small chevron and word, hardly there; the whole width is the target. Open, its
+   body is the chooser (scrolling inside itself), the toolbar and the as-of line, pushing the document down. */
+#g-ctl { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#g-ctl-toggle { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; width: 100%; height: 22px; min-height: 0; margin: -2px 0; padding: 0 4px;
+  border: 0; border-radius: 6px; background: transparent; color: var(--faint); font-size: 12px; line-height: 1; letter-spacing: .02em; }
+#g-ctl-toggle::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+#g-ctl-toggle:hover, #g-ctl-toggle[aria-expanded="true"] { color: var(--dim); }
+.g-ctl-chev { display: inline-block; width: 1em; text-align: center; transition: transform .12s; }
+#g-ctl-toggle[aria-expanded="true"] .g-ctl-chev { transform: rotate(90deg); }
+/* The open Controls scroll inside themselves past --g-ctl-max (the divider below them sets it; 62% of the page until
+   then), so the chooser, toolbar and as-of line never push the document off the screen. */
+#g-ctl-body { flex: 0 1 auto; min-height: 0; max-height: var(--g-ctl-max, 62svh); overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+#g-ctl-body > * { flex-shrink: 0; }
+/* The two dividers (below the open Controls; between the row list and the document): a hairline with an iOS-style grip,
+   26 px tall for a thumb but only 6 px of layout (it overlaps its neighbours' gaps); the whole height is the target. */
+.g-split { flex: 0 0 auto; position: relative; z-index: 3; height: 26px; margin: -10px 0; display: grid; place-items: center; cursor: row-resize;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; outline: none; }
+.g-split::before { content: ''; position: absolute; left: 6px; right: 6px; top: 50%; height: 1px; background: var(--line); }
+.g-split::after { content: ''; position: relative; width: 46px; height: 6px; border-radius: 3px; background: #7a879c; box-shadow: 0 0 0 2px #151922; transition: width .12s, background-color .12s; }
+.g-split:hover::after, .g-split:focus-visible::after { background: #9ac3ff; width: 60px; }
+.g-split.dragging::after { background: #9ac3ff; width: 72px; }
+.g-split.dragging::before, .g-split:focus-visible::before { background: #5d86c4; }
+body.g-dragging { cursor: row-resize; user-select: none; -webkit-user-select: none; }
+#g-asof { font-size: 13px; color: var(--dim); overflow-wrap: anywhere; padding: 0 2px; }
+/* ☀ (the page on its own only): at the toolbar's end. In /m and the desktop pane the page around carries it. */
+#g-glare { flex: 0 0 46px; min-height: 40px; padding: 0; display: grid; place-items: center; border-color: var(--line); border-radius: 10px; background: #1b212c; color: var(--dim); }
+#g-glare svg { width: 22px; height: 22px; }
+#g-glare[aria-pressed="true"] { border-color: #ffe9a3; background: #ffd75e; color: #2a1d00; }
+html[data-glare-follow] #g-glare { display: none; }
+#g-assets { padding: 8px 10px; border: 1px solid #ff8a7a; border-radius: 8px; background: rgba(255,107,97,.1); color: #ffd0c8; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+#g-pick { min-height: 0; border: 1px solid var(--line); border-radius: 10px; background: #1b212c; }
+#g-pick > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 6px 6px 12px; font-size: 15px; cursor: pointer; }
+.g-pick-label { font-weight: 600; }
+#g-current { flex: 1; min-width: 0; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ⚓ Docks / Groups on the Choose line, and ⤢ on each compact picker: the full-screen pickers, one tap away. */
+.g-pick-full { flex: 0 0 auto; min-height: 36px; padding: 4px 10px; border-color: #5d86c4; background: #1f3050; color: #fff; font-size: 14px; font-weight: 600; }
+.g-pick-full + .g-pick-full { margin-left: -4px; }
+.g-picker-full { flex: 0 0 auto; min-height: 34px; min-width: 44px; padding: 0 10px; font-size: 18px; line-height: 1; }
+.g-pick-body { display: grid; gap: 6px; padding: 0 10px 10px; min-width: 0; }
+.g-pick-body label, #g-options legend { font-size: 13px; color: var(--dim); }
+.g-pick-body small { color: var(--faint); }
+/* The two pickers (view-pickers.js): the Chrome extension's lists. One compact row per entry, never wrapped; the list
+   scrolls both ways inside itself (sideways for a long name), the whole width of the chooser; the indent is the depth,
+   with a faint guide per level. A row is the target (a tap renders, an expander opens its section). */
+.g-picker { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: #151922; }
+.g-picker > summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px; font-size: 15px; cursor: pointer; }
+.g-picker-label { font-weight: 600; }
+.g-picker-count { color: var(--dim); font-size: 13px; }
+.g-picker > summary small { flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-picker-list { max-height: 52svh; overflow: auto; overscroll-behavior: contain; border-top: 1px solid var(--line); padding: 2px 0; }
+.g-plist { display: flex; flex-direction: column; width: max-content; min-width: 100%; }
+.g-prow { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 0; margin: 0; padding: 5px 12px 5px 8px; border: 0; border-radius: 0;
+  background: transparent; color: inherit; font-size: 15px; line-height: 1.3; text-align: left; white-space: nowrap; cursor: pointer;
+  background-image: repeating-linear-gradient(to right, transparent 0 11px, rgba(154,195,255,.16) 11px 12px, transparent 12px 16px);
+  background-size: calc(var(--depth, 0) * 16px) 100%; background-repeat: no-repeat; background-position: 8px 0; }
+.g-prow:hover { background-color: rgba(154,195,255,.08); }
+.g-prow:active { background-color: rgba(154,195,255,.16); }
+.g-prow[aria-current="true"] { background-color: #24406a; color: #fff; font-weight: 600; box-shadow: inset 3px 0 0 #9ac3ff; }
+.g-prow:disabled { opacity: 1; cursor: default; }
+.g-pap { margin-left: 4px; color: var(--faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .78em; }
+.g-pexp { color: #f0d39a; font-weight: 600; }
+.g-psynth { font-weight: 500; font-style: italic; color: var(--dim); }
+.g-pdup { color: var(--faint); font-weight: 400; }
+.g-pchev { flex: 0 0 1em; color: var(--dim); font-style: normal; text-align: center; }
+.g-pnote { color: #ffbdad; font-size: .85em; font-weight: 400; }
+.g-pmark { flex: 0 0 auto; margin-left: 2px; color: #f0d39a; font-size: .9em; }
+.g-pctx { color: var(--dim); }  /* a Dock kept only as the parent of a filter match */
+/* A phone: the pickers run nearly edge to edge (the chooser's own padding given back). */
+@media (max-width: 700px) { .g-picker { margin-inline: -7px; } }
+html[data-glare-follow] .g-picker { margin-inline: -7px; }
+#g-catalog-errors { font-size: 13px; color: #ffbdad; overflow-wrap: anywhere; }
+#g-catalog-errors:empty { display: none; }
+#g-handle-form { display: grid; gap: 6px; min-width: 0; }
+.g-seg { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: #151922; min-width: 0; }
+.g-seg button { flex: 1 1 0; min-height: 40px; padding: 6px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--dim); }
+.g-seg button:is([aria-checked="true"], [aria-pressed="true"]) { background: #2d3a4f; color: #fff; font-weight: 600; }
+.g-go { background: #24406a; border-color: #5d86c4; color: #fff; font-weight: 600; }
+#g-spec-box > summary { display: flex; align-items: center; min-height: 44px; font-size: 15px; color: var(--dim); cursor: pointer; }
+#g-spec-box[open] { display: grid; gap: 6px; }
+#g-options { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; margin: 0; padding: 4px 8px 8px; border: 1px solid var(--line); border-radius: 8px; }
+#g-options > :not(legend) { flex: 1 1 140px; }
+.g-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 15px; color: inherit; }
+.g-pick-body .g-check { color: inherit; }
+.g-check input { flex: 0 0 auto; width: 22px; height: 22px; }
+
+/* On a phone: Rendered|Source, Copy MD and Refresh on one row, find on the next; wide, all on one row. */
+#g-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+#g-bar > .g-seg { flex: 0 0 auto; }
+#g-bar > .g-seg button { flex: 0 0 auto; padding: 6px 8px; }
+#g-findbox { flex: 1 1 240px; display: flex; align-items: center; gap: 4px; min-width: 0; }
+#g-find { flex: 1 1 auto; }
+#g-prev, #g-next { flex: 0 0 44px; padding: 0; font-size: 21px; }
+#g-count { flex: 0 0 auto; min-width: 3.6em; font-size: 13px; text-align: center; color: var(--dim); }
+#g-count:empty { display: none; }
+#g-count[data-error="true"] { color: #ffbdad; }
+#g-bar > :is(#g-copy, #g-refresh) { flex: 1 0 auto; padding: 8px 10px; }
+
+#g-status { display: grid; gap: 3px; font-size: 13px; color: var(--dim); min-width: 0; overflow-wrap: anywhere; }
+/* Nothing to say: no line, and no gap for it either. */
+#g-status:not(:has(> :not([hidden], :empty))) { display: none; }
+#g-asof[data-last="true"] { color: var(--running-text); }
+#g-compact { display: flex; align-items: center; gap: 8px; padding: 3px 4px 3px 10px; border-radius: 8px; background: var(--running-bg); color: var(--running-text); }
+#g-compact-text { flex: 1; min-width: 0; }
+#g-full { flex: 0 0 auto; min-height: 40px; padding: 4px 16px; border-color: #e9c479; background: #4a3a10; color: #fff; font-weight: 600; }
+/* The document's images: one chip opening the lightbox (glimpse-lightbox.css styles the sheet and the lightbox). */
+#g-images { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#g-images-open { flex: 0 1 auto; min-width: 0; min-height: 40px; padding: 4px 14px; border-color: #5d86c4; background: #1f3050; color: #fff; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; }
+#g-images-compare { flex: 0 0 auto; min-height: 40px; padding: 4px 14px; border-color: #5d86c4; background: #182237; color: #fff; font-weight: 600; }
+#g-images-note { flex: 1; min-width: 0; color: var(--running-text); }
+#g-images-note:empty { display: none; }
+/* A long daemon fault never pushes the document off a phone screen: it scrolls inside its own few lines. */
+#g-error { color: #ffbdad; white-space: pre-wrap; max-height: 20svh; overflow-y: auto; overscroll-behavior: contain; }
+#g-notices { color: var(--running-text); white-space: pre-wrap; max-height: 16svh; overflow-y: auto; }
+/* Archived subtrees left out (one tap includes them) or included (one tap leaves them out). */
+#g-arch { display: flex; align-items: center; gap: 8px; padding: 2px 4px 2px 10px; border-radius: 8px; background: rgba(154,195,255,.08); color: var(--dim); }
+#g-arch-text { flex: 1; min-width: 0; }
+#g-arch-toggle { flex: 0 0 auto; min-height: 36px; padding: 4px 14px; border-color: #5d86c4; background: #1f3050; color: #fff; font-weight: 600; }
+/* A named estate opened from its handle: Estate · ‹name› · N parcels, one tap to the node itself (or back). */
+#g-estate { display: flex; align-items: center; gap: 8px; padding: 2px 4px 2px 10px; border-radius: 8px; background: rgba(154,195,255,.08); }
+#g-estate-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#g-estate-toggle { flex: 0 0 auto; min-height: 36px; padding: 4px 14px; border-color: #5d86c4; background: #1f3050; color: #fff; font-weight: 600; }
+#g-note:empty { display: none; }
+#g-note[data-error="true"] { color: #ffbdad; }
+
+/* The document: the dock's render region (its 13 px, its colours) in a container that scrolls both ways inside
+   itself, so a wide table, code block, formula or raw HTML never widens the page. */
+#g-scroll { flex: 1 1 0; min-height: 64px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 10px; background: #14181c; }
+#g-doc { min-width: 0; padding: 10px 14px; color: #e8eaed; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1.45;
+  overflow-wrap: break-word; cursor: text; }
+#g-doc .katex-display { overflow-x: auto; overflow-y: hidden; }
+#g-doc[data-busy="true"] { opacity: .55; }
+#g-more { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--dim); }
+#g-show-all { font-weight: 600; }
+/* The row list above the document: the extension's own rows (glimpse-md-render.css's .glimpse-md-row-list rules), in a
+   foldable region whose list scrolls both ways inside itself; a phone keeps both list and document in view. */
+#g-rows-box { flex: 0 0 auto; min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: #14181c; }
+#g-rows-box > summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 12px; font-size: 14px; color: var(--dim); cursor: pointer; }
+.g-rows-label { font-weight: 600; color: #e4e8ef; }
+#g-rows-box > summary small { flex: 1; min-width: 0; color: var(--faint); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* --g-rows-max: the divider under the list sets it (until then a third of the page, a fifth on a phone). */
+#g-rows { max-height: var(--g-rows-max, 34vh); overflow: auto; overscroll-behavior: contain; padding: 2px 0 4px; border-top: 1px solid var(--line); outline: none; }
+#g-rows[data-busy="true"] { opacity: .55; }
+#g-rows-more { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 12px 6px; border-top: 1px solid var(--line); font-size: 13px; color: var(--dim); }
+#g-rows-all { min-height: 40px; font-weight: 600; }
+@media (max-width: 700px) { #g-rows { max-height: var(--g-rows-max, 22svh); } }
+html[data-glare-follow] #g-rows { max-height: var(--g-rows-max, 22svh); }
+/* A finger needs a taller row than a mouse: touch screens only, so the desktop keeps the dock's own row geometry. */
+@media (pointer: coarse) { #g-rows .glimpse-md-dock-row { padding-top: 6px; padding-bottom: 6px; } }
+/* A phone (or the /m frame): larger reading type. */
+@media (max-width: 700px) { #g-doc { padding: 10px 12px; font-size: 15px; } }
+html[data-glare-follow] #g-doc { padding: 10px 12px; font-size: 15px; }
+
+/* History (view-history.js): a three-row strip above the Controls; whole cards are the targets. Row 1 the root widget,
+   where and ⤢ the whole inner history; row 2 ‹ the current entry › with maximize at its right; row 3 Recent roots (the
+   outer history), one button dropping its list down, alone when nothing is shown yet. */
+#g-hist { flex: 0 0 auto; display: grid; gap: 4px; min-width: 0; }
+#g-hist-row, #g-hist-nav, #g-roots { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
+.g-hcard { display: flex; flex-direction: column; gap: 1px; min-width: 0; min-height: 44px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 12px; background: #1b212c;
+  text-align: left; white-space: normal; color: inherit; font-size: 14px; line-height: 1.3; }
+.g-hcard > * { flex-shrink: 0; min-width: 0; }
+.g-hroot { flex: 1 1 auto; border-color: #4f6b96; background: #1c2535; }
+.g-hroot[data-kind="socket"], .g-hroot[data-kind="program"] { border-color: #8a72c8; background: #221d33; }
+.g-hroot[aria-current="true"] { box-shadow: inset 3px 0 0 #9ac3ff; }
+.g-hcard-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-hcard-sub { color: var(--dim); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-hcard-source { color: var(--faint); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-hcard-wrap { white-space: normal; overflow-wrap: anywhere; color: inherit; font-size: 14px; }
+.g-hcard-n { color: var(--faint); font-size: 12px; }
+#g-hist-open { flex: 0 0 52px; padding: 0 6px; border-radius: 12px; font-size: 18px; display: grid; place-items: center; line-height: 1; }
+/* where: the ancestors of the node on screen (a small tree with the node at its foot). */
+#g-where { flex: 0 0 52px; padding: 2px 4px; border-radius: 12px; display: grid; place-items: center; align-content: center; gap: 1px; line-height: 1; color: #cfe0ff; border-color: #4f6b96; }
+#g-where svg { width: 22px; height: 22px; }
+#g-where span { font-size: 11px; color: var(--dim); }
+#g-hist-count { display: block; font-size: 12px; color: var(--dim); }
+#g-back, #g-fwd { flex: 0 0 44px; min-height: 36px; padding: 0; font-size: 21px; border-radius: 10px; }
+#g-now { flex: 1 1 auto; min-width: 0; min-height: 36px; padding: 4px 10px; border-radius: 10px; text-align: left; font-size: 13px; color: var(--dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Maximize, at the right of row 2 in every mode (the phone page's own maximize icons); pressed while maximized. */
+#g-max { flex: 0 0 44px; min-height: 36px; padding: 0; display: grid; place-items: center; border-radius: 10px; color: var(--dim); }
+#g-max svg { width: 19px; height: 19px; }
+#g-max[aria-pressed="true"] { color: #fff; border-color: #91baff; background: #283d5b; }
+/* Row 3: 🕘 Recent roots · N ▾, the whole row one button. */
+#g-roots-open { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 36px; padding: 4px 10px; border-radius: 10px;
+  text-align: left; font-size: 14px; color: var(--dim); }
+#g-roots-label { flex: 0 0 auto; color: #e4e8ef; font-weight: 600; }
+#g-roots-count { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-roots-icon, .g-roots-chev { flex: 0 0 auto; }
+#g-roots-open[aria-expanded="true"] { border-color: #9ac3ff; }
+#g-roots-open[aria-expanded="true"] .g-roots-chev { display: inline-block; transform: rotate(180deg); }
+#g-roots:is([data-status="missing"], [data-status="error"]) #g-roots-count { color: var(--running-text); }
+/* Recent roots dropped down: a sheet whose panel starts just under row 3 (--g-roots-top) and runs to the foot. */
+.g-sheet.g-drop { align-items: flex-start; padding-top: var(--g-roots-top, 120px); background: rgba(6, 8, 12, .45); }
+.g-drop .g-sheet-panel { width: min(1100px, 100%); max-height: 100%; }
+/* Grid's auto rows shrank toward the cards' explicit min-height when this flex scroller ran out of room, leaving
+   their wrapped contents outside the boxes. Non-shrinking flex items keep their natural height on WebKit too. */
+#g-roots-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; }
+#g-roots-list > *, #g-hist-list > *, #g-pos-body > * { flex: 0 0 auto; }
+#g-roots-status { font-size: 13px; color: var(--running-text); overflow-wrap: anywhere; }
+#g-roots-status:empty { display: none; }
+#g-roots-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); }
+#g-roots-limit { width: auto; padding: 4px 8px; }
+/* A card grows around its wrapped name and Dan's note. Description is one line; source/digging/time share one
+   truncated line beside the two buttons, never several tall fine-print rows. */
+.g-rcard { gap: 2px; cursor: pointer; }
+.g-rcard[data-busy="true"] { opacity: .6; }
+.g-rcard-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.g-rcard-head .g-hcard-title { flex: 1 1 auto; min-width: 0; }
+/* Only names wrap in the sheets. Description/source and the strip's cells remain single-line ellipses. */
+:is(.g-rcard, #g-hist-list .g-hcard) .g-hcard-title { white-space: normal; overflow-wrap: anywhere; }
+.g-rcard-head { align-items: flex-start; }
+.g-rdepth { flex: 0 0 auto; min-width: 26px; padding: 0 7px; border: 1px solid rgba(154,195,255,.3); border-radius: 999px; background: rgba(154,195,255,.1);
+  color: #c9d6ea; font-size: 12px; font-weight: 700; line-height: 18px; text-align: center; }
+.g-rdepth[data-depth="0"] { opacity: .55; font-weight: 600; }
+.g-rdepth[data-depth="2"] { background: rgba(154,195,255,.26); color: #fff; }
+.g-rdepth[data-depth="3"] { border-color: #9ac3ff; background: #3d6db3; color: #fff; }
+.g-rcard-note { color: #f0d39a; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.g-rcard-foot { display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 2px; }
+.g-rcard-foot .g-hcard-source { flex: 1 1 0; min-width: 0; }
+.g-rcard-act { flex: 0 0 auto; min-height: 34px; padding: 2px 10px; font-size: 13px; }
+.g-rcard-x { min-width: 40px; color: var(--dim); }
+.g-rnote { display: grid; gap: 6px; cursor: auto; }
+.g-rnote-text { font-family: inherit; }
+.g-rnote-row { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Maximized (glimpse.js toggleMaximized): the document fills View and only row 2 stays (‹ the current entry ›, its
+   restore button); a render error still shows. */
+html[data-view-max="true"] :is(#g-hist-row, #g-roots, #g-ctl, #g-rows-box, #g-rows-split) { display: none !important; }
+html[data-view-max="true"] #g-status > :not(#g-error) { display: none !important; }
+html[data-view-max="true"] #g-status:not(:has(> #g-error:not([hidden]))) { display: none; }
+/* The sheet and the pop-up: near-full-screen over View, the page behind them still. */
+.g-sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: stretch; justify-content: center; padding: max(10px, env(safe-area-inset-top)) 8px 8px;
+  background: rgba(6, 8, 12, .62); }
+.g-sheet-panel { width: min(760px, 100%); display: flex; flex-direction: column; gap: 8px; min-height: 0; padding: 10px; border: 1px solid #627083; border-radius: 14px;
+  background: #171c26; box-shadow: 0 12px 40px rgba(0,0,0,.55); }
+.g-sheet-head { display: flex; align-items: center; gap: 8px; }
+.g-sheet-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+#g-hist-list, #g-pos-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; }
+#g-hist-list .g-hcard { width: 100%; }
+#g-hist-list .g-hcard[aria-current="true"] { border-color: #9ac3ff; box-shadow: inset 3px 0 0 #9ac3ff; }
+#g-hist-list .g-hcard[data-ahead="true"] { opacity: .62; }
+#g-pos-show { width: 100%; }
+/* The pop-up's cards: the sidebar's tree, pruned to this socket's sessions; the tapped session first, outlined. */
+.g-pos-program { display: block; padding: 6px 8px; border-radius: 10px; background: #1f2633; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
+.g-pos-card { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: #1b212c; }
+.g-pos-active { border-color: #9ac3ff; box-shadow: inset 3px 0 0 #9ac3ff; background: #1c2638; }
+.g-pos-here { color: #9ac3ff; font-size: 12.5px; font-weight: 600; }
+.g-pos-line { padding-left: calc(var(--depth, 0) * 14px); font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; border-radius: 6px; }
+.g-pos-line[data-reveal], .g-pos-program[data-reveal] { cursor: pointer; }
+.g-pos-line[data-reveal]:hover, .g-pos-program[data-reveal]:hover { background: rgba(154,195,255,.08); }
+.g-pos-role { font-weight: 600; }
+.g-pos-handle { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #a9c9ff; }
+.g-pos-status { display: block; color: var(--dim); font-size: 12.5px; }
+.g-pos-leaf .g-pos-name { color: #fff; }
+.g-pos-big { font-size: 16px; overflow-wrap: anywhere; }
+.g-pos-more, .g-pos-hint { color: var(--faint); font-size: 12.5px; }
+.g-hroot[data-kind="turn"] { border-color: #4f9a7a; background: #1a2a25; }
+#g-pos-turn { width: 100%; font-weight: 600; }
+/* A picker full screen: the whole frame (the whole phone screen), big rows that wrap to two lines, the list scrolling. */
+.g-sheet-full { padding: 0; }
+.g-sheet-full .g-sheet-panel { width: min(760px, 100%); border-width: 0 1px; border-radius: 0;
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+#g-psheet .g-sheet-head .g-picker-count { flex: 0 0 auto; }
+.g-psheet-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; }
+#g-psheet-status { font-size: 13px; color: var(--running-text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 20svh; overflow-y: auto; }
+#g-psheet-status:empty { display: none; }
+#g-psheet-list { flex: 1 1 auto; min-height: 0; max-height: none; border: 1px solid var(--line); border-radius: 10px; background: #151922; }
+#g-psheet-list .g-plist { width: auto; }
+#g-psheet-list .g-prow { min-height: 46px; padding-top: 7px; padding-bottom: 7px; font-size: 16px; white-space: normal; border-bottom: 1px solid rgba(57,66,84,.45); }
+#g-psheet-list .g-pname { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; min-width: 0; }
+/* The ancestors pop-up: the daemon's chain in the shared renderer, scrolling inside the panel. */
+#g-anc-status { font-size: 13px; color: var(--running-text); overflow-wrap: anywhere; }
+#g-anc-status:empty { display: none; }
+#g-anc-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 10px; background: #14181c; }
+#g-anc-doc { padding: 8px 12px; color: #e8eaed; font-size: 14px; line-height: 1.45; overflow-wrap: break-word; }
+#g-anc-doc[data-busy="true"] { opacity: .55; }
+/* One compact line per level, indented by its depth (H1 = the root), so a whole chain reads on one phone screen; the
+   key, legend and → UUID lines small and dim. */
+#g-anc-doc :is(h1, h2, h3, h4, h5, h6) { margin: 0 0 6px; padding: 4px 0 4px 8px; border: 0; border-left: 2px solid #3a4a63; font-size: 15px; line-height: 1.35; font-weight: 600; }
+#g-anc-doc h2 { margin-left: 10px; } #g-anc-doc h3 { margin-left: 20px; } #g-anc-doc h4 { margin-left: 30px; }
+#g-anc-doc h5 { margin-left: 40px; } #g-anc-doc h6 { margin-left: 50px; }
+#g-anc-doc p { margin: 4px 0 8px; font-size: 12.5px; color: var(--dim); }
+#g-anc .g-seg { flex: 0 0 auto; }
+
+/* The desktop View pane (the conversation column's 📄 View, or OpenCode mode's sheet): a mouse and a column beside the
+   sidebar, so the dock's own 13 px reading type and denser controls than the phone's thumb-sized ones. */
+html[data-view-embed="desktop"] :is(textarea, input, select, button) { font-size: 14px; }
+html[data-view-embed="desktop"] button { min-height: 32px; padding: 4px 10px; }
+html[data-view-embed="desktop"] :is(textarea, input, select) { padding: 5px 8px; }
+html[data-view-embed="desktop"] :is(#g-bar > #g-copy, #g-bar > #g-refresh) { padding: 4px 10px; }
+html[data-view-embed="desktop"] #g-ctl-toggle { height: 18px; font-size: 11.5px; }
+html[data-view-embed="desktop"] :is(#g-pick > summary, #g-spec-box > summary, .g-check) { min-height: 32px; font-size: 14px; }
+html[data-view-embed="desktop"] .g-seg button { min-height: 28px; }
+html[data-view-embed="desktop"] .g-hcard { min-height: 36px; padding: 3px 10px; font-size: 13.5px; }
+html[data-view-embed="desktop"] :is(#g-back, #g-fwd, #g-now, #g-max, #g-roots-open) { min-height: 28px; }
+html[data-view-embed="desktop"] #g-max { flex-basis: 34px; }
+html[data-view-embed="desktop"] #g-roots-open { font-size: 13px; }
+html[data-view-embed="desktop"] .g-rcard-act { min-height: 26px; }
+html[data-view-embed="desktop"] #g-hist-open { flex-basis: 46px; }
+html[data-view-embed="desktop"] :is(#g-prev, #g-next) { flex-basis: 34px; font-size: 18px; }
+html[data-view-embed="desktop"] #g-full { min-height: 28px; }
+html[data-view-embed="desktop"] :is(#g-images-open, #g-images-compare) { min-height: 28px; font-size: 13px; }
+html[data-view-embed="desktop"] #g-rows-box > summary { min-height: 30px; }
+html[data-view-embed="desktop"] #g-rows { max-height: var(--g-rows-max, 30vh); }
+html[data-view-embed="desktop"] #g-doc { padding: 10px 14px; font-size: 13px; }
+html[data-view-embed="desktop"] .g-picker > summary { min-height: 30px; font-size: 14px; }
+html[data-view-embed="desktop"] .g-prow { min-height: 0; padding-top: 2px; padding-bottom: 2px; font-size: 13px; }
+html[data-view-embed="desktop"] .g-picker-list { max-height: 46vh; }
+html[data-view-embed="desktop"] :is(.g-pick-full, .g-picker-full, #g-arch-toggle, #g-estate-toggle) { min-height: 28px; font-size: 13px; }
+html[data-view-embed="desktop"] #g-psheet-list .g-prow { min-height: 32px; padding-top: 4px; padding-bottom: 4px; font-size: 14px; }
+html[data-view-embed="desktop"] #g-where { flex-basis: 46px; }
+html[data-view-embed="desktop"] #g-anc-doc { font-size: 13px; }

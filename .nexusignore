@@ -1,0 +1,51 @@
+.git
+*.wav
+*.png
+.cache
+.codenomad
+__pycache__
+deprecated
+attachments
+archived
+cartographer_jobs
+.windsurf
+.viminfo
+.ssh
+.ssh-mcp
+.python_history
+.gnupg
+.gk
+.docker
+.codeium
+.bun
+.bash_history
+.venv
+.pytest_cache
+katex
+.ruff_cache
+.venv-wsl
+.runs
+
+# Scratch goes in __repos/oc-scratch/opencode-companion/, never inside a repository.
+# Delete your own scratch when done; keep only receipts a record cites. Browser runners delete their Chrome profiles.
+# Old scratch exclusions remain as a fallback; never mapped.
+steer_*.md
+tmp
+tmp_*
+scratch
+scratch_*
+*.tmp
+*.bak
+*.orig
+
+# Compressed test fixtures (e.g. scripts/fixtures/telemetry/*.json.gz): binary, nothing to map.
+*.gz
+
+# oc_pack build output: <package name>-<12-hex package id>.md (e.g. packages/exportimport-d286f6d91530.md).
+# Generated copies of Workflowy/source content, NOT source; they embed @beacon blocks from other repos.
+*-????????????.md
+
+# The test tree and test files: tests read their files (fixtures, corpora) from disk; nothing navigates them through the map.
+tests
+test_*
+fixtures

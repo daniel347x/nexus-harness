@@ -1,0 +1,22 @@
+{"type":"command_lifecycle","state":"started","session_id":"11111111-1111-4111-8111-111111111111"}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"message_start","message":{"id":"fixture-message","role":"assistant"}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":"SIGNATURE-NOT-TEXT"}}}
+{"type":"system","subtype":"thinking_tokens","estimated_tokens":17,"estimated_tokens_delta":17,"session_id":"11111111-1111-4111-8111-111111111111"}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Consider a small example. "}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"ENCRYPTED-SIGNATURE-NOT-TEXT"}}}
+{"type":"assistant","uuid":"thinking-final","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"message":{"id":"fixture-message","role":"assistant","content":[{"type":"thinking","thinking":"Consider a small example.","signature":"FINAL-SIGNATURE-NOT-TEXT"}]}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_stop","index":0}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Hel"}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"lo 🌈"}}}
+{"type":"assistant","uuid":"text-final","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"message":{"id":"fixture-message","role":"assistant","content":[{"type":"text","text":"Hello 🌈"}]}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_stop","index":1}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_start","index":2,"content_block":{"type":"tool_use","id":"fixture-tool","name":"Read","input":{}}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{\"file_path\":"}}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"\"/fixture\"}"}}}
+{"type":"assistant","uuid":"tool-final","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"message":{"id":"fixture-message","role":"assistant","content":[{"type":"tool_use","id":"fixture-tool","name":"Read","input":{"file_path":"/fixture"}}]}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"content_block_stop","index":2}}
+{"type":"stream_event","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"event":{"type":"message_stop"}}
+{"type":"user","uuid":"tool-result","session_id":"11111111-1111-4111-8111-111111111111","parent_tool_use_id":null,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"fixture-tool","content":"fixture result"}]}}
+{"type":"result","uuid":"result","session_id":"11111111-1111-4111-8111-111111111111","subtype":"success","is_error":false,"result":"Hello 🌈"}
+{"type":"command_lifecycle","state":"completed","session_id":"11111111-1111-4111-8111-111111111111"}

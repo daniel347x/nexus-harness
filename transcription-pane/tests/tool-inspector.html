@@ -1,0 +1,337 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Isolated persistent inspector browser fixture — no live requests</title>
+<style>body { margin: 0; } iframe { width: 520px; height: 760px; border: 0; } pre { white-space: pre-wrap; }</style>
+<iframe id="pane" title="Mock pane"></iframe><pre id="results">running…</pre>
+<script>
+(async () => {
+  const results = [], frame = document.getElementById('pane');
+  const check = (name, ok) => { results.push({ name, passed: !!ok }); if (!ok) throw new Error(name); };
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  try {
+    const base = new URL('../static/', location.href);
+    const read = async name => (await fetch(new URL(name, base))).text();
+    const [html, app, defaults, refineCore, inspector, marked, purify, markdown] = await Promise.all(['index.html', 'app.js', 'refine-defaults.js', 'refine-core.js', 'tool-inspector.js', 'vendor/marked.umd.js', 'vendor/purify.min.js', 'message-markdown.js'].map(read));
+    const reading = await read('tool-reading.js'), [highlighter, diffView] = await Promise.all(['vendor/highlight.min.js', 'diff-view.js'].map(read));
+    const shared = await (await fetch(new URL('../../chrome-extension/codenomad-session-watcher/tool-record-text.js', base))).text();
+    const mock = `
+      window.fixture = { revision: 1, readCount: 0, sendCalls: 0, refineCalls: 0, copied: [],
+        selection: { origin: 'http://127.0.0.1:9899', instanceId: 'fixture', sessionId: 'ses_origin', messageId: 'msg_origin', partId: 'prt_origin', toolName: 'bash', sessionTitle: 'Original session' },
+        state: {status: 'running', time: {start: Date.UTC(2026, 9, 15, 20, 10, 3)}, input: {command: 'read <img src=x onerror=alert(1)>', long: 'input 😀\\n'.repeat(4000)}, content: [{type: 'text', text: 'line 🚀\\n'.repeat(4000)}]} };
+      fixture.errors = []; addEventListener('error', e => fixture.errors.push(e.message + ' line '+e.lineno+' column '+e.colno));
+      const store = new Map(); Object.defineProperty(window, 'localStorage', {value:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}});
+      window.fetch = async (url, opts) => {
+        let data;
+        if (url === '/api/tool-selection') data = {epoch:'fixture', revision:fixture.revision, selection:fixture.selection};
+        else if (url.startsWith('/api/tool-record')) { fixture.readCount++; data = fixture.nativeRecord || {epoch:'fixture', revision:fixture.revision, part:{id:fixture.selection.partId,type:'tool',state:fixture.state},diff:fixture.diff,fetchedAt:Date.now()}; }
+        else if (url.startsWith('/api/claude/artifact?')) { fixture.artifactReads=(fixture.artifactReads||0)+1; data=fixture.artifact; }
+        else if (url === '/api/tool-selection/clear') { fixture.revision++; fixture.selection=null; data={ok:true}; }
+        else if (url.startsWith('/api/claude/events?') || url.startsWith('/api/claude/target?')) {
+          if (fixture.deferTargets) return await new Promise(resolve=>fixture.targetReads.push(resolve));
+          data=fixture.targetData;
+        }
+        else throw new Error('No real network permitted: '+url);
+         let wire = JSON.stringify(data);
+         if (url.startsWith('/api/tool-record') && fixture.rawStateWire) wire = wire.replace(JSON.stringify(fixture.state), () => fixture.rawStateWire);
+         return new Response(wire, {headers:{'Content-Type':'application/json'}});
+      };
+      Object.defineProperty(navigator, 'clipboard', {value:{writeText: async text => fixture.copied.push(text)}, configurable:true});
+    `;
+    const safe = text => text.replace(/<\/script/gi, '<\\/script');
+    const markup = html.replace('<head>', `<head><base href="${base.href}">`)
+      .replace(/  <script src="[^"]+"><\/script>/g, '')
+      .replace('</body>', () => `<script>${safe(mock)}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(app.replace(/main\(\);\s*$/, '') + '\nfixture.targetAPI={state,setBackend,handleTargetMessage,send,refine}; send = () => fixture.sendCalls++; refine = () => fixture.refineCalls++; wire();')}<\/script><script>${safe(shared)}<\/script><script>${safe(marked)}<\/script><script>${safe(purify)}<\/script><script>${safe(markdown)}<\/script><script>${safe(reading)}<\/script><script>${safe(highlighter)}<\/script><script>${safe(diffView)}<\/script><script>${safe(inspector)}<\/script></body>`);
+    frame.srcdoc = markup;
+    await new Promise(resolve => { frame.onload = resolve; }); await sleep(100);
+    const w = frame.contentWindow, d = w.document, el = id => d.getElementById(id);
+    check('app and inspector initialize without errors: ' + w.fixture.errors.join('; '), w.fixture.errors.length === 0);
+    const box = el('transcript'); box.value = 'dictation\n\nkept'; box.focus();
+    const readable = (kind, checked) => { const node = el('inspector-readable-' + kind); node.checked = checked; node.dispatchEvent(new w.Event('change', {bubbles:true})); };
+    check('readable text native labels default ON after page load', ['input','output'].every(kind => {
+      const node = el('inspector-readable-' + kind); return node.type === 'checkbox' && node.checked && node.labels.length === 1 && node.getAttribute('aria-label') === 'Readable text ' + kind;
+    }));
+    check('default reading view shows the multiline input value as a document block', el('inspector-input').querySelector('.inspector-document')?.textContent === 'input 😀\n'.repeat(4000));
+    readable('input', false); readable('output', false);
+    check('full stored input and >10k Unicode output', JSON.parse(el('inspector-input').textContent).long.length > 10000 && el('inspector-output').textContent.endsWith('🚀\n'));
+    check('tool HTML-looking text stays literal', !el('inspector-input').querySelector('img') && el('inspector-input').textContent.includes('<img'));
+    check('input above output with independent scrolling', el('inspector-input').getBoundingClientRect().top < el('inspector-output').getBoundingClientRect().top && getComputedStyle(el('inspector-input')).overflow === 'auto' && getComputedStyle(el('inspector-output')).overflow === 'auto');
+    const input = el('inspector-input'), output = el('inspector-output'), panel = el('tool-inspector');
+    input.scrollTop = 75; output.scrollTop = 130;
+    const range = d.createRange(); range.setStart(output.firstChild, 6); range.setEnd(output.firstChild, 18); w.getSelection().addRange(range);
+    const selectedText = w.getSelection().toString();
+    w.fixture.state.content[0].text += 'new output tail'; await sleep(2300);
+    check('polling preserves text selection and both scroll positions', w.getSelection().toString() === selectedText && input.scrollTop === 75 && output.scrollTop === 130);
+    w.getSelection().removeAllRanges(); await sleep(100);
+    check('deferred output appears after reader releases selection', output.textContent.endsWith('new output tail'));
+    check('no automatic output following', output.scrollTop === 130);
+    const divider = el('inspector-divider'), before = input.getBoundingClientRect().height;
+    divider.dispatchEvent(new w.KeyboardEvent('keydown', {key:'ArrowDown',bubbles:true,cancelable:true}));
+    check('keyboard divider changes size', input.getBoundingClientRect().height > before);
+    // Pointer capture/move/cancel are tested in Node; synthetic DOM events cannot
+    // establish a real active browser pointer. Keyboard resize uses actual layout here.
+    for (const node of [input, output, divider, el('inspector-outer-divider'), el('inspector-copy-output'), el('inspector-pretty-input'), el('inspector-pretty-output'), el('inspector-readable-input'), el('inspector-readable-output'), el('inspector-wrap-input'), el('inspector-wrap-output')]) {
+      node.focus();
+      for (const params of [{key:'Enter',ctrlKey:true},{key:'Enter',ctrlKey:true,altKey:true,shiftKey:true},{key:'F11',shiftKey:true},{key:'F4'},{key:'r',altKey:true}]) node.dispatchEvent(new w.KeyboardEvent('keydown', {...params,bubbles:true,cancelable:true}));
+    }
+    check('all Send/Refine shortcuts suppressed in inspector', w.fixture.sendCalls === 0 && w.fixture.refineCalls === 0);
+    box.focus(); box.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Enter',ctrlKey:true,bubbles:true,cancelable:true})); box.dispatchEvent(new w.KeyboardEvent('keydown',{key:'r',altKey:true,bubbles:true,cancelable:true}));
+    check(`dictation shortcuts remain active (send ${w.fixture.sendCalls}, refine ${w.fixture.refineCalls})`, w.fixture.sendCalls === 1 && w.fixture.refineCalls === 1);
+    el('inspector-copy-output').click(); await sleep(10);
+    check('copy is full and preserves dictation', w.fixture.copied[0] === output.textContent && box.value === 'dictation\n\nkept');
+    box.focus(); w.fixture.revision++; w.fixture.selection = {...w.fixture.selection, partId:'prt_new'}; await sleep(800);
+    check('incoming deliberate click does not steal dictation focus or replace shell', d.activeElement === box && el('tool-inspector') === panel && panel.classList.contains('held') && getComputedStyle(panel).display !== 'none');
+    check(`narrow split-view keeps both reading regions usable (${input.clientHeight}/${output.clientHeight}/${box.clientHeight}; right ${panel.getBoundingClientRect().right}/${frame.clientWidth})`, input.clientHeight >= 20 && output.clientHeight >= 20 && box.clientHeight >= 100 && panel.getBoundingClientRect().right <= frame.clientWidth);
+    frame.style.width = '900px'; await sleep(30);
+    check('wide split-view keeps both reading regions usable', input.clientHeight >= 20 && output.clientHeight >= 20 && box.clientHeight >= 100);
+    check('no Close or Collapse: the pane cannot be hidden by a click', !el('inspector-close') && !el('inspector-collapse'));
+    const head = d.querySelector('.inspector-head'), details = el('inspector-details');
+    check(`one thin head row, details folded (${head.getBoundingClientRect().height}px)`, head.getBoundingClientRect().height <= 22 && !details.open && !el('inspector-origin').checkVisibility());
+    check(`head row names the tool and its call time (${el('inspector-title').textContent} ${el('inspector-time').textContent})`, el('inspector-title').textContent === 'bash' && /2026/.test(el('inspector-time').textContent));
+    check('ordinary read status hides with the details', getComputedStyle(el('inspector-note')).display === 'none');
+    details.open = true; await sleep(10);
+    check('details show source and read status', el('inspector-origin').checkVisibility() && getComputedStyle(el('inspector-note')).display !== 'none');
+    details.open = false;
+    w.fixture.state.status = 'completed'; await sleep(2300); const n = w.fixture.readCount; await sleep(2300);
+    check('terminal snapshot stops regular record fetches', w.fixture.readCount === n);
+    const toggle = (kind, checked) => { const node = el('inspector-pretty-' + kind); node.checked = checked; node.dispatchEvent(new w.Event('change', {bubbles:true})); };
+    check('independent accessible native checkboxes default ON', ['input','output'].every(kind => {
+      const node = el('inspector-pretty-' + kind);
+      return node.type === 'checkbox' && node.checked && node.labels.length === 1 && node.getAttribute('aria-label') === 'Pretty JSON ' + kind;
+    }));
+    const raw = ' \r\n{"big":900719925474099312345,"s":"\\u0041","nested":[true,null]}\t\n';
+    w.fixture.state = {status:'completed',input:raw,content:[{type:'text',text:raw}]};
+    el('inspector-retry').click(); await sleep(100);
+    check('whole text JSON pretty prints both regions losslessly', input.textContent.includes('\n  "big": 900719925474099312345') && output.textContent.includes('"\\u0041"'));
+    const prettyOutput = output.textContent, readsBeforeToggle = w.fixture.readCount;
+    toggle('input', false);
+    check('input OFF is exact original, output remains pretty', input.textContent === raw && output.textContent === prettyOutput);
+    toggle('output', false); check('output OFF is exact original', output.textContent === raw);
+    toggle('input', true); toggle('output', true);
+    el('inspector-copy-input').click(); el('inspector-copy-output').click(); await sleep(10);
+    check('both copy controls use original raw even when pretty is ON', w.fixture.copied.slice(-2).every(text => text === raw));
+    check('formatting controls never fetch, retarget or alter dictation', w.fixture.readCount === readsBeforeToggle && box.value === 'dictation\n\nkept' && el('inspector-origin').textContent.includes('ses_origin'));
+    const prefix = '[{"s":"} ] \\\"","big":900719925474099312345}]', suffix = '\r\n\r\nExact prose suffix.  \t😀';
+    w.fixture.state = {status:'completed',input:{},content:[{type:'text',text:prefix + suffix}]};
+    el('inspector-retry').click(); await sleep(100);
+    check('leading container pretty prints and keeps prose suffix exactly', output.textContent.startsWith('[\n') && output.textContent.endsWith(suffix));
+    toggle('output', false); check('mixed prefix OFF restores all original text', output.textContent === prefix + suffix);
+    w.fixture.rawStateWire = '{"status":"completed","input":{"big":900719925474099312345,"n":-0},"content":[{"type":"text","text":"not JSON"}]}';
+    toggle('input', true); el('inspector-retry').click(); await sleep(100);
+    check('real response structured values bypass JS numeric rounding', input.textContent.includes('900719925474099312345') && input.textContent.includes('"n": -0'));
+    w.fixture.rawStateWire = null;
+    w.fixture.state = {status:'completed',input:'{"unfinished":',content:[{type:'text',text:'prefix {"json":true}'}]};
+    toggle('output', true); el('inspector-retry').click(); await sleep(100);
+    check('invalid fragments and middle JSON remain literal', input.textContent === '{"unfinished":' && output.textContent === 'prefix {"json":true}');
+    const documentRaw = ' \r\n' + String.raw`{"doc":"# Heading\n\tline \"quoted\" 😀\\n literal <img src=x onerror=alert(1)>","array":["first\nsecond",{"nested":"tab\tvalue"}],"n":900719925474099312345,"n":-0,"\nkey":"simple"}` + '\r\nTAIL exactly.  \t';
+    w.fixture.state = {status:'completed',input:documentRaw,content:[{type:'text',text:documentRaw}]}; el('inspector-retry').click(); await sleep(100);
+    const inputCaption = el('inspector-input-label').textContent, outputCaption = el('inspector-output-label').textContent;
+    const ordinaryPretty = input.textContent, sizeReads = w.fixture.readCount;
+    readable('input', true);
+    check('decoded document blocks retain nested structure/numbers/duplicates/suffix safely', input.querySelectorAll('.inspector-document').length === 3 && input.textContent.includes('# Heading\n\tline "quoted" 😀\\n literal <img') && input.textContent.includes('900719925474099312345') && input.textContent.includes('"n": -0') && input.textContent.endsWith('\r\nTAIL exactly.  \t') && !input.querySelector('img'));
+    check('document array index visible and key escapes unchanged', input.querySelector('.inspector-document-index').textContent === '[0]\n' && input.textContent.includes(String.raw`"\nkey": "simple"`));
+    check('reading view visibly says not JSON and output stays ordinary pretty', el('inspector-input-label').textContent.includes('reading view (not JSON)') && output.textContent === ordinaryPretty);
+    el('inspector-copy-input').click(); await sleep(10); check('readable view still copies exact escaped raw snapshot', w.fixture.copied.at(-1) === documentRaw);
+    toggle('input', false); check('Pretty OFF disables readable and restores raw exactly', el('inspector-readable-input').disabled && input.textContent === documentRaw);
+    toggle('input', true); readable('input', false); check('turning readable OFF restores unchanged Pretty JSON', input.textContent === ordinaryPretty && !el('inspector-readable-input').disabled);
+    check('size captions remain raw-byte stable across both toggles without record reads', el('inspector-input-label').textContent === inputCaption && el('inspector-output-label').textContent === outputCaption && /stored \([0-9.]+ KiB\)/.test(inputCaption) && w.fixture.readCount === sizeReads);
+    readable('input', true); readable('output', true); frame.style.width = '360px'; await sleep(30);
+    check(`narrow readable view wraps controls and stays inside its scroller (input ${input.clientHeight}, output ${output.clientHeight}, panel ${panel.clientHeight}, captions ${el('inspector-input-label').parentElement.clientHeight}/${el('inspector-output-label').parentElement.clientHeight})`, input.clientHeight >= 20 && output.clientHeight >= 20 && el('inspector-copy-output').getBoundingClientRect().right <= panel.getBoundingClientRect().right && getComputedStyle(input.querySelector('.inspector-document')).whiteSpace === 'pre-wrap');
+    const heldRange = d.createRange(), docText = output.querySelector('.inspector-document').lastChild;
+    output.focus(); w.getSelection().removeAllRanges();
+    heldRange.setStart(docText, 0); heldRange.setEnd(docText, 9); w.getSelection().addRange(heldRange);
+    const heldText = w.getSelection().toString(); readable('output', false);
+    check(`document text selection defers mode repaint safely (before ${JSON.stringify(heldText)}, after ${JSON.stringify(w.getSelection().toString())}, blocks ${output.querySelectorAll('.inspector-document').length})`, w.getSelection().toString() === heldText && output.querySelector('.inspector-document'));
+    w.getSelection().removeAllRanges(); await sleep(30);
+    check('selection release applies pending Pretty JSON view', output.textContent === ordinaryPretty && !output.querySelector('.inspector-document'));
+    const anchorRead = ['[name: not editable] [ap:K65F9I] Pane round 4 #sift-programs--expand', '', '## Task', '',
+      'Three changes to the **transcription pane**; see [the README](https://example.com/readme).', '', '### Items', '',
+      '- Section headings <img src=x onerror=alert(1)>', '- Thumbs-up ![pixel](https://example.com/p.png)', '',
+      '| Item | State |', '| --- | --- |', '| prompt | done |', '', '```js', 'const kept = "<script>";', '```'].join('\n');
+    readable('output', true);
+    w.fixture.state = {status:'completed',input:{params:{content:anchorRead}},content:[{type:'text',text:anchorRead}]}; el('inspector-retry').click(); await sleep(150);
+    const mdBlock = output.querySelector('.inspector-markdown'), mdRendered = mdBlock?.querySelector('.inspector-md-rendered');
+    check('Anchor Point read output renders as Markdown by default', mdBlock?.dataset.view === 'rendered' && mdRendered.querySelector('h2')?.textContent === 'Task' && mdRendered.querySelectorAll('li').length === 2 && mdRendered.querySelector('table') && mdRendered.querySelector('pre code') && el('inspector-output-label').textContent.includes('reading view (Markdown)'));
+    check('Markdown in a JSON input string value renders inside its document block', input.querySelector('.inspector-markdown .inspector-md-rendered h2') && el('inspector-input-label').textContent.includes('reading view (not JSON) · Markdown'));
+    check('rendered Markdown stays sanitized: HTML and images are text, links are safe', !output.querySelector('img,script,iframe') && mdRendered.textContent.includes('<img src=x') && mdRendered.querySelector('a').rel === 'noopener noreferrer');
+    check('rendered prose wraps and keeps the region inside the panel', getComputedStyle(mdRendered).whiteSpace === 'normal' && output.scrollWidth <= output.clientWidth + 1);
+    const [renderedButton, sourceButton] = mdBlock.querySelectorAll('.inspector-md-mode');
+    check('each rendered block carries a labeled Rendered/Source switch', renderedButton.getAttribute('aria-pressed') === 'true' && sourceButton.getAttribute('aria-pressed') === 'false' && getComputedStyle(mdBlock.querySelector('.inspector-md-modes')).userSelect === 'none');
+    sourceButton.click();
+    check('Source shows the exact original text', mdBlock.dataset.view === 'source' && mdBlock.querySelector('.inspector-md-source').textContent === anchorRead && getComputedStyle(mdRendered).display === 'none' && getComputedStyle(mdBlock.querySelector('.inspector-md-source')).display !== 'none');
+    renderedButton.click();
+    check('Rendered returns the Markdown view', mdBlock.dataset.view === 'rendered' && getComputedStyle(mdBlock.querySelector('.inspector-md-source')).display === 'none');
+    el('inspector-copy-output').click(); await sleep(10);
+    check('rendered Markdown still copies the exact raw output', w.fixture.copied.at(-1) === anchorRead);
+    const codeText = 'import os\n# Load\n\ndef load():\n    return 1\n## Save\n\n- a\n- b';
+    w.fixture.state = {status:'completed',input:{},content:[{type:'text',text:codeText}]}; el('inspector-retry').click(); await sleep(150);
+    check('code-like text is not rendered as Markdown', output.textContent === codeText && !output.querySelector('.inspector-markdown') && el('inspector-output-label').textContent.includes('raw (not JSON)'));
+    readable('output', false);
+    const wrapping = (kind, checked) => { const node = el('inspector-wrap-' + kind); node.checked = checked; node.dispatchEvent(new w.Event('change', {bubbles:true})); };
+    divider.dispatchEvent(new w.KeyboardEvent('keydown', {key:'ArrowUp',bubbles:true,cancelable:true})); // Restore the default 45% input share.
+    check('independent native wrap checkboxes default ON and are labeled', ['input','output'].every(kind => {
+      const node = el('inspector-wrap-' + kind); return node.checked && node.type === 'checkbox' && node.labels.length === 1 && node.getAttribute('aria-label') === 'Word wrap ' + kind && node.getAttribute('aria-controls') === 'inspector-' + kind;
+    }));
+    const longRaw = JSON.stringify({doc:'long ' + '🚀x'.repeat(1800) + '\n\tphysical second line', other:1}) + '\nTrailing physical line';
+    w.fixture.state = {status:'completed',input:longRaw,content:[{type:'text',text:longRaw}]}; el('inspector-retry').click(); await sleep(100);
+    const wrapReads = w.fixture.readCount, origin = el('inspector-origin').textContent;
+    for (const mode of ['raw','pretty','readable']) {
+      toggle('input', mode !== 'raw'); toggle('output', mode !== 'raw'); readable('input', mode === 'readable'); readable('output', mode === 'readable');
+      wrapping('input', true); wrapping('output', true); await sleep(30);
+      check(mode + ' wrapped text stays inside both regions', input.scrollWidth <= input.clientWidth + 1 && output.scrollWidth <= output.clientWidth + 1);
+      const originalNode = input.firstChild, range = d.createRange();
+      range.setStart(originalNode, 0); range.setEnd(originalNode, Math.min(2, originalNode.textContent.length)); w.getSelection().addRange(range);
+      const selection = w.getSelection().toString(), view = input.textContent;
+      wrapping('input', false); await sleep(30);
+      check(mode + ' CSS-only wrap change preserves text/selection and does not repaint', input.firstChild === originalNode && input.textContent === view && w.getSelection().toString() === selection);
+      check(mode + ' input horizontally overflows independently; output remains wrapped', input.scrollWidth > input.clientWidth * 2 && output.scrollWidth <= output.clientWidth + 1 && getComputedStyle(input).whiteSpace === 'pre' && getComputedStyle(input).overflowX === 'auto');
+      input.scrollLeft = 100; check(mode + ' horizontal scrollbar is usable within focused reader', input.scrollLeft === 100 && output.scrollLeft === 0 && input.tabIndex === 0);
+      w.getSelection().removeAllRanges(); wrapping('output', false); await sleep(30);
+      check(mode + ` both unwrapped regions stay within fixed narrow page layout (overflow ${output.scrollWidth}/${output.clientWidth}, panel ${panel.getBoundingClientRect().right}, page ${d.documentElement.scrollWidth}/${frame.clientWidth}, heights ${input.clientHeight}/${output.clientHeight})`, output.scrollWidth > output.clientWidth * 2 && panel.getBoundingClientRect().right <= frame.clientWidth && d.documentElement.scrollWidth <= frame.clientWidth && input.clientHeight >= 20 && output.clientHeight >= 20);
+      if (mode === 'readable') check('unwrapped document blocks retain physical newlines and tabs', getComputedStyle(input.querySelector('.inspector-document')).whiteSpace === 'pre' && input.querySelector('.inspector-document').textContent.includes('\n\tphysical second line'));
+      el('inspector-copy-input').click(); el('inspector-copy-output').click(); await sleep(10);
+      check(mode + ' unwrapped Copy remains exact raw', w.fixture.copied.slice(-2).every(text => text === longRaw));
+    }
+    check('wrap/options do not fetch or retarget', w.fixture.readCount === wrapReads && el('inspector-origin').textContent === origin);
+    for (const width of [450,520,640,900,360]) {
+      frame.style.width = width + 'px'; await sleep(30);
+      check(width + `px keeps readable unwrapped panes usable without widening page (${input.clientHeight}/${output.clientHeight}; panel ${panel.clientHeight}, page ${d.documentElement.scrollWidth}/${frame.clientWidth})`, input.clientHeight >= 20 && output.clientHeight >= 20 && d.documentElement.scrollWidth <= frame.clientWidth && el('inspector-copy-output').getBoundingClientRect().right <= panel.getBoundingClientRect().right);
+    }
+    w.fixture.revision++; w.fixture.selection = {...w.fixture.selection,partId:'prt_wrap'}; await sleep(800);
+    check('independent wrap preferences survive new selection', !el('inspector-wrap-input').checked && !el('inspector-wrap-output').checked && input.classList.contains('inspector-nowrap') && output.classList.contains('inspector-nowrap'));
+    for (const count of [0, 16*1024, 64*1024, 256*1024, 1024*1024, 2*1024*1024]) {
+      w.fixture.state = {status:'completed',input:'x'.repeat(count),content:[]}; el('inspector-retry').click(); await sleep(100);
+      const label = el('inspector-input-label').querySelector('.inspector-size'), style = getComputedStyle(label);
+      const ctx = d.createElement('canvas').getContext('2d');
+      const rgb = color => { ctx.fillStyle = color; ctx.fillRect(0,0,1,1); return [...ctx.getImageData(0,0,1,1).data].slice(0,3); };
+      const luminance = c => c.map(x => x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
+      const a = luminance(rgb(style.color)), b = luminance(rgb(getComputedStyle(input).backgroundColor));
+      check(count + ' Pane size is readable and has 4.5:1 contrast', parseFloat(style.fontSize) >= 15 && parseFloat(style.fontSize) <= 19 && (Math.max(a,b)+.05)/(Math.min(a,b)+.05) >= 4.5 && label.textContent === w.opcToolText.size(count));
+      check(count + ' Pane captions/options leave usable reading regions', input.clientHeight >= 20 && output.clientHeight >= 20 && el('inspector-copy-output').getBoundingClientRect().right <= panel.getBoundingClientRect().right);
+    }
+    w.fixture.state = {status:'completed'}; el('inspector-retry').click(); await sleep(100);
+    check('missing size never retains previous hefty emphasis or becomes zero', !el('inspector-input-label').querySelector('.inspector-size') && el('inspector-input-label').textContent.startsWith('Input · missing') && !el('inspector-input-label').textContent.includes('0 KiB'));
+    const identity = {storeRef:'store',sessionRef:'session',scopeRef:'scope',leafRef:'leaf',recordRef:'record',sessionUuid:'native-uuid',scope:'main',leafUuid:'leaf-uuid',recordUuid:'record-uuid',recordHash:'hash',blockIndex:0,callId:'native-call',callRef:'native-call-ref',fileEpoch:'native-epoch'};
+    const nativeRaw = '{"n":900719925474099312345,"n":-0,"doc":"first\\n\\tsecond 😀"}';
+    w.fixture.revision++;
+    w.fixture.selection = {schemaVersion:1,backend:'claude',identity,callRef:identity.callRef,fileEpoch:identity.fileEpoch,toolName:'mcp__workflowy__anchor',sessionTitle:'Native',workspaceName:'fixture',source:'windows-history'};
+    w.fixture.nativeRecord = {schemaVersion:1,backend:'claude',epoch:'fixture',revision:w.fixture.revision,selection:w.fixture.selection,identity,provenance:'recorded-jsonl',fetchedAt:Date.now(),snapshot:{schemaVersion:1,backend:'claude',callRef:identity.callRef,fileEpoch:identity.fileEpoch,input:nativeRaw,output:'recorded stub',inputBytes:new TextEncoder().encode(nativeRaw).length,outputBytes:13,inputAvailability:'stored',outputAvailability:'stored',status:'stored',artifactRef:'artifact-ref',provenance:'recorded-jsonl'}};
+    box.focus(); await sleep(800);
+    check('native selection uses same inspector shell with complete labels and no focus theft', el('tool-inspector') === panel && el('inspector-origin').textContent.includes('native-uuid') && !el('inspector-origin').textContent.includes('undefined') && d.activeElement === box);
+    toggle('input',false); check('native lexical raw keeps duplicate keys and huge number', input.textContent === nativeRaw);
+    toggle('input',true); readable('input',true); el('inspector-copy-input').click(); await sleep(10);
+    check('native readable/wrap options preserve exact raw Copy/count', w.fixture.copied.at(-1) === nativeRaw && el('inspector-input-label').textContent.includes('stored') && input.querySelector('.inspector-document'));
+    check('saved artifact is not automatically fetched', !w.fixture.artifactReads);
+    w.fixture.artifact = {schemaVersion:1,backend:'claude',artifactRef:'artifact-ref',callRef:identity.callRef,fileEpoch:identity.fileEpoch,text:'saved 🌈',bytes:10,availability:'stored',completeness:'limited'};
+    el('inspector-artifact-read').click(); await sleep(50);
+    check('separate explicit saved artifact is labeled limited; recorded output unchanged', el('inspector-artifact-text').textContent === 'saved 🌈' && el('inspector-artifact-label').textContent.includes('limited') && output.textContent === 'recorded stub');
+    el('inspector-artifact-copy').click(); el('inspector-copy-output').click(); await sleep(10);
+    check('artifact Copy and recorded raw Copy remain distinct', w.fixture.copied.slice(-2).join('|') === 'saved 🌈|recorded stub');
+    const targetAPI = w.fixture.targetAPI, targetState = targetAPI.state, tref = 'A'.repeat(32), acks = [];
+    const targetIdentity = {storeRef:'S'.repeat(32),sessionRef:'J'.repeat(32),scopeRef:'M'.repeat(32),leafRef:'L'.repeat(32),fileEpoch:'E'.repeat(32)};
+    w.fixture.targetData = {schemaVersion:1,backend:'claude',targetRef:tref,...targetIdentity,status:'complete',
+      targetInfo:{schemaVersion:1,backend:'claude',targetRef:tref,...targetIdentity,scope:'main',uuid:'11111111-1111-4111-8111-111111111111',leafUuid:'22222222-2222-4222-8222-222222222222',title:'History target',source:'windows-history'}};
+    targetState.editorId='fixture-editor';
+    const targetChild=el('claude-sessions-frame').contentWindow;
+    targetChild.postMessage=m=>acks.push(m);
+    const action = n => ({source:targetChild,origin:w.origin,data:{schemaVersion:1,type:'target',clientId:'history-fixture',editorId:'fixture-editor',actionId:'a'+n,actionRevision:n,targetRevision:targetState.targetRevision,targetRef:tref}});
+    const heldInput = input.textContent, heldOrigin = el('inspector-origin').textContent;
+    await targetAPI.handleTargetMessage(action(1));
+    check('real pane target ACK applies full native identity independently of held inspector/draft/focus', acks.at(-1).applied && el('target-pill').textContent.includes('History target') && !el('target-pill').textContent.includes('11111111') && el('target-pill').title.includes('11111111-1111') && input.textContent===heldInput && el('inspector-origin').textContent===heldOrigin && box.value==='dictation\n\nkept' && d.activeElement===box);
+    check('history Refine enabled, Claude Send unavailable and cache never OpenCode tokens', el('send-btn').disabled && !el('refine-btn').disabled && el('backend-status').textContent.includes('Send unavailable until a live Manager is selected') && el('cache-info').textContent.startsWith('—'));
+    await targetAPI.send(); const validated = targetState.claudeTarget; targetState.claudeTarget = null; await targetAPI.refine(); targetState.claudeTarget = validated;
+    check('real native Send/unselected Refine refuse before routing or changing draft', box.value==='dictation\n\nkept' && el('status').textContent.includes('unavailable'));
+    el('backend-select').value='opencode'; el('backend-select').dispatchEvent(new w.Event('change',{bubbles:true}));
+    check('accessible explicit backend control returns to OpenCode without replacing inspector', targetState.backend==='opencode' && !el('send-btn').disabled && el('tool-inspector')===panel && input.textContent===heldInput);
+    w.fixture.deferTargets=true; w.fixture.targetReads=[];
+    const delayed = targetAPI.handleTargetMessage(action(2));
+    targetAPI.setBackend('claude'); targetAPI.setBackend('opencode');
+    w.fixture.targetReads[0](new w.Response(JSON.stringify(w.fixture.targetData))); await delayed;
+    check('real DOM backend A→B→A inside validation rejects late target ACK', acks.at(-1).applied===false && targetState.backend==='opencode');
+    w.fixture.deferTargets=false;
+    w.fixture.nativeRecord.snapshot.output=null; w.fixture.nativeRecord.snapshot.outputBytes=null; w.fixture.nativeRecord.snapshot.outputAvailability='pending-or-missing'; w.fixture.nativeRecord.snapshot.status='pending-or-missing';
+    el('inspector-retry').click(); await sleep(100);
+    check('native missing output shows unknown, disables Copy and invents no zero', el('inspector-copy-output').disabled && el('inspector-output-label').textContent.includes('—') && !el('inspector-output-label').textContent.includes('0 KiB'));
+    w.fixture.nativeRecord.snapshot.callRef = 'another-call'; el('inspector-retry').click(); await sleep(100);
+    check('a read error stays visible with the details folded', !el('inspector-details').open && el('inspector-note').classList.contains('error') && getComputedStyle(el('inspector-note')).display !== 'none');
+    // A3 · the recorded diff: real highlight.js + diff-view.js/.css mounted by the inspector above Input/Output.
+    const region = el('inspector-diff'), rows = () => region.querySelectorAll('.opc-diff-row'), root = () => region.querySelector('.opc-diff');
+    const texts = selector => [...region.querySelectorAll(selector)].map(n => n.textContent);
+    const pyDiff = {files:[{path:'/fixture/app.py',status:'modified',additions:2,deletions:1,hunks:[{oldStart:10,oldLines:4,newStart:10,newLines:5,
+      lines:[' def load(path):','-    return open(path).read()','+    """Read the whole file."""','+    return open(path, encoding="utf-8").read()',' ',' # trailing comment']}]}],source:'claude-structured-patch',complete:true};
+    const opencodeSelection = partId => ({origin:'http://127.0.0.1:9899',instanceId:'fixture',sessionId:'ses_origin',messageId:'msg_origin',partId,toolName:'edit',sessionTitle:'Original session'});
+    const select = async (selection, state, diff) => { w.fixture.nativeRecord = null; w.fixture.state = state; w.fixture.diff = diff; w.fixture.revision++; w.fixture.selection = selection; await reread(); };
+    // A read now (the panel's own refresh), not the next 700 ms poll: Chrome's virtual-time budget is shared by the whole suite.
+    async function reread() { const before = w.fixture.readCount; el('inspector-retry').click();
+      for (let i = 0; i < 60 && w.fixture.readCount === before; i++) await sleep(20); await sleep(40); }
+    const editState = {status:'completed',input:{filePath:'/fixture/app.py',oldString:'    return open(path).read()',newString:'    """Read the whole file."""\n    return open(path, encoding="utf-8").read()'},output:'Edit applied successfully.'};
+    frame.style.width = '1100px'; await sleep(30);
+    check('before any diff the Diff region is hidden and takes no room', region.hidden && getComputedStyle(region).display === 'none');
+    await select(opencodeSelection('prt_diff'), editState, pyDiff);
+    const wide = region.getBoundingClientRect().width;
+    check(`a completed edit opens on its Diff, above Input and Output, side by side in a ${Math.round(wide)}px inspector (Auto at ≥900px)`, !region.hidden && root() &&
+      region.getBoundingClientRect().bottom <= input.getBoundingClientRect().top && wide >= 900 && root().dataset.layout === 'split' && el('inspector-content').getBoundingClientRect().height > 60);
+    check('true recorded line numbers: context 10/10, deletion old 11, additions new 11–12, then 12/13 and 13/14', rows().length === 5 &&
+      rows()[0].querySelector('[data-side="old"] .opc-diff-old').textContent === '10' && rows()[0].querySelector('[data-side="next"] .opc-diff-new').textContent === '10' &&
+      texts('.opc-diff-del .opc-diff-old').join() === '11' && texts('.opc-diff-add .opc-diff-new').join() === '11,12' &&
+      rows()[3].querySelector('[data-side="next"] .opc-diff-new').textContent === '13' && rows()[4].querySelector('[data-side="old"] .opc-diff-old').textContent === '13');
+    check('file header, counts and Python syntax colors come from the shared component', region.querySelector('.opc-diff-path').textContent === '/fixture/app.py' &&
+      region.querySelector('.opc-diff-add-count').textContent === '+2' && region.querySelector('.opc-diff-del-count').textContent === '−1' &&
+      region.querySelector('.opc-diff-code .hljs-keyword')?.textContent === 'def' && region.querySelector('.opc-diff-code .hljs-comment')?.textContent === '# trailing comment');
+    const layoutChoice = region.querySelector('select.opc-diff-layout');
+    layoutChoice.value = 'inline'; layoutChoice.dispatchEvent(new w.Event('change', {bubbles:true}));
+    check('the Auto / Inline / Side-by-side toggle is reachable inside the Diff; Inline is chosen at any width', root().dataset.layout === 'inline' && [...layoutChoice.options].map(o => o.textContent).join('|') === 'Auto|Inline|Side-by-side');
+    const diffInputCopy = JSON.stringify(editState.input), diffLabels = [el('inspector-input-label').textContent, el('inspector-output-label').textContent];
+    el('inspector-copy-input').click(); el('inspector-copy-output').click(); await sleep(10);
+    check('raw Copy is the exact stored input/output while the Diff shows', w.fixture.copied.slice(-2).join('|') === diffInputCopy + '|Edit applied successfully.');
+    const firstCode = region.querySelector('.opc-diff-code'), wrapNow = el('inspector-wrap-input').checked;
+    check('the Diff starts on Input\'s Word wrap choice', root().dataset.wrap === String(wrapNow));
+    wrapping('input', !wrapNow); await sleep(10);
+    check('Input Word wrap also wraps the Diff, CSS only (same code nodes)', root().dataset.wrap === String(!wrapNow) && region.querySelector('.opc-diff-code') === firstCode);
+    wrapping('output', !el('inspector-wrap-output').checked); await sleep(10);
+    check('Output Word wrap leaves the Diff alone', root().dataset.wrap === String(!wrapNow));
+    wrapping('input', true); wrapping('output', true);
+    const mountedRoot = root(), mountedRow = rows()[1]; await reread();
+    check('an unchanged re-read keeps the mounted component, its rows and the manual layout choice', root() === mountedRoot && rows()[1] === mountedRow && root().dataset.layout === 'inline');
+    w.fixture.diff = undefined; await reread();
+    check('a snapshot without a diff hides the region; captions and Copy are byte-for-byte the same as with it', region.hidden && !root() &&
+      el('inspector-input-label').textContent === diffLabels[0] && el('inspector-output-label').textContent === diffLabels[1]);
+    el('inspector-copy-input').click(); await sleep(10); check('… and raw Copy is unchanged', w.fixture.copied.at(-1) === diffInputCopy);
+    frame.style.width = '520px'; await sleep(30);
+    await select(opencodeSelection('prt_narrow'), editState, pyDiff);
+    check(`a narrow ${Math.round(region.getBoundingClientRect().width)}px inspector shows the Diff inline (Auto), inside the page`, root()?.dataset.layout === 'inline' && region.getBoundingClientRect().width < 900 &&
+      d.documentElement.scrollWidth <= frame.clientWidth && region.getBoundingClientRect().right <= panel.getBoundingClientRect().right + 0.5 && input.clientHeight >= 20 && output.clientHeight >= 20);
+    const live = {...editState, status:'running'}, codeNode = region.querySelectorAll('.opc-diff-code')[0].firstChild.firstChild;
+    w.fixture.state = live; await reread();
+    const hold = d.createRange(); hold.setStart(codeNode, 0); hold.setEnd(codeNode, 3); w.getSelection().removeAllRanges(); w.getSelection().addRange(hold);
+    const changed = JSON.parse(JSON.stringify(pyDiff)); changed.files[0].hunks[0].lines[2] = '+    """Read the file, whole."""';
+    w.fixture.diff = changed; await reread();
+    check('a changed diff arriving while Dan holds a selection in it waits; his selection survives', w.getSelection().toString() === 'def' && !region.textContent.includes('the file, whole'));
+    w.getSelection().removeAllRanges(); await sleep(60);
+    check('… and appears once the selection ends', region.textContent.includes('Read the file, whole.'));
+    const shell = {files:[],source:'unavailable',complete:false,reason:'Shell command; no structured edit diff recorded (it may have edited files).'};
+    await select({...opencodeSelection('prt_shell'), toolName:'bash'}, {status:'completed',input:{command:'sed -i s/a/b/ notes.txt'},output:''}, shell);
+    check('a new selection replaces the old call\'s Diff; a shell call shows A1\'s honest reason, never an empty diff', region.querySelector('.opc-diff-reason')?.textContent === shell.reason &&
+      !region.querySelector('.opc-diff-reason').hidden && rows().length === 0 && !region.textContent.includes('app.py'));
+    const big = {files:[{path:'/fixture/big.js',status:'added',additions:2600,deletions:0,hunks:[{oldStart:0,oldLines:0,newStart:1,newLines:2600,
+      lines:Array.from({length:2600},(_, i) => '+const v' + i + ' = ' + i + ';')}]}],source:'claude-structured-patch',complete:true};
+    await select(opencodeSelection('prt_big'), {status:'completed',input:{filePath:'/fixture/big.js'},output:'ok'}, big);
+    const counter = region.querySelector('.opc-diff-count'), show = region.querySelector('.opc-diff-show');
+    check(`a large diff shows its visible bound (${counter?.textContent}) and Show all`, counter?.textContent === 'Showing 2,000 of 2,600 lines' && !show.hidden && rows().length === 2000);
+    show.click(); for (let i = 0; i < 100 && rows().length < 2600; i++) await sleep(30);
+    check(`Show all reaches every recorded line (${rows().length}; last new ${rows()[rows().length - 1]?.querySelector('.opc-diff-new')?.textContent})`, rows().length === 2600 &&
+      rows()[2599].querySelector('.opc-diff-new').textContent === '2600' && counter.textContent === 'Showing 2,600 of 2,600 lines' && show.hidden);
+    const nativeEdit = {schemaVersion:1,backend:'claude',identity,provenance:'recorded-jsonl',fetchedAt:Date.now(),snapshot:{schemaVersion:1,backend:'claude',callRef:identity.callRef,
+      fileEpoch:identity.fileEpoch,input:'{"file_path":"/fixture/app.py"}',output:'updated',inputBytes:31,outputBytes:7,inputAvailability:'stored',outputAvailability:'stored',
+      status:'stored',artifactRef:null,provenance:'recorded-jsonl',diff:pyDiff}};
+    w.fixture.revision++; w.fixture.selection = {schemaVersion:1,backend:'claude',identity,callRef:identity.callRef,fileEpoch:identity.fileEpoch,toolName:'Edit',sessionTitle:'Native',workspaceName:'fixture',source:'windows-history'};
+    w.fixture.nativeRecord = {...nativeEdit, epoch:'fixture', revision:w.fixture.revision, selection:w.fixture.selection}; await reread();
+    check('a native Claude Edit carries snapshot.diff through the same component: no Show all left over from the last call', region.querySelector('.opc-diff-path')?.textContent === '/fixture/app.py' &&
+      rows().length === 5 && region.querySelector('.opc-diff-show').hidden && texts('.opc-diff-add .opc-diff-new').join() === '11,12');
+    check('Diff wiring raised no page errors: ' + w.fixture.errors.join('; '), w.fixture.errors.length === 0);
+    document.body.dataset.testPassed = 'true';
+  } catch (error) {
+    results.push({error:String(error), stack:error.stack}); document.body.dataset.testPassed = 'false';
+  }
+  document.getElementById('results').textContent = JSON.stringify(results, null, 2);
+})();
+</script>

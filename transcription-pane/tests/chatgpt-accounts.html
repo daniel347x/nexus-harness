@@ -1,0 +1,136 @@
+<!doctype html><meta charset="utf-8"><title>Actual desktop and phone GPT account controls — offline IO</title>
+<style>body{margin:0}iframe{height:1100px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="pane" title="Actual GPT account markup with inert IO"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw new Error(name);};
+  const until=async(fn,label='fixture wait')=>{for(let i=0;i<200;i++){if(fn())return;await sleep(5);}throw new Error(label+' did not settle');};
+  const safe=s=>s.replace(/<\/script/gi,'<\\/script');
+  try {
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [desktop,phone,controller,phoneApp]=await Promise.all(['index.html','m.html','chatgpt-accounts.js','m.js'].map(read));
+    const A='fixture-openai:family+one',B='fixture-openai:studio/two?x';
+    const labels={[A]:'Family GPT · 雪',[B]:'Studio <literal label> & research · a longer saved native account'};
+    const frame=document.getElementById('pane');let w,d,root,api;
+    const mock=`
+      const f=parent.gptFixture;
+      addEventListener('error',e=>f.errors.push(e.message));addEventListener('unhandledrejection',e=>f.errors.push(String(e.reason)));
+      const store=map=>({getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)});
+      Object.defineProperty(window,'sessionStorage',{value:store(f.session)});Object.defineProperty(window,'localStorage',{value:store(f.local)});
+      window.confirm=()=>{f.confirmations++;return true;};
+      window.fetch=(...args)=>parent.gptFixture.transport(...args);
+    `;
+    async function mount(kind,width) {
+      frame.style.width=width+'px';const html=kind==='desktop'?desktop:phone;
+      const scripts=[mock,controller,...(kind==='phone'?[phoneApp.replace(/phoneManager\.start\(\);\s*$/,'window.fixturePhone=phoneManager;')]:[])];
+      const ready=new Promise(resolve=>frame.onload=resolve);
+      frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/href="\/(?!\/)/g,'href="'+base.href)
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+        .replace('</body>',()=>scripts.map(s=>'<script>'+safe(s)+'<\/script>').join('')+'</body>');
+      await ready;w=frame.contentWindow;d=w.document;root=d.getElementById(kind==='desktop'?'chatgpt-account':'m-chatgpt-account');
+      await until(()=>w.OCChatGPTAccounts?.get(root)?.snapshot().status,'controller mount');api=w.OCChatGPTAccounts.get(root);
+      if(kind==='phone'){w.fixturePhone.showView('context');await until(()=>!w.fixturePhone.state.pollBusy&&!w.fixturePhone.state.usageBusy);}
+      await until(()=>!api.snapshot().statusBusy&&!api.snapshot().quotaBusy,'initial account reads');
+    }
+    const part=name=>root.querySelector('[data-gpt-'+name+']');
+    const button=id=>[...root.querySelectorAll('[data-gpt-account]')].find(n=>n.dataset.gptAccount===id);
+    const visible=n=>{const r=n.getBoundingClientRect();return r.width>0&&r.height>0&&w.getComputedStyle(n).visibility!=='hidden';};
+    async function reachable(n) {
+      n.scrollIntoView({block:'center',inline:'nearest'});await sleep(10);const r=n.getBoundingClientRect();
+      const x=Math.min(w.innerWidth-1,Math.max(0,r.left+r.width/2)),y=Math.min(w.innerHeight-1,Math.max(0,r.top+r.height/2));
+      const hit=d.elementFromPoint(x,y);window.gptFixture.reach={rect:{left:r.left,right:r.right,top:r.top,bottom:r.bottom},viewport:[w.innerWidth,w.innerHeight],
+        hit:hit?.id||hit?.className||hit?.tagName,scroll:[n.clientWidth,n.scrollWidth],node:n.textContent};
+      return visible(n)&&r.left>=0&&r.right<=w.innerWidth+1&&r.top>=-1&&r.bottom<=w.innerHeight+1&&(hit===n||n.contains(hit));
+    }
+    for(const [kind,width] of [['desktop',1400],['desktop',420],['phone',390],['phone',375]]) {
+      const prefix=kind+' '+width+'px: ';const now=Date.now()/1000;
+      const f=window.gptFixture={active:A,operation:null,session:new Map(),local:new Map(),requests:[],posts:[],errors:[],confirmations:0,losePost:false,
+        defaultUsage:{schemaVersion:1,backend:'usage',now,ageSeconds:20,refreshing:false,claude:{ok:true,reset_credits:[]},
+          chatgpt:{ok:true,plan:'FOREIGN DEFAULT PLAN',windows:[{label:'FOREIGN DEFAULT WINDOW',percent:99,resets_at:now+86400}],reset_credits:[]}}};
+      const status=()=>({schemaVersion:1,backend:'chatgpt-accounts',available:true,mapping:{configured:true},error:null,
+        active:{known:true,credential_id:f.active,credential_label:labels[f.active],detail:'Inert native public readback'},operation:f.operation,
+        accounts:[{id:A,label:labels[A],method:'chatgpt-token-sharing',active:f.active===A,quota:{state:'mapped',label:'fixture-family',authPresent:true}},
+          {id:B,label:labels[B],method:'chatgpt-token-sharing',active:f.active===B,quota:{state:'unmapped',label:null,authPresent:false}}]});
+      const usage=id=>({schemaVersion:1,backend:'chatgpt-usage',credentialId:id,quotaState:id===A?'mapped':'unmapped',now,observedAt:id===A?now-70:null,
+        ageSeconds:id===A?70:null,refreshing:false,retryAt:null,error:null,chatgpt:id===A?{ok:true,account:{label:'fixture-family',opencode_credential_id:id,
+          binding:'Operator mapping only; not independent identity verification.'},plan:'Fixture Pro',windows:[{label:'weekly',percent:39,resets_at:now+7200}],
+          models:{Astra:{available:true,available_at:null}},reset_credits:[{expires_at:now+3600,granted_at:now-60,title:'Inert banked grant'}]}:
+          {ok:false,account:{opencode_credential_id:id},error:'Optional quota mapping is not enrolled for this login'}});
+      f.transport=async(url,options={})=>{
+        const u=new URL(String(url),'http://inert.invalid'),method=options.method||'GET',body=options.body?JSON.parse(options.body):null;
+        f.requests.push({url:String(url),method,body});let data;
+        if(u.pathname==='/api/chatgpt/accounts')data=status();
+        else if(u.pathname==='/api/chatgpt/usage')data=usage(u.searchParams.get('credentialId'));
+        else if(u.pathname==='/api/chatgpt/account-switch'){
+          if(method==='POST'){
+            f.posts.push({body,saved:JSON.parse(f.session.get('pane_chatgpt_account_switch_v1'))});
+            f.operation={id:body.operationId,credentialId:body.credentialId,label:labels[body.credentialId],phase:'pending',detail:'Inert native operation pending',
+              attempted:false,startedAt:now,updatedAt:now,finishedAt:null};
+            if(f.losePost){f.losePost=false;throw new Error('Inert lost POST response');}
+          } else if(u.searchParams.get('operationId')!==f.operation?.id)throw new Error('Fixture requires the exact retained operation ID');
+          data=status();
+        } else if(u.pathname==='/api/claude/sessions')data={schemaVersion:1,backend:'claude',sessions:[],hasMore:false,status:'complete'};
+        else if(u.pathname==='/api/usage'){
+          if(f.deferDefault)await new Promise(resolve=>f.releaseDefault=resolve);
+          data=f.defaultUsage;
+        } else throw new Error('No real transport permitted: '+url);
+        return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+      };
+      await mount(kind,width);
+      check(prefix+'real markup names its GPT group and production controller/script ordering',root.matches('[data-chatgpt-accounts]')&&root.getAttribute('aria-label')==='GPT account'&&
+        (kind==='desktop'?desktop:phone).includes('chatgpt-accounts.js')&&w.OCChatGPTAccounts.mount(root)===api);
+      if(kind==='desktop'){part('details').querySelector('summary').click();await sleep(20);await until(()=>!api.snapshot().statusBusy&&!api.snapshot().quotaBusy);}
+      check(prefix+'arbitrary saved labels remain literal text with real active green ring and distinct viewed state',
+        button(A).textContent===labels[A]+' · active'&&button(B).textContent===labels[B]&&!button(B).querySelector('literal')&&
+        button(A).dataset.active==='true'&&button(A).getAttribute('aria-pressed')==='true'&&button(B).dataset.active==='false'&&
+        w.getComputedStyle(button(A)).outlineStyle==='solid'&&w.getComputedStyle(button(A)).outlineColor==='rgb(95, 208, 111)');
+      check(prefix+'account quota and banked resets are owned by this login, with operator binding disclosed',part('quotas').textContent.includes('39% used')&&
+        part('plan').textContent==='Fixture Pro'&&part('quotas').textContent.includes('not independent identity verification')&&
+        part('banked').textContent.includes('1 available')&&part('banked').querySelector('[data-urgent="true"]')&&w.getComputedStyle(root.querySelector('.account-quota')).display==='grid');
+      const viewReach=await reachable(button(B));
+      check(prefix+'view button is reachable and label wraps within the page '+JSON.stringify(f.reach),viewReach&&button(B).scrollWidth<=button(B).clientWidth+1);
+      button(B).click();await until(()=>!api.snapshot().statusBusy&&!api.snapshot().quotaBusy&&part('quotas').textContent.includes('Optional quota mapping'));
+      check(prefix+'view-only selection sends no POST and missing quota never gates Switch',f.posts.length===0&&button(A).dataset.active==='true'&&
+        button(B).getAttribute('aria-pressed')==='true'&&part('viewing').textContent.includes('NOT active')&&!part('switch').disabled&&
+        part('banked').textContent.includes('unknown · not a verified zero')&&f.confirmations===0);
+      check(prefix+'real Switch and Refresh controls are reachable with no sideways page overflow',await reachable(part('switch'))&&await reachable(part('refresh'))&&
+        d.documentElement.scrollWidth<=w.innerWidth+1);
+      if(kind==='phone'){
+        // The real phone adapter receives an old/default-account reply after a specific login was viewed.
+        const before=[part('quotas').textContent,part('plan').textContent,part('banked').textContent].join('|');
+        f.deferDefault=true;const read=w.fixturePhone.readUsage(true);await until(()=>!!f.releaseDefault);
+        f.defaultUsage={...f.defaultUsage,ageSeconds:900,error:'DEFAULT POLL FAILED',chatgpt:{...f.defaultUsage.chatgpt,plan:'LATE FOREIGN PLAN',stale:true}};
+        f.releaseDefault();await read;f.deferDefault=false;
+        check(prefix+'real m.js default/late stale poll cannot overwrite GPT quota, plan or banked resets',
+          [part('quotas').textContent,part('plan').textContent,part('banked').textContent].join('|')===before&&
+          !d.getElementById('m-banked').textContent.includes('ChatGPT')&&!root.textContent.includes('FOREIGN PLAN'));
+      }
+      f.losePost=true;part('switch').click();part('switch').click();await until(()=>f.posts.length===1&&!api.snapshot().submitting&&!api.snapshot().statusBusy);
+      const posted=f.posts[0];
+      check(prefix+'explicit Switch posts once, with immutable durable target and expected native active, never a restart protocol',
+        Object.keys(posted.body).sort().join('|')==='backend|credentialId|expectedActiveCredentialId|operationId|schemaVersion'&&
+        posted.body.backend==='chatgpt'&&posted.body.credentialId===B&&posted.body.expectedActiveCredentialId===A&&posted.saved.id===posted.body.operationId&&
+        posted.saved.credentialId===B&&posted.saved.expectedActiveCredentialId===A&&part('switch').disabled&&root.dataset.busy==='true'&&
+        f.requests.every(r=>r.method==='GET'||r.url==='/api/chatgpt/account-switch'));
+      check(prefix+'pending/lost reply retains current active and explains exact read-only recovery',button(A).dataset.active==='true'&&button(B).dataset.active==='false'&&
+        part('status').textContent.includes('will not be sent again')&&f.requests.some(r=>r.url==='/api/chatgpt/account-switch?operationId='+encodeURIComponent(posted.body.operationId)));
+      await mount(kind,width);
+      check(prefix+'actual page reload restores exact pending intent by GET only, never duplicate POST',f.posts.length===1&&api.snapshot().intent?.id===posted.body.operationId&&
+        api.snapshot().intent.credentialId===B&&part('switch').disabled&&root.dataset.busy==='true');
+      button(B).click();await until(()=>!api.snapshot().quotaBusy);
+      f.active=B;Object.assign(f.operation,{phase:'confirmed',detail:'Inert public readback confirmed',attempted:true,finishedAt:now+1});
+      await api.refresh();await until(()=>!api.snapshot().quotaBusy);
+      check(prefix+'confirmed outcome follows fresh native readback and clears only its intent',button(B).dataset.active==='true'&&button(A).dataset.active==='false'&&
+        part('status').textContent.includes('confirmed')&&!f.session.has('pane_chatgpt_account_switch_v1')&&f.posts.length===1);
+      f.active=A;await api.refresh();await until(()=>!api.snapshot().quotaBusy);
+      check(prefix+'external active change beats historical confirmation, leaving the viewed login separate',button(A).dataset.active==='true'&&button(B).dataset.active==='false'&&
+        button(B).getAttribute('aria-pressed')==='true'&&part('status').textContent.includes('historical receipt')&&!part('switch').disabled);
+      check(prefix+'outcome, actions and wrapped labels stay within actual page with no script errors',await reachable(part('switch'))&&
+        d.documentElement.scrollWidth<=w.innerWidth+1&&f.errors.length===0);
+    }
+  } catch(e) {checks.push({name:'fixture error: '+e.message,passed:false,stack:e.stack});}
+  window.testResults={passed:checks.filter(c=>c.passed).length,failed:checks.filter(c=>!c.passed).length,checks};
+  document.body.dataset.testPassed=String(testResults.failed===0);document.getElementById('results').textContent=JSON.stringify(testResults,null,2);
+})();
+</script>

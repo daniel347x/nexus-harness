@@ -1,0 +1,17 @@
+# Line endings: EVERYTHING is LF, in the repository and in the working tree, on every OS.
+# Any text file that arrives with CRLF (an editor, a Windows tool, the beacon writer) is stored as LF
+# on commit, and CRLF-only differences never show up as diffs.
+* text=auto eol=lf
+
+# Binaries: never converted.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.wav    binary
+*.mp3    binary
+*.zip    binary
+*.gz     binary
+*.db     binary
+*.sqlite binary

@@ -1,0 +1,9 @@
+{
+  "name": "Claude Managers",
+  "short_name": "Managers",
+  "start_url": "/m",
+  "scope": "/m",
+  "display": "standalone",
+  "background_color": "#151922",
+  "theme_color": "#151922"
+}

@@ -1,0 +1,135 @@
+<!doctype html><meta charset="utf-8"><title>Isolated full pane Claude mode integration</title>
+<style>body{margin:0}#pane{width:1400px;height:1000px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="pane" title="Actual pane markup, inert transport"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,app,defaults,refineCore,inspector,historyHTML,historyJS,historyCSS]=await Promise.all(['index.html','app.js','refine-defaults.js','refine-core.js','tool-inspector.js','sessions.html','sessions.js','sessions.css'].map(read));
+    const reading=await read('tool-reading.js');const refineView=await read('refine-view.js');
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,preview]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async n=>(await fetch(new URL(n,sharedBase))).text()));
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script'),env=x=>({schemaVersion:1,backend:'claude',...x}),ref=c=>c.repeat(32);
+    window.inert={requests:[],copies:[],mail:{epoch:'mail',revision:0,selection:null},channels:[]};
+    const t={schemaVersion:1,backend:'claude',targetRef:ref('T'),storeRef:ref('S'),sessionRef:ref('J'),scopeRef:ref('M'),leafRef:ref('L'),fileEpoch:ref('E'),
+      scope:'main',source:'host',uuid:'11111111-1111-4111-8111-111111111111',leafUuid:null,title:'Fixture Manager',role:'Manager',generation:1,
+      executionId:'cc-11111111-1111-4111-8111-111111111111',contextIdentity:ref('C'),capabilities:{history:true,nativeInput:false,controls:false}};
+    const session={...t,cwd:'fixture only',status:'ready',scopes:[{scopeRef:t.scopeRef,label:'main'}]};
+    const input='{"n":900719925474099312345,"doc":"line\\n\\tsecond 😀","literal":"intentional\\\\n"}', output='stored output 😀\n'.repeat(14000)+'TAIL';
+    const events=Array.from({length:40},(_,n)=>({recordRef:'r'+n,uuid:'uuid-'+n,kind:'assistant',status:'stored',text:n===0?'complete prose 😀\n'+ '🌈'.repeat(100001):'',
+      calls:[{block:0,id:'tool'+n,callRef:'call'+n,name:'mcp__workflowy__node',status:'stored',inputBytes:new TextEncoder().encode(input).length,outputBytes:new TextEncoder().encode(output).length,
+        previewData:{schemaVersion:1,status:'unavailable',reason:'fixture'}}]}));
+    inert.page=env({...t,events,branches:[],diagnostics:[],traces:[],status:'complete',change:'snapshot',hasMore:false,deltaCursor:ref('D'),targetInfo:t,
+      liveState:{status:'ready',owner:'live',retry:{active:true},silence:{active:true},background_tasks:{task1:{status:'running'}},escalation_pending:['incident1']},
+      incidents:[{incident_id:'incident1',category:'unknown',handler:'escalate',detail:{message:'fixture unknown'},task_acceptance:'unjudged'}]});
+    inert.transport=async(url,opts)=>{
+      inert.requests.push([url,opts?.body]);let d;
+      if(url.startsWith('/api/claude/sessions'))d=env({sessions:[session],status:'complete',hasMore:false});
+      else if(url==='/api/pins')d={schemaVersion:1,pins:{}};
+      else if(url.startsWith('/api/claude/events')||url.startsWith('/api/claude/target'))d=inert.page;
+      else if(url==='/api/claude/inspect'){
+        const q=JSON.parse(opts.body),n=Number(q.callRef.slice(4)),identity={storeRef:t.storeRef,sessionRef:t.sessionRef,scopeRef:t.scopeRef,leafRef:t.leafRef,recordRef:'r'+n,
+          sessionUuid:t.uuid,scope:'main',leafUuid:null,recordUuid:'uuid-'+n,recordHash:'hash'+n,blockIndex:0,callId:'tool'+n,callRef:q.callRef,fileEpoch:t.fileEpoch};
+        inert.mail={epoch:'mail',revision:inert.mail.revision+1,selection:{...q,source:'host',identity,toolName:'mcp__workflowy__node',sessionTitle:t.title,workspaceName:'fixture only'}};d=inert.mail;
+      }else if(url==='/api/tool-selection')d=inert.mail;
+      else if(url.startsWith('/api/tool-record'))d=env({...inert.mail,identity:inert.mail.selection.identity,provenance:'host-durable-feed',snapshot:env({callRef:inert.mail.selection.callRef,fileEpoch:t.fileEpoch,
+        provenance:'host-durable-feed',input,output,inputBytes:new TextEncoder().encode(input).length,outputBytes:new TextEncoder().encode(output).length,
+        inputAvailability:'stored',outputAvailability:'stored',inputFinal:true,live:true,terminal:true,status:'stored',artifactRef:null})});
+      else if(url==='/api/tool-selection/clear'){inert.mail={epoch:'mail',revision:inert.mail.revision+1,selection:null};d=inert.mail;}
+      else if(url==='/api/claude/launch-defaults')d=env({name:'Manager-Session-185',model:'claude-opus-5-5',effort:'xhigh'});
+      else if(url==='/api/claude/first-messages')d=env({manager:'Hello, Manager-Session-{N}.',subSession:'Sub-session {N}-{letter}.\n\nReason for this sub-session: '});
+      else if(url==='/api/active-session')d={sessionId:'ses_fixture',title:'CodeNomad',age_s:0,revision:1};
+      else if(url==='/oc/api/session/ses_fixture')d={data:{title:'CodeNomad',agent:'manager'}};
+      else if(url.startsWith('/api/claude/context')){const q=new URL(url,'http://inert').searchParams;const text='[USER]\ngenuine prose\n\n---\n\n[ASSISTANT]\nresponse 😀'+(inert.longContext?'\n\nolder filler line'.repeat(600)+'\n\nNEWEST CONTEXT':'');d=env({...t,text,bytes:new TextEncoder().encode(text).length,turns:2,users:1,readAt:Date.now(),targetRevision:Number(q.get('targetRevision')),status:'stored'});}
+      else throw new Error('No live route allowed '+url);
+      return new Response(JSON.stringify(d));
+    };
+    const mock=owner=>`
+      window.fixture={errors:[],owner:${JSON.stringify(owner)}};addEventListener('error',e=>fixture.errors.push(e.message));
+      const inert=top.inert;window.fetch=(...args)=>inert.transport(...args);
+      Object.defineProperty(window,'localStorage',{value:{getItem:k=>fixture.store?.get(k)??null,setItem:(k,v)=>(fixture.store||=new Map()).set(k,String(v)),removeItem:k=>fixture.store?.delete(k)}});
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>inert.copies.push(text)}});
+      window.BroadcastChannel=class{constructor(){inert.channels.push(this);}postMessage(data){for(const other of inert.channels)if(other!==this)queueMicrotask(()=>other.onmessage?.({data}));}close(){}};
+    `;
+    const frame=document.getElementById('pane');
+    frame.srcdoc=html.replace('<head>',`<head><base href="${base.href}">`).replace(/  <script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock('editor'))}<\/script><script>${safe(defaults)}<\/script><script>${safe(refineCore)}<\/script><script>${safe(refineView)}<\/script><script>${safe(app.replace(/main\(\);\s*$/,'')+'\nfixture.api={state,renderTarget,setBackend,send,wire,pollWatcher,refreshContext,initializeTargetState};wire();initializeTargetState();')}<\/script><script>${safe(shared)}<\/script><script>${safe(reading)}<\/script><script>${safe(inspector)}<\/script></body>`);
+    await new Promise(r=>frame.onload=r);await sleep(80);
+    const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id),box=el('transcript');
+    box.value='unsaved dictation 😀';box.focus();check('OpenCode has no Claude frame load or layout',!el('claude-sessions-frame').getAttribute('src')&&el('claude-viewer').hidden&&!d.body.classList.contains('claude-mode'));
+    w.fixture.api.setBackend('claude');const inner=el('claude-sessions-frame');
+    const markup=historyHTML.replace(/<link[^>]+>/,'<style>'+historyCSS+'</style>').replace(/<script src="[^"]+"><\/script>/g,'')
+      .replace('</body>',()=>`<script>${safe(mock('viewer'))}<\/script><script>${safe(shared)}<\/script><script>${safe(preview)}<\/script><script>${safe(historyJS.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script></body>`);
+    inner.srcdoc=markup;await new Promise(r=>inner.onload=r);await sleep(80);
+    const hw=inner.contentWindow,hd=hw.document,he=id=>hd.getElementById(id);he('sessions-list').querySelector('button').click();await sleep(80);
+    // Round 9a: the tool pane is there from page load, before any tool is clicked; the OpenCode dropdown is not.
+    check('round 9a: the tool column is visible with nothing selected and says how to fill it',el('tool-column').getBoundingClientRect().width>40&&el('tool-inspector').getBoundingClientRect().height>100&&
+      /No tool call selected/.test(el('inspector-title').textContent)&&!el('inspector-close')&&!el('inspector-collapse'));
+    check('round 9a: no Follow CodeNomad dropdown in Claude mode',w.getComputedStyle(el('target-select')).display==='none');
+    check('ONE existing viewer renders all forty compact calls without tool-record storm',he('history-events').querySelectorAll('.tool-bar').length===40&&!inert.requests.some(([u])=>u.startsWith('/api/tool-record')));
+    check('full Unicode prose remains available',he('history-events').textContent.includes('🌈'.repeat(100001)));
+    check('full-width layout puts same-origin live browser to the right',inner.getBoundingClientRect().left>=el('pane-editor').getBoundingClientRect().right&&inner.clientWidth>600);
+    check('the conversation column opens on 💬 Conversation with 📄 View beside it; View is not loaded until used (no frame src, no glimpse read)',
+      he('history').dataset.pane==='conversation'&&he('pane-conversation').getAttribute('aria-selected')==='true'&&he('pane-view').textContent==='📄 View'&&
+      he('desktop-view').hidden&&!he('desktop-view-frame').getAttribute('src')&&!inert.requests.some(([u])=>u.includes('glimpse'))&&el('glimpse-link').tagName==='BUTTON');
+    check('inventory distinguishes Manager and all Claude Send disabled',he('sessions-list').textContent.includes('Manager')&&el('send-btn').disabled);
+    // Round 6: ＋ New Manager sits at the top of the conversation view's session list, always visible, driven by the editor.
+    check('New Manager is visible at the top of the session list in Claude mode, its form closed',!he('claude-new-manager-row').hidden&&he('claude-new-manager').getBoundingClientRect().width>0&&
+      he('claude-new-manager').getBoundingClientRect().top<he('sessions-list').getBoundingClientRect().top&&he('claude-new-manager-form').hidden&&!el('claude-new-manager'));
+    he('claude-new-manager').click();await sleep(60);
+    check('New Manager opens its inline form with the suggested name and free model entry, suggestions included (Fable 5.1 among them)',!he('claude-new-manager-form').hidden&&he('claude-new-name').value==='Manager-Session-185'&&
+      he('claude-new-model').tagName==='INPUT'&&he('claude-new-model').value==='claude-opus-5-5'&&
+      !!he('claude-new-models').querySelector('option[value="claude-fable-5-1"]')&&he('claude-new-effort').value==='xhigh'&&he('claude-new-status').textContent.includes('its first message goes out when it is ready')&&
+      he('claude-first-manager').value==='Hello, Manager-Session-{N}.');
+    he('claude-new-effort').value='high';he('claude-new-effort').dispatchEvent(new hw.Event('change'));
+    he('claude-new-cancel').click();he('claude-new-manager').click();await sleep(60);
+    check('an explicit high choice survives reopening and the server’s xhigh defaults',he('claude-new-effort').value==='high');
+    he('claude-new-cancel').click();check('Close folds the form back to the button',he('claude-new-manager-form').hidden&&!he('claude-new-manager-row').hidden);
+    he('history-target').click();await sleep(1700);check('direct parent relay validates exact host Refine target',w.fixture.api.state.claudeTarget?.executionId===t.executionId);
+    const pill=el('target-pill'),backendBox=el('backend-select').getBoundingClientRect(),pillBox=pill.getBoundingClientRect();
+    check('round 9a: the session badge shows no UUID or ready status, one line on the backend row, smaller',!pill.textContent.includes(t.uuid)&&!/Ready/.test(pill.textContent)&&pill.title.includes(t.uuid)&&
+      pillBox.top<backendBox.bottom&&pillBox.bottom>backendBox.top&&parseFloat(w.getComputedStyle(pill).fontSize)<=10);
+    await w.fixture.api.pollWatcher();check('CodeNomad watcher never retargets Claude',w.fixture.api.state.backend==='claude'&&w.fixture.api.state.claudeTarget.uuid===t.uuid);
+    he('history-events').querySelectorAll('.tool-bar')[17].click();box.focus();await sleep(900);
+    check('deliberate bar opens existing inspector without stealing dictation focus',el('tool-inspector').classList.contains('held')&&d.activeElement===box&&/tool17/.test(el('inspector-origin').textContent));
+    check('full output survives native preview caps',el('inspector-output').textContent===output);
+    // Round 5: the held call gets its own full-height column right of the transcription column.
+    const ed=el('editor-main').getBoundingClientRect(),col=el('tool-column').getBoundingClientRect(),pe=el('pane-editor').getBoundingClientRect();
+    check('round 5: tool inspector sits in its own full-height column right of the transcription column',el('tool-inspector').parentNode===el('tool-column')&&
+      col.left>=box.getBoundingClientRect().right&&col.left>=ed.right&&col.height>=pe.height-2&&col.right<=inner.getBoundingClientRect().left&&getComputedStyle(el('tool-divider')).display==='block');
+    // Main divider: drag 100px right widens the transcription half and is remembered.
+    const md=el('main-divider'),mdr=md.getBoundingClientRect(),editorWidth=pe.width,y=mdr.top+40;
+    const pointer=(type,x)=>md.dispatchEvent(new w.PointerEvent(type,{pointerId:1,button:0,clientX:x,clientY:y,bubbles:true,cancelable:true}));
+    pointer('pointerdown',mdr.left+4);pointer('pointermove',mdr.left+104);pointer('pointerup',mdr.left+104);await sleep(30);
+    check('round 5: dragging the main divider widens the transcription half and remembers it',Math.abs(el('pane-editor').getBoundingClientRect().width-editorWidth-100)<6&&
+      Number(w.localStorage.getItem('pane_main_split_v1'))>40&&inner.getBoundingClientRect().left>=el('pane-editor').getBoundingClientRect().right);
+    const toolWidth=el('tool-column').getBoundingClientRect().width;el('tool-divider').focus();
+    el('tool-divider').dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true,cancelable:true}));await sleep(20);
+    check('round 5: the tool column divider resizes the tool column (keyboard too)',el('tool-column').getBoundingClientRect().width>toolWidth+4);
+    box.focus();
+    inert.longContext=true;el('ctx-view').click();await sleep(120);
+    const ctxPre=el('ctx-pre');
+    check('round 5: the context View dialog opens scrolled to the newest context at the bottom',el('ctx-dialog').open&&ctxPre.scrollHeight>ctxPre.clientHeight&&ctxPre.scrollHeight-ctxPre.scrollTop-ctxPre.clientHeight<=2);
+    el('ctx-dialog').close();inert.longContext=false;box.focus();
+    el('inspector-copy-input').click();await sleep(20);check('exact lexical raw Copy preserves huge integer and encoded newlines',inert.copies.at(-1)===input);
+    el('inspector-readable-input').checked=true;el('inspector-readable-input').dispatchEvent(new w.Event('change'));
+    check('readable one-layer JSON documents and raw Copy remain separate',el('inspector-input').querySelector('.inspector-document')?.textContent==='line\n\tsecond 😀');
+    el('inspector-copy-input').click();await sleep(20);check('readable mode raw Copy remains exact',inert.copies.at(-1)===input);
+    const outputNode=el('inspector-output');outputNode.scrollTop=140;const range=d.createRange();range.setStart(outputNode.firstChild,5);range.setEnd(outputNode.firstChild,15);w.getSelection().addRange(range);const selected=w.getSelection().toString();
+    const hf=he('history-viewport');hw.fixture.api.setFollow(false,{byScroll:true});hf.scrollTop=50;const before=hf.scrollTop;
+    hw.fixture.api.reconcile([{recordRef:'new',uuid:'new',kind:'assistant',status:'stored',text:'later prose',calls:[]}],'delta',t.fileEpoch);
+    check('append preserves selected inspector text/scroll and scrolled-up timeline',w.getSelection().toString()===selected&&outputNode.scrollTop===140&&hf.scrollTop===before);
+    w.getSelection().removeAllRanges();await w.fixture.api.refreshContext();check('common Refine context contains genuine prose and no tool JSON',w.fixture.api.state.ctx.text.includes('genuine prose')&&!w.fixture.api.state.ctx.text.includes('900719925'));
+    const selectedCall=el('inspector-origin').textContent;w.fixture.api.setBackend('opencode');await sleep(60);
+    check('return to OpenCode retains draft and held call, hides—not remounts—viewer',box.value==='unsaved dictation 😀'&&el('inspector-origin').textContent===selectedCall&&el('claude-viewer').hidden);
+    check('round 5: OpenCode mode puts the inspector back under dictation with its reading position',el('tool-inspector').parentNode===el('work-area')&&outputNode.scrollTop===140);
+    const hiddenReads=inert.requests.length;hw.fixture.api.state.nextPoll=0;await hw.fixture.api.poll();check('hidden embedded browser pauses reads without clearing its state',inert.requests.length===hiddenReads&&hw.fixture.api.state.order.length===41);
+    w.fixture.api.setBackend('claude');check('return to Claude keeps mounted frame/call/viewport',el('claude-sessions-frame')===inner&&inner.contentWindow===hw&&he('history-events').querySelectorAll('.tool-bar').length===40);
+    box.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',ctrlKey:true,bubbles:true,cancelable:true}));await sleep(20);check('actual Send hotkey has zero transport and neutral guidance for an initializing Manager',box.value==='unsaved dictation 😀'&&/Connecting/.test(el('status').textContent)&&!el('status').classList.contains('err')&&!inert.requests.some(([u])=>u.includes('/send')));
+    frame.style.width='420px';await sleep(80);check('narrow same page stacks viewer without horizontal overflow or crushed dictation',d.documentElement.scrollWidth<=frame.clientWidth+1&&box.clientHeight>=100&&inner.getBoundingClientRect().top>=el('pane-editor').getBoundingClientRect().bottom);
+    check('isolated actual markup initialized without errors',w.fixture.errors.length===0&&hw.fixture.errors.length===0);
+  }catch(e){checks.push({name:e.message,passed:false});}
+  window.testResults={passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks};document.body.dataset.testPassed=String(testResults.failed===0);document.getElementById('results').textContent=JSON.stringify(testResults,null,2);
+})();
+</script>

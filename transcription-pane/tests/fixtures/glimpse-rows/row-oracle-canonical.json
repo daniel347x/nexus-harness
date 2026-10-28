@@ -1,0 +1,1376 @@
+{
+ "source": "NEXUS 8e6e320 tests/js/fixtures/md-row-list/baseline.json, case canonical-no-icons (S2's immutable row oracle, captured from the untouched dock painter at 0c56c96)",
+ "source_sha256": "43bb24b85a184c5a0239939f96a2fa21121311b7d3033c08f8f0b1359da97767",
+ "provenance": {
+  "commit": "0c56c969dc9e58f6695f6d132780e6bc9fdee007",
+  "clientSha256": "0c691876d9d5974f29328dec411a55339a61e8ee5fe6ea2320256c79695aa72f",
+  "command": "node tests/js/fixtures/md-row-list/capture-baseline.js",
+  "timezone": "America/New_York",
+  "locale": "en-US",
+  "resolvedLocale": "en-US"
+ },
+ "case": {
+  "name": "canonical-no-icons",
+  "rows": [
+   {
+    "depth": 0,
+    "text": "Root <tag> & \"raw\"",
+    "created": 1577854800,
+    "modified": 1580533200
+   },
+   {
+    "depth": 1,
+    "text": "Child",
+    "created": 1772902801,
+    "modified": 1772902802
+   },
+   {
+    "depth": 4,
+    "text": "漢字 café é 🪟",
+    "created": 1772953200,
+    "modified": 1773028800
+   },
+   {
+    "depth": 7,
+    "text": "Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long ",
+    "created": 1772985662,
+    "modified": 1773057600
+   },
+   {
+    "depth": 1,
+    "text": "",
+    "created": 1772992800,
+    "modified": 1773144000
+   },
+   {
+    "depth": 4,
+    "text": "Missing times"
+   },
+   {
+    "depth": 0,
+    "text": "Outdent",
+    "created": 1772913600,
+    "modified": 1772982000
+   },
+   {
+    "depth": 1,
+    "text": null,
+    "created": 0,
+    "modified": -1
+   },
+   {
+    "depth": 0,
+    "text": "Final leaf",
+    "created": 1773201660,
+    "modified": 1773288060
+   }
+  ],
+  "sortBy": "modified",
+  "sortDir": "asc",
+  "selected": [
+   4
+  ],
+  "primary": 4,
+  "expected": {
+   "tree": {
+    "tag": "div",
+    "className": "",
+    "attributes": [],
+    "text": "",
+    "innerHTML": "",
+    "style": [],
+    "title": "",
+    "listeners": [],
+    "children": [
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "0"
+       ]
+      ],
+      "title": "Modified: Feb 01, 2020, 12:00:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "0px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Root <tag> & \"raw\"",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "1"
+       ]
+      ],
+      "title": "Modified: Mar 07, 2026, 12:00:02 PM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "14px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Child",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "4"
+       ]
+      ],
+      "title": "Modified: Mar 09, 2026, 12:00:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "56px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "漢字 café é 🪟",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-daysep",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "display",
+        "flex"
+       ],
+       [
+        "alignItems",
+        "center"
+       ],
+       [
+        "gap",
+        "6px"
+       ],
+       [
+        "margin",
+        "5px 0 1px 0"
+       ],
+       [
+        "pointerEvents",
+        "none"
+       ],
+       [
+        "userSelect",
+        "none"
+       ]
+      ],
+      "title": "",
+      "listeners": [],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-daysep-label",
+        "attributes": [],
+        "text": "Mon, Mar 09, 2026",
+        "innerHTML": "",
+        "style": [
+         [
+          "flex",
+          "0 0 auto"
+         ],
+         [
+          "fontSize",
+          "9px"
+         ],
+         [
+          "fontWeight",
+          "600"
+         ],
+         [
+          "whiteSpace",
+          "nowrap"
+         ],
+         [
+          "color",
+          "rgba(120,140,170,0.95)"
+         ],
+         [
+          "letterSpacing",
+          "0.3px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "flex",
+          "1 1 auto"
+         ],
+         [
+          "height",
+          "0"
+         ],
+         [
+          "borderTop",
+          "1px solid rgba(120,140,170,0.4)"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "7"
+       ]
+      ],
+      "title": "Modified: Mar 09, 2026, 08:00:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "98px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long Long ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row selected",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "1"
+       ]
+      ],
+      "title": "Modified: Mar 10, 2026, 08:00:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": "●",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "14px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "4"
+       ]
+      ],
+      "title": "",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "56px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Missing times",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "0"
+       ]
+      ],
+      "title": "Modified: Mar 08, 2026, 11:00:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "0px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Outdent",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "1"
+       ]
+      ],
+      "title": "",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "14px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-daysep",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "display",
+        "flex"
+       ],
+       [
+        "alignItems",
+        "center"
+       ],
+       [
+        "gap",
+        "6px"
+       ],
+       [
+        "margin",
+        "5px 0 1px 0"
+       ],
+       [
+        "pointerEvents",
+        "none"
+       ],
+       [
+        "userSelect",
+        "none"
+       ]
+      ],
+      "title": "",
+      "listeners": [],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-daysep-label",
+        "attributes": [],
+        "text": "Thu, Mar 12, 2026",
+        "innerHTML": "",
+        "style": [
+         [
+          "flex",
+          "0 0 auto"
+         ],
+         [
+          "fontSize",
+          "9px"
+         ],
+         [
+          "fontWeight",
+          "600"
+         ],
+         [
+          "whiteSpace",
+          "nowrap"
+         ],
+         [
+          "color",
+          "rgba(120,140,170,0.95)"
+         ],
+         [
+          "letterSpacing",
+          "0.3px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "flex",
+          "1 1 auto"
+         ],
+         [
+          "height",
+          "0"
+         ],
+         [
+          "borderTop",
+          "1px solid rgba(120,140,170,0.4)"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     },
+     {
+      "tag": "div",
+      "className": "glimpse-md-dock-row",
+      "attributes": [],
+      "text": "",
+      "innerHTML": "",
+      "style": [
+       [
+        "paddingLeft",
+        "0"
+       ],
+       [
+        "--glimpseDockDepth",
+        "0"
+       ]
+      ],
+      "title": "Modified: Mar 12, 2026, 12:01:00 AM",
+      "listeners": [
+       "click"
+      ],
+      "children": [
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-marker",
+        "attributes": [],
+        "text": " ",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-indent",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [
+         [
+          "display",
+          "inline-block"
+         ],
+         [
+          "width",
+          "0px"
+         ]
+        ],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-icon",
+        "attributes": [],
+        "text": "",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       },
+       {
+        "tag": "span",
+        "className": "glimpse-md-dock-label",
+        "attributes": [],
+        "text": "Final leaf",
+        "innerHTML": "",
+        "style": [],
+        "title": "",
+        "listeners": [],
+        "children": []
+       }
+      ]
+     }
+    ]
+   },
+   "links": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "events": [
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     0,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     0,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     0,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     0,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     1,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     1,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     1,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     1,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     2,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     2,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     2,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     2,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     3,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     3,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     3,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     3,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     4,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     4,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     4,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     4,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     5,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     5,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     5,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     5,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     6,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     6,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     6,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     6,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     7,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     7,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     7,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     7,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     8,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     8,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     8,
+     true
+    ],
+    [
+     "focus"
+    ],
+    [
+     "stopPropagation"
+    ],
+    [
+     "callback",
+     8,
+     true
+    ],
+    [
+     "focus"
+    ]
+   ]
+  }
+ }
+}

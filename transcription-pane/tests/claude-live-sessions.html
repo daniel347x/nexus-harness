@@ -1,0 +1,153 @@
+<!doctype html><meta charset="utf-8"><title>Isolated live Claude browser fixture — all transport inert</title>
+<style>body{margin:0}iframe{border:0;vertical-align:top;height:900px}#history{width:1000px}#editor{width:420px}pre{white-space:pre-wrap}</style>
+<iframe id="history" title="Actual live/history viewer"></iframe><iframe id="editor" title="Actual existing inspector"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const results=[],check=(name,ok)=>{results.push({name,passed:!!ok});if(!ok)throw new Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try{
+    const base=new URL('../static/',location.href),read=async name=>(await fetch(new URL(name,base))).text();
+    const [html,js,css,index,inspector]=await Promise.all(['sessions.html','sessions.js','sessions.css','index.html','tool-inspector.js'].map(read));
+    const reading=await read('tool-reading.js');
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const [shared,core]=await Promise.all(['tool-record-text.js','tool-preview-core.js'].map(async name=>(await fetch(new URL(name,sharedBase))).text()));
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    window.liveFixture={mail:{epoch:'mail',revision:1,selection:null},requests:[],copied:[],errors:[]};
+    liveFixture.raw=' \r\n'+String.raw`{"doc":"Heading\n\tline 😀\\n literal <img src=x>","big":900719925474099312345,"n":-0}`+'\r\n'+'🌈\n'.repeat(12000);
+    liveFixture.identity={storeRef:'store',sessionRef:'host',scopeRef:'main',leafRef:'leaf',recordRef:'r0',sessionUuid:'native-uuid',scope:'main',leafUuid:'leaf-uuid',recordUuid:'uuid0',recordHash:'witness',blockIndex:0,callId:'tool0',callRef:'call0',fileEpoch:'epoch'};
+    liveFixture.snapshot=()=>({schemaVersion:1,backend:'claude',epoch:'mail',revision:liveFixture.mail.revision,selection:liveFixture.mail.selection,identity:liveFixture.identity,provenance:'host-durable-feed',snapshot:{schemaVersion:1,backend:'claude',callRef:'call0',fileEpoch:'epoch',provenance:'host-durable-feed',status:'stored',live:true,terminal:true,inputFinal:true,input:liveFixture.raw,output:liveFixture.raw,inputAvailability:'stored',outputAvailability:'stored',inputBytes:new TextEncoder().encode(liveFixture.raw).length,outputBytes:new TextEncoder().encode(liveFixture.raw).length}});
+    const editorMock=`
+      const fixture=parent.liveFixture;addEventListener('error',e=>fixture.errors.push(e.message));
+      window.fetch=async(url,opts)=>{fixture.requests.push(['editor',url]);let data;if(url==='/api/tool-selection')data=fixture.mail;else if(url.startsWith('/api/tool-record'))data=fixture.snapshot();else throw new Error('No live editor request: '+url);return new Response(JSON.stringify(data));};
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async t=>fixture.copied.push(t)},configurable:true});
+    `;
+    const editorFrame=document.getElementById('editor');editorFrame.srcdoc=index.replace('<head>',`<head><base href="${base.href}">`).replace(/<script src="[^"]+"><\/script>/g,'').replace('</body>',()=>`<script>${safe(editorMock)}<\/script><script>${safe(shared)}<\/script><script>${safe(reading)}<\/script><script>${safe(inspector)}<\/script></body>`);
+    await new Promise(r=>editorFrame.onload=r);await sleep(50);
+    const mock=`
+      window.fixture={requests:[],messages:[],errors:[],previewCalls:0};addEventListener('error',e=>fixture.errors.push(e.message));
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      fixture.host={sessionRef:'host',uuid:'native-uuid',executionId:'cc-native-uuid',generation:2,source:'host',role:'manager',title:'Manager',cwd:'fixture',state:{owner:'owned'},capabilities:{nativeInput:false},scopes:[{scopeRef:'main',label:'main'}]};
+      fixture.sessions=[fixture.host,{...fixture.host,sessionRef:'conductor',role:'conductor',title:'Conductor'},{...fixture.host,sessionRef:'worker',role:'worker',title:'Worker'},{...fixture.host,sessionRef:'history',uuid:'history-uuid',source:'linux-history',title:'History'}];
+      fixture.descriptor=v=>({schemaVersion:1,status:'available',value:{kind:'string',characters:Array.from(v).length,jsonCharacters:Array.from(JSON.stringify(v)).length,head:Array.from(v).slice(0,128).join(''),tail:Array.from(v).slice(-128).join('')}});
+      fixture.event=(n,text='prose '+n)=>({recordRef:'r'+n,uuid:'uuid'+n,kind:'assistant',status:'streaming',text,calls:[]});
+      fixture.tool=(n,status='streaming',value='partial '+n+' 🌈')=>({...fixture.event(n),status,calls:[{id:'tool'+n,block:0,callRef:'call'+n,name:'mcp__workflowy__node',status,previewData:fixture.descriptor(value),inputBytes:new TextEncoder().encode(value).length,outputBytes:null}]});
+      fixture.page=(events,extra={})=>env({sessionRef:'host',scopeRef:'main',fileEpoch:'epoch',leafRef:'leaf',targetRef:'target',events,status:'complete',change:'snapshot',hasMore:false,deltaCursor:'delta',branches:[],liveState:{owner:'unknown',nativeRetry:{attempt:3},silence:{duration:601},backgroundTasks:{task:'running'},settings:{status:'unverified'},escalation:{state:'pending'}},incidents:[{kind:'unknown_error',recipient:'Dan'}],...extra});
+      fixture.data=fixture.page(Array.from({length:40},(_,i)=>fixture.tool(i,'streaming',i===0?'🌈'.repeat(100001)+'TAIL-A':undefined)));
+      window.BroadcastChannel=class{postMessage(m){fixture.messages.push(m);}};
+      window.fetch=async(url,opts)=>{if(String(url).startsWith('/api/opencode/'))return new Response(JSON.stringify({schemaVersion:1,backend:'opencode',status:'unavailable',error:'offline fixture',sessions:[]})); // its own channel
+      fixture.requests.push([url,opts]);let data;
+        if(url.startsWith('/api/claude/sessions'))data=env({sessions:fixture.sessions,hasMore:false,status:'complete'});
+        else if(url==='/api/pins')data={schemaVersion:1,pins:{}};
+        else if(url.startsWith('/api/claude/subagents'))data=env({sessions:fixture.children || [],hasMore:false,status:'complete'});
+         else if(url.startsWith('/api/claude/events'))data=fixture.eventQueue?.length?fixture.eventQueue.shift():fixture.data;
+        else if(url==='/api/tool-selection')data=parent.liveFixture.mail;
+        else if(url==='/api/claude/inspect'){const c=JSON.parse(opts.body);parent.liveFixture.mail={epoch:'mail',revision:parent.liveFixture.mail.revision+1,selection:{...c,source:'host',identity:parent.liveFixture.identity,toolName:'mcp__workflowy__node',sessionTitle:'Manager',scope:'main'}};data=parent.liveFixture.mail;}
+        else throw new Error('No live history request: '+url);return new Response(JSON.stringify(data));};
+    `;
+    const frame=document.getElementById('history');frame.srcdoc=html.replace(/<link[^>]+>/,'<style>'+css+'</style>').replace(/<script src="[^"]+"><\/script>/g,'').replace('</body>',()=>`<script>${safe(mock)}<\/script><script>${safe(shared)}<\/script><script>${safe(core)}<\/script><script>const actual=opcToolPreview;window.opcToolPreview={...actual,preview:(...a)=>{fixture.previewCalls++;return actual.preview(...a);}};<\/script><script>${safe(js.replace('const history=createClaudeHistory();','const history=createClaudeHistory();fixture.api=history;'))}<\/script></body>`);
+    await new Promise(r=>frame.onload=r);await sleep(100);
+    const w=frame.contentWindow,d=w.document,el=id=>d.getElementById(id),api=w.fixture.api,ed=editorFrame.contentWindow.document,e=id=>ed.getElementById(id);
+    check('actual scripts initialize without errors',w.fixture.errors.length===0&&liveFixture.errors.length===0);
+    check('explicit Manager/Conductor/worker/history roles',/Manager.*Conductor.*Worker.*History/s.test(el('sessions-list').textContent));
+    el('sessions-role').value='worker';el('sessions-role').dispatchEvent(new w.Event('change'));
+    check('role filter over the whole list performs no extra reads',el('sessions-list').querySelectorAll('button').length===1&&w.fixture.requests.filter(([url])=>url!=='/api/pins').length===1);
+    el('sessions-role').value='all';el('sessions-role').dispatchEvent(new w.Event('change'));el('sessions-list').querySelector('button').click();await sleep(50);
+    check('forty compact bars one event request, no row body storm',el('history-events').querySelectorAll('.tool-bar').length===40&&w.fixture.requests.filter(([url])=>url!=='/api/pins').length===2&&w.fixture.previewCalls===40);
+    check('shared long Unicode preview includes exact distinct tail',el('history-events').querySelector('.tool-preview').textContent.includes('TAIL-A'));
+    el('history-tools').checked=true;el('history-tools').dispatchEvent(new w.Event('change'));check('messages shown by default; compact tools-only and three-line density when chosen',getComputedStyle(el('history-events').querySelector('.tool-preview')).webkitLineClamp==='3'&&getComputedStyle(el('history-events').querySelector('.event-prose')).display==='none');
+    check('initializing Manager explains automatic readiness observation; no second editor',el('history-capabilities').textContent.includes('readiness is checked automatically')&&
+      ![...d.querySelectorAll('textarea')].some(t=>!t.closest('#claude-new-manager-row')));
+    check('retry/silence/unknown/background/settings/escalation honest evidence',/unknown.*nativeRetry.*silence.*backgroundTasks.*unverified.*pending.*unknown_error/s.test(el('history-live').textContent));
+    el('history-tools').checked=false;el('history-tools').dispatchEvent(new w.Event('change'));el('history-density').value='5';el('history-density').dispatchEvent(new w.Event('change'));
+    check('full messages and five-line choice use same mounted events',getComputedStyle(el('history-events').querySelector('.event-prose')).display!=='none'&&getComputedStyle(el('history-events').querySelector('.tool-preview')).webkitLineClamp==='5');
+    const row=api.state.rows.get('r0'),article=row.node,prose=row.prose,button=row.calls[0].node,preview=button.children[1],scroll=el('history-viewport');
+    api.setFollow(false,{byScroll:true});scroll.scrollTop=35;const before=scroll.scrollTop;button.focus();api.reconcile([{...w.fixture.tool(0,'streaming','changed input'),text:'changed prose'}],'delta','epoch');
+    check('changed live event preserves article/prose/tool focus and scroll',row.node===article&&row.prose===prose&&row.calls[0].node===button&&d.activeElement===button&&scroll.scrollTop===before);
+    const range=d.createRange();range.setStart(preview.firstChild,1);range.setEnd(preview.firstChild,8);w.getSelection().addRange(range);const selected=w.getSelection().toString(),old=preview.textContent;
+    const final={...w.fixture.tool(0,'stored','Final 😀 input'),text:'Final prose'};final.calls[0].outputBytes=262144;w.fixture.data=w.fixture.page([],{eventUpdates:[final]});await api.page('delta','delta');
+    check('selected preview survives partial-final update with mounted node',w.getSelection().toString()===selected&&preview.textContent===old&&row.calls[0].node===button&&row.deferred);
+    w.getSelection().removeAllRanges();await sleep(30);
+    check('release applies final preview/status/counts without remount',preview.textContent.includes('Final')&&button.textContent.includes('256.0 KiB')&&row.prose===prose&&prose.textContent==='Final prose'&&!row.deferred);
+    const proseRange=d.createRange();proseRange.selectNodeContents(prose);w.getSelection().addRange(proseRange);api.reconcile([{...final,text:'Later final prose'}],'delta','epoch');
+    check('full prose text selection is also deferred',w.getSelection().toString()==='Final prose'&&prose.textContent==='Final prose');w.getSelection().removeAllRanges();await sleep(30);
+     check('full prose latest repaint on release',prose.textContent==='Later final prose');
+    api.reconcile([{...w.fixture.event(90,'answer'),status:'stored',model:'claude-opus-5-5',effort:'high'},{recordRef:'r91',uuid:'uuid91',kind:'user',status:'stored',text:'you',calls:[],model:'claude-opus-5-5',effort:'high'}],'delta','epoch');await sleep(30);
+    {const lab=api.state.rows.get('r90').label,role=lab.querySelector('.event-role'),model=lab.querySelector('.event-model'),rs=getComputedStyle(role),ms=getComputedStyle(model);
+     check('a Claude block header reads its role, then the model and level recorded on it in the same type, dimmer; nothing on You ['+model.textContent+' · '+ms.opacity+']',
+       model.textContent==='(Opus 5.5 · high)'&&role.nextElementSibling===model&&ms.fontSize===rs.fontSize&&ms.fontWeight===rs.fontWeight&&Number(ms.opacity)<1&&ms.display!=='none'&&
+       Math.abs(model.getBoundingClientRect().top-role.getBoundingClientRect().top)<4&&getComputedStyle(api.state.rows.get('r91').label.querySelector('.event-model')).display==='none');}
+     const summary='<img src=x onerror=bad()> streamed summary 🌈',thinking={blockIndex:1,text:summary,availability:'stored',streaming:true};
+     api.reconcile([{...final,thinking:[thinking],partial:true}],'delta','epoch');const block=row.thinking[0],details=block.node,body=block.body;
+     check('actual thinking disclosure is open while streaming, above reply, safe text only',details.open&&details.nextElementSibling===prose&&body.textContent===summary&&!details.querySelector('img'));
+     const summaryRange=d.createRange();summaryRange.selectNodeContents(body);w.getSelection().addRange(summaryRange);const summarySelection=w.getSelection().toString();
+     api.reconcile([{...final,thinking:[{...thinking,text:'Completed summary',streaming:false}],partial:false}],'delta','epoch');
+     check('thinking selection defers final replacement without duplicate disclosure',w.getSelection().toString()===summarySelection&&body.textContent===summary&&row.node.querySelectorAll('.event-thinking').length===1&&row.deferred);
+     w.getSelection().removeAllRanges();await sleep(30);details.open=false;api.reconcile([{...final,thinking:[{...thinking,text:'Final summary revised',streaming:false}]}],'delta','epoch');
+     check('completed disclosure retains mounted nodes and user collapse state',row.thinking[0].node===details&&row.thinking[0].body===body&&!details.open&&body.textContent==='Final summary revised'&&row.prose===prose&&prose.textContent==='Final prose');
+     const liveState={state:'ready',owner:'owned',activity:{state:'thinking',thinkingTokens:1234,lastEventAt:Date.now()/1000-2},silence_observation:{duration:601}};
+     w.fixture.data=w.fixture.page([],{liveState});await api.page('delta','delta');const banner=el('history-activity'),age=Number(banner.textContent.match(/last event (\d+) s ago/)[1]);await sleep(2100);
+     check('always-visible activity banner shows thinking tokens and clock ticks without a request ['+banner.textContent+'; prior age '+age+'; hidden '+d.hidden+'; position '+getComputedStyle(banner).position+']',banner.textContent.includes('Thinking (1,234 tokens)')&&Number(banner.textContent.match(/last event (\d+) s ago/)[1])>age&&getComputedStyle(banner.parentNode.id==='history-topbar'?banner.parentNode:banner).position==='sticky');
+     for(const [state,label,extra]of [['idle','Idle'],['writing','Writing'],['tool','Running tool X',{tool:'X'}],['retrying','Retrying (attempt 2)',{attempt:2}],['permission','Waiting for permission'],['unknown','Activity unknown']]){Object.assign(api.state.liveState.activity,{state,...extra});api.activity();check('actual banner '+label,banner.textContent.startsWith(label));}
+     api.state.observationError='offline';api.activity();check('offline never claims idle or active',banner.textContent.startsWith('Offline / observation unavailable · activity unknown'));api.state.observationError=null;
+     w.fixture.data=w.fixture.page([],{contextReadout:{state:'measured',occupancy_tokens:294246,window_tokens:1000000,measured_at:1792005183.797,label:'measured: as of the previous model call (2026-10-14T19:13:03Z, 12s old)'},sourceProgress:{indexedBytes:2516582,sourceBytes:5029000,kind:'host-raw',status:'indexing'}});
+     await api.page('delta','delta');
+     check('actual banner shows measured context tokens with honest as-of time',/context 294K \/ 1M \(29%\) · as of \d{2}:\d{2}$/.test(banner.textContent)&&banner.dataset.context==='measured'&&banner.title.includes('as of the previous model call'));
+     check('actual window line relabels viewer memory and shows the raw source MB',/viewer memory \d+ bytes \(resident rows, not context\)/.test(el('history-window').textContent)&&/viewer source 2\.5 MB \/ 5\.0 MB indexed \(raw stream\)/.test(el('history-window').textContent)&&!el('history-window').textContent.includes('stored view bytes'));
+     w.fixture.data=w.fixture.page([],{contextReadout:{state:'measured',occupancy_tokens:294246,window_tokens:null,measured_at:1792005183.797}});
+     await api.page('delta','delta');
+     check('measured tokens survive an unavailable native window in actual markup',/context 294K · as of \d{2}:\d{2}$/.test(banner.textContent)&&!banner.textContent.includes('context unknown')&&banner.dataset.context==='measured');
+     w.fixture.data=w.fixture.page([],{contextReadout:{state:'unavailable',reason:'no completed model call yet in this generation'}});
+     await api.page('delta','delta');
+     check('an unknown context readout says why in actual markup',banner.textContent.endsWith(' · context unknown: no completed model call yet in this generation')&&banner.dataset.context==='unavailable');
+     api.reconcile([{...w.fixture.event(98),thinking:[{blockIndex:0,text:'DO NOT DISPLAY OPAQUE',availability:'redacted',streaming:false}]}],'forward','epoch');const stored=api.state.rows.get('r98');check('stored redacted thinking disclosure starts collapsed and never displays opaque data',!stored.thinking[0].node.open&&!stored.node.textContent.includes('OPAQUE')&&stored.node.textContent.includes('redacted'));
+     e('transcript').value='dictation untouched\n🌈';e('transcript').focus();button.click();await sleep(800);
+    check('deliberate bar opens existing host inspector once',api.state.accepted?.callRef==='call0'&&liveFixture.requests.filter(([owner,url])=>url.startsWith('/api/tool-record')).length===1&&!e('tool-inspector').hidden);
+    check('existing pretty renderer keeps lexical numbers and Unicode',e('inspector-input').textContent.includes('900719925474099312345')&&e('inspector-output').textContent.endsWith('🌈\n'));
+    e('inspector-readable-input').checked=true;e('inspector-readable-input').dispatchEvent(new editorFrame.contentWindow.Event('change'));
+    check('existing readable view decodes exactly one newline layer',e('inspector-input').textContent.includes('Heading\n\tline 😀\\n literal <img')&&!e('inspector-input').querySelector('img'));
+    e('inspector-copy-input').click();await sleep(10);check('existing raw Copy remains lexical and complete',liveFixture.copied.at(-1)===liveFixture.raw);
+    const input=e('inspector-input'),output=e('inspector-output');input.scrollTop=10;output.scrollTop=120;const held=output.firstChild,heldText=output.textContent;
+    api.reconcile(Array.from({length:220},(_,i)=>w.fixture.event(100+i)),'delta','epoch');
+    check('UI eviction retains held inspector/raw reading position and dictation',output.firstChild===held&&output.textContent===heldText&&output.scrollTop===120&&e('transcript').value==='dictation untouched\n🌈'&&api.state.accepted.callRef==='call0');
+    check('bounded event residency and no inspection on arrival',api.state.rows.size===200&&w.fixture.requests.filter(([url])=>url==='/api/claude/inspect').length===1);
+    for(const width of [420,1000]){frame.style.width=width+'px';await sleep(30);check(width+'px actual markup stays within page',d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&scroll.clientHeight>=260);}
+    w.fixture.data=w.fixture.page([w.fixture.event(400)],{change:'gap',diagnostics:[{offset:0,status:'durable gap; unknown records retained'}]});await api.page('delta','delta');
+    check('gap diagnostics visible rather than silently idle',el('history-status').textContent.includes('durable gap'));
+     check('no target/Send/control request or tool fetch storm',w.fixture.messages.length===0&&w.fixture.requests.every(([url])=>!url.includes('send')&&!url.includes('control')&&!url.includes('tool-record')));
+     const finalReply='U06B-STREAM-OK one final answer',resultEvent={...w.fixture.event(501,finalReply),kind:'result',receipt:{subtype:'success',is_error:false,total_cost_usd:0.0123,usage:{input_tokens:100,output_tokens:40,cache_read_input_tokens:0},permission_denials:[{tool_name:'hidden raw detail'}],result:finalReply,errors:['<img src=x> private receipt']}};
+     // Paused at the top since the 220-row flood, newer rows wait below (round 9b: no island); following again, they mount.
+     check('a paused flood keeps the reading position and says newer rows wait below',el('history-edge').dataset.kind==='behind'&&!el('history-edge').hidden&&/newer below/.test(el('history-follow-label').textContent));
+     api.setFollow(true,{byScroll:true});
+     api.reconcile([w.fixture.event(500,finalReply),resultEvent],'delta','epoch');const resultRow=api.state.rows.get('r501'),marker=resultRow.node.querySelector('.result-marker');
+     check('actual native result is one end-of-turn marker, never a duplicate assistant reply',!resultRow.node.querySelector('.event-prose')&&[...el('history-events').querySelectorAll('.event-prose')].filter(n=>n.textContent.includes(finalReply)).length===1&&marker.textContent.includes('End of turn · success'));
+     check('actual result marker labels estimated cost, numeric usage and denials, no raw receipt body',marker.textContent.includes('list-price estimate $0.0123 (not billed spend)')&&marker.textContent.includes('input 100, output 40, cache read 0')&&marker.textContent.includes('permission denials 1')&&!marker.textContent.includes('U06B')&&!marker.textContent.includes('hidden raw detail')&&!marker.querySelector('img'));
+     check('actual host poll cadence is 600ms, prior history source retains 3000ms',api.pollDelay()===600);api.state.session={...api.state.session,source:'linux-history'};check('history polling retains three seconds',api.pollDelay()===3000);api.state.session={...api.state.session,source:'host'};
+      const completeReply='Sanitized full last reply line.\n'.repeat(65)+'LAST-REPLY-TAIL',firstLines=completeReply.slice(0,62);
+      const lastPartial={...w.fixture.event(600,firstLines),partial:true},lastFinal={...lastPartial,text:completeReply,partial:false,status:'stored'};
+      w.fixture.eventQueue=[w.fixture.page([lastPartial],{status:'indexing',hasMore:true,nextCursor:'scan-first',indexingContinuation:'scan-first'}),
+        w.fixture.page([],{eventUpdates:[{...lastPartial,text:completeReply.slice(0,900)}],status:'indexing',hasMore:true,nextCursor:'scan-final',indexingContinuation:'scan-final'}),
+        w.fixture.page([{...w.fixture.event(601,completeReply),kind:'result',receipt:{subtype:'success'}}],{eventUpdates:[lastFinal]})];
+      await api.browse(w.fixture.host);const lastRow=api.state.rows.get('r600'),lastProse=lastRow.prose;
+       check('cold indexing status is neutral loading',el('history-status').textContent.includes('Loading history')&&el('history-status').dataset.error==='false');
+       await api.poll();check('one poll drains consecutive cold tail continuations without a cadence wait',lastProse.textContent===completeReply&&api.state.indexingContinuation===null&&w.fixture.eventQueue.length===0);
+      check('completed last assistant is full through its tail, with same DOM node and no prose clamp',lastRow.prose===lastProse&&lastProse.textContent===completeReply&&lastProse.scrollHeight<=lastProse.clientHeight+1&&getComputedStyle(lastProse).webkitLineClamp==='none'&&api.state.indexingContinuation===null);
+      check('final reply appears once, result marker does not hide lost text',el('history-events').textContent.split('LAST-REPLY-TAIL').length-1===1&&api.state.rows.size===2);
+      w.fixture.data=w.fixture.page([]);w.fixture.eventQueue=[w.fixture.page([],{eventUpdates:[{...lastPartial,text:firstLines}],status:'indexing',hasMore:true,nextCursor:'stream-scan',indexingContinuation:'stream-scan'}),w.fixture.page([],{eventUpdates:[lastFinal]})];
+       await api.page('delta','delta');check('new streamed backlog shows observed first lines',lastProse.textContent===firstLines);
+      const heldRange=d.createRange();heldRange.selectNodeContents(lastProse);w.getSelection().addRange(heldRange);
+      api.state.nextPoll=0;await api.poll();check('automatic final continuation retains selected prefix until release',lastProse.textContent===firstLines&&lastRow.deferred);
+       w.getSelection().removeAllRanges();await sleep(30);check('release exposes whole streamed last reply without remount or duplicate',lastProse.textContent===completeReply&&lastRow.prose===lastProse&&!lastRow.deferred&&api.state.rows.size===2);
+       api.reconcile([{...lastFinal,recordRef:'rekeyed-last'}],'summary','epoch');check('same uuid and scope cannot remount under a new recordRef',lastRow.prose===lastProse&&api.state.rows.size===2&&el('history-events').textContent.split('LAST-REPLY-TAIL').length-1===1);
+       const nativeChild={...w.fixture.host,sessionRef:'native-child',source:'native',role:'subagent',parentUuid:w.fixture.host.uuid,
+         title:'Manager-Session-181 ▸ manager-quick · Fixture task',capabilities:{nativeInput:false,subagents:true},scopes:[{label:'agent:a1',scopeRef:'child-scope'}]};
+       w.fixture.children=[nativeChild];await api.children();
+       check('actual session list shows parent-labelled native subagent without changing main selection',el('subagents-list').textContent.includes('manager-quick')&&el('subagents-list').querySelector('button').title.includes(nativeChild.title)&&el('subagents-list').closest('.session-item')?.querySelector('.session-open')?.getAttribute('aria-pressed')==='true'&&api.state.session.sessionRef==='host');
+       w.fixture.data=w.fixture.page([{...w.fixture.tool(700,'pending-or-missing','child tool'),text:'Native child work',scope:'agent:a1',thinking:[{blockIndex:1,text:'Native child thinking',availability:'stored',streaming:false}]}],{sessionRef:'native-child',scopeRef:'child-scope',targetRef:null});
+       el('subagents-list').querySelector('button').click();await sleep(30);
+       check('actual child click shows messages thinking tools but cannot target or Send',api.state.session.sessionRef==='native-child'&&api.state.target===null&&el('history-target').disabled&&el('history-events').textContent.includes('Native child thinking')&&el('history-events').textContent.includes('Native child work')&&el('history-events').querySelector('.tool-bar')&&api.pollDelay()===600&&e('transcript').value==='dictation untouched\n🌈');
+       w.fixture.data=w.fixture.page([{...w.fixture.event(701,'Native child final'),scope:'agent:a1'}],{sessionRef:'native-child',scopeRef:'child-scope',targetRef:null});api.state.nextPoll=0;await api.poll();
+       check('actual selected child follows appended transcript events without target authority or context spill',el('history-events').textContent.includes('Native child final')&&api.state.target===null&&w.fixture.messages.length===0);
+       check('no live transport/error and no private profile used',w.fixture.errors.length===0&&liveFixture.errors.length===0);
+  }catch(e){results.push({name:e.message,passed:false});}
+  document.getElementById('results').textContent=JSON.stringify({passed:results.filter(x=>x.passed).length,failed:results.filter(x=>!x.passed).length,checks:results},null,2);document.body.dataset.testPassed=String(results.every(x=>x.passed));
+})();
+</script>

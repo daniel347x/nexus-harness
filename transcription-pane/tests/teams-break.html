@@ -1,0 +1,157 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Teams message break — actual pane and phone markup, inert storage and transport</title>
+<style>#pane { width: 900px; height: 900px; border: 0; } #phone { width: 390px; height: 844px; border: 0; } pre { white-space: pre-wrap; }</style>
+<iframe id="pane" title="Actual pane markup"></iframe><iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+(async () => {
+  const checks = [], check = (name, ok) => { checks.push({name, passed: !!ok}); if (!ok) throw new Error(name); };
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const D = (speaker, date, comment) => '===MESSAGE_BREAK===\nSpeaker: ' + speaker + '\nDate: ' + date + (comment ? '\n' + comment : '') + '\n===END_BREAK===';
+  try {
+    const base = new URL('../static/', location.href), read = async name => (await fetch(new URL(name, base))).text();
+    const [html, app, defaults, refineCore, teams, mHtml, mCss, mJs, tbCss, marked, purify, markdown, reading, refineView, previews, records] = await Promise.all([
+      'index.html', 'app.js', 'refine-defaults.js', 'refine-core.js', 'teams-break.js', 'm.html', 'm.css', 'm.js', 'teams-break.css',
+      'vendor/marked.umd.js', 'vendor/purify.min.js', 'message-markdown.js', 'tool-reading.js', 'refine-view.js',
+      '../../chrome-extension/codenomad-session-watcher/tool-preview-core.js', '../../chrome-extension/codenomad-session-watcher/tool-record-text.js'].map(read));
+    const safe = text => text.replace(/<\/script/gi, '<\\/script');
+    const seed = JSON.stringify([['teams_message_known_speakers', '["Dan","Pat"]'],
+      ['teams_message_speakers', JSON.stringify(['Dan', 'Pat', '', '', '', '', '', '', '', ''])],
+      ['teams_message_active_speakers', JSON.stringify([true, true, false, false, false, false, false, false, false, false])]]);
+    // Inert storage (the widget keys seeded), no network, no clipboard; prompt/confirm answered by the fixture.
+    const mock = `
+      window.fixture = {errors:[], sends:0, refines:0, prompts:[], confirms:[], promptAnswer:null, failStorage:false};
+      addEventListener('error', e => fixture.errors.push(e.message));
+      const store = fixture.store = new Map(${seed});
+      Object.defineProperty(window, 'localStorage', {value:{getItem:k=>store.has(k)?store.get(k):null,
+        setItem:(k,v)=>{ if (fixture.failStorage) throw new Error('fixture quota'); store.set(k,String(v)); },removeItem:k=>store.delete(k)}});
+      Object.defineProperty(navigator, 'clipboard', {value:{writeText:async()=>{}, readText:async()=>''}});
+      Object.defineProperty(navigator, 'sendBeacon', {value:()=>true});
+      window.fetch = () => new Promise(() => {});
+      window.prompt = message => { fixture.prompts.push(message); return fixture.promptAnswer; };
+      window.confirm = message => { fixture.confirms.push(message); return true; };
+    `;
+    const frame = document.getElementById('pane');
+    frame.srcdoc = html.replace('<head>', `<head><base href="${base.href}">`)
+      .replace(/  <script src="[^"]+"><\/script>/g, '')
+      .replace('</body>', () => [mock, defaults, refineCore,
+        app.replace(/main\(\);\s*$/, '') + '\nfixture.api={state}; wire(); send=()=>{fixture.sends++;}; refine=()=>{fixture.refines++;};', teams]
+        .map(x => `<script>${safe(x)}<\/script>`).join('') + '</body>');
+    await new Promise(resolve => { frame.onload = resolve; });
+    const w = frame.contentWindow, d = w.document, el = id => d.getElementById(id), box = el('transcript'), f = w.fixture;
+    const key = (target, k, mods = {}) => { const e = new w.KeyboardEvent('keydown', {key: k, bubbles: true, cancelable: true, ...mods}); target.dispatchEvent(e); return e.defaultPrevented; };
+    const dlg = () => d.querySelector('dialog.teams-break'), q = sel => dlg().querySelector(sel), all = sel => [...dlg().querySelectorAll(sel)];
+    const checkedName = () => all('.tb-radio').find(r => r.getAttribute('aria-checked') === 'true')?.textContent.replace(/^\d/, '');
+    const now = new w.Date(), today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const at = (text, pos = text.length) => { box.value = text; box.focus(); box.setSelectionRange(pos, pos); };
+    check('actual pane initializes with the module, nothing built before first use', f.errors.length === 0 && !!f.api && !dlg() &&
+      box.hasAttribute('data-teams-break') && el('teams-break-btn').dataset.teamsBreakFor === 'transcript' && /Ctrl\+M = Teams message break/.test(box.placeholder));
+
+    // Ctrl+M in the box: popover open, first of two speakers chosen and focused, date today, comment empty.
+    at('Hello from Dan.\n'); const rev = f.api.state.draftRevision;
+    const opened = key(box, 'm', {ctrlKey: true});
+    const r = box.getBoundingClientRect(), dr = dlg()?.getBoundingClientRect();
+    check('Ctrl+M opens the modal popover over the dictation box, speaker focused, date today, comment empty', opened && dlg().open &&
+      d.activeElement.matches('.tb-radio') && checkedName() === 'Dan' && d.activeElement === all('.tb-radio')[0] &&
+      q('#teams-break-date').value === today && q('#teams-break-comment').value === '' &&
+      q('.tb-auto').textContent === 'Auto-toggling between 2 speakers' && !q('.tb-speakers').open &&
+      dr.left + dr.width / 2 > r.left && dr.left + dr.width / 2 < r.right && dr.top >= 8 && dr.bottom <= w.innerHeight);
+    check('the popover takes the page keys: Alt+R and F4 never Refine or Send under it', (key(d.activeElement, 'r', {altKey: true}), key(d.activeElement, 'F4'), f.refines === 0 && f.sends === 0));
+    key(d.activeElement, 'Enter');
+    check('Enter inserts the exact delimiter at the cursor, cursor after it, focus back in the box', !dlg().open &&
+      box.value === 'Hello from Dan.\n' + D('Dan', today) && box.selectionStart === box.value.length && box.selectionEnd === box.value.length &&
+      d.activeElement === box && f.store.get('teams_message_last_speaker_index') === '0' && f.store.get('teams_message_date') === today);
+    check('the insertion is ordinary input: the draft revision moves and the draft is saved', f.api.state.draftRevision > rev &&
+      (await sleep(500), f.store.get('pane_draft') === box.value));
+    const undoable = d.execCommand('undo') && box.value === 'Hello from Dan.\n';
+    check('Ctrl+Z (undo) takes the break back out', undoable);
+    d.execCommand('redo');
+
+    // The next Ctrl+M preselects the other speaker; a multi-line comment, Ctrl+Enter from the comment.
+    at(box.value + '\n\nAnd Pat replies.\n'); const before = box.value;
+    key(box, 'm', {ctrlKey: true});
+    check('auto-toggle: the next Ctrl+M preselects the other speaker', dlg().open && checkedName() === 'Pat' && d.activeElement === all('.tb-radio')[1]);
+    const comment = q('#teams-break-comment'); comment.value = 'line one\nline two'; comment.focus();
+    check('plain Enter in the comment is a new line, not an insert', !key(comment, 'Enter') && dlg().open);
+    check('Ctrl+Enter in the comment inserts (and never Sends); several lines are indented four spaces', key(comment, 'Enter', {ctrlKey: true}) && !dlg().open &&
+      box.value === before + D('Pat', today, 'Comment:\n    line one\n    line two') && f.sends === 0 && f.store.get('teams_message_last_speaker_index') === '1');
+
+    // Number keys and arrows choose; Cancel inserts nothing; the comment always starts empty.
+    const kept = box.value; key(box, 'm', {ctrlKey: true});
+    check('back to the first speaker after the second', checkedName() === 'Dan');
+    key(d.activeElement, '2'); const two = checkedName() === 'Pat' && d.activeElement === all('.tb-radio')[1];
+    key(d.activeElement, 'ArrowRight');
+    check('2 picks the second speaker, an arrow moves on (wrapping)', two && checkedName() === 'Dan' && d.activeElement === all('.tb-radio')[0]);
+    q('#teams-break-comment').value = 'never inserted'; q('.tb-cancel').click();
+    check('Cancel closes without inserting, focus back in the box', !dlg().open && box.value === kept && d.activeElement === box);
+    key(box, 'm', {ctrlKey: true});
+    check('the comment always starts empty', q('#teams-break-comment').value === '');
+    const date = q('#teams-break-date'); date.value = '2026-01-02'; date.dispatchEvent(new w.Event('input', {bubbles: true}));
+    q('.tb-cancel').click(); key(box, 'm', {ctrlKey: true});
+    check('the date persists (widget key) and is offered again', f.store.get('teams_message_date') === '2026-01-02' && q('#teams-break-date').value === '2026-01-02');
+    q('.tb-cancel').click();
+
+    // A selection: the break goes in front of it (the widget used the selection start); the button opens it too.
+    at('AAA BBB'); box.setSelectionRange(4, 7); el('teams-break-btn').click();
+    check('the 🗨 Teams break button opens the same popover', dlg().open && checkedName() === 'Dan');
+    key(d.activeElement, 'Enter');
+    check('inserted at the selection start, the selected text kept after it', box.value === 'AAA ' + D('Dan', '2026-01-02') + 'BBB' &&
+      box.selectionStart === 4 + D('Dan', '2026-01-02').length);
+
+    // Speakers: untick, add new (prompt), three active prefer Dan, delete (confirm), none active.
+    at('x'); key(box, 'm', {ctrlKey: true});
+    const slots = () => all('.tb-slot'), slot = i => ({check: slots()[i].querySelector('input'), pick: slots()[i].querySelector('select')});
+    check('ten speaker slots, each a checkbox and a dropdown of the known names', slots().length === 10 &&
+      [...slot(0).pick.options].map(o => o.textContent).join('|') === '—|Dan|Pat|＋ Add new…' && slot(1).pick.value === 'Pat' && slot(1).check.checked);
+    const shade = node => { const s = w.getComputedStyle(node); return [s.backgroundColor, s.color]; }, popover = shade(dlg());
+    check('every dropdown and its list are opaque in the popover colours (never a white list under light text)',
+      all('select, option').length === 10 * 5 && all('select, option').every(node => String(shade(node)) === String(popover)) &&
+      !/transparent|rgba\(0, 0, 0, 0\)/.test(popover[0]));
+    slot(1).check.click();
+    check('unticking a slot drops its radio and the toggle note', all('.tb-radio').length === 1 && checkedName() === 'Dan' && q('.tb-auto').textContent === '' &&
+      f.store.get('teams_message_active_speakers') === JSON.stringify([true, false, false, false, false, false, false, false, false, false]));
+    slot(1).check.click();
+    f.promptAnswer = 'Kim'; slot(2).pick.value = ' add'; slot(2).pick.dispatchEvent(new w.Event('change', {bubbles: true}));
+    check('＋ Add new… asks for a name, adds it to the known list and puts it in that slot', f.prompts.length === 1 && slot(2).pick.value === 'Kim' &&
+      f.store.get('teams_message_known_speakers') === '["Dan","Pat","Kim"]' && JSON.parse(f.store.get('teams_message_speakers'))[2] === 'Kim');
+    slot(2).check.click();
+    check('three active speakers: Dan is preselected and named', all('.tb-radio').length === 3 && checkedName() === 'Dan' && q('.tb-auto').textContent === 'Auto-selected: Dan');
+    all('.tb-forget')[2].click();
+    check('× deletes a known name after confirming and empties its slot', f.confirms.length === 1 && f.store.get('teams_message_known_speakers') === '["Dan","Pat"]' &&
+      JSON.parse(f.store.get('teams_message_speakers'))[2] === '' && all('.tb-radio').length === 2);
+    slot(0).check.click(); slot(1).check.click();
+    check('no active speaker: Insert disabled and Enter inserts nothing', q('.tb-insert').disabled && !!q('.tb-empty') && (key(q('#teams-break-date'), 'Enter'), dlg().open && box.value === 'x'));
+    q('.tb-cancel').click(); key(box, 'm', {ctrlKey: true});
+    check('opened with no active speaker, the Speakers section is open and focused', q('.tb-speakers').open && d.activeElement === slot(0).pick);
+    slot(0).check.click(); slot(1).check.click(); q('.tb-cancel').click();
+
+    // Storage failure never blocks the insertion itself.
+    at('y'); f.failStorage = true; key(box, 'm', {ctrlKey: true}); key(d.activeElement, 'Enter'); f.failStorage = false;
+    check('with browser storage failing the break is still inserted', !dlg().open && box.value.startsWith('y===MESSAGE_BREAK===\nSpeaker: '));
+    check('no page errors and nothing sent or refined in the pane', f.errors.length === 0 && f.sends === 0 && f.refines === 0);
+
+    // The phone page: ⋯ → Teams message break keeps the box's range, closes the menu, opens the same popover.
+    const phone = document.getElementById('phone');
+    phone.srcdoc = mHtml.replace(/<link[^>]+>/g, '').replace('</head>', () => '<style>' + mCss + '</style><style>' + tbCss + '</style></head>')
+      .replace(/ *<script src="[^"]+"><\/script>\n?/g, '')
+      .replace('</body>', () => [mock, marked, purify, markdown, records, previews, reading, defaults, refineCore, refineView, mJs, teams]
+        .map(x => '<script>' + safe(x) + '<\/script>').join('') + '</body>');
+    await new Promise(resolve => { phone.onload = resolve; });
+    const pw = phone.contentWindow, pd = pw.document, pel = id => pd.getElementById(id), pbox = pel('m-draft');
+    pbox.value = 'Hi from Dan'; pbox.focus(); pbox.setSelectionRange(11, 11);
+    const touchDown = id => { const e = new pw.PointerEvent('pointerdown', {bubbles: true, cancelable: true, pointerType: 'touch'}); pel(id).dispatchEvent(e); return e.defaultPrevented; };
+    touchDown('m-more'); pel('m-more').click();
+    const kept1 = touchDown('m-teams'); pel('m-teams').click();
+    const pdlg = pd.querySelector('dialog.teams-break'), pr = pdlg?.getBoundingClientRect();
+    check('phone ⋯ → Teams message break: range kept, menu closed, popover open inside the screen', kept1 && pel('m-more-menu').hidden && pdlg?.open &&
+      pr.left >= 0 && pr.right <= pw.innerWidth && pr.top >= 0 && pr.bottom <= pw.innerHeight);
+    const pkey = new pw.KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}); pd.activeElement.dispatchEvent(pkey);
+    check('phone Enter inserts at the cursor and the phone draft is saved', !pdlg.open && pbox.value === 'Hi from Dan' + D('Dan', today) &&
+      JSON.parse(pw.fixture.store.get('pane_m_v1:draft') || '{}').text === pbox.value);
+    check('phone page: no page errors', pw.fixture.errors.length === 0);
+  } catch (e) { checks.push({name: e.message, passed: false}); }
+  window.testResults = {passed: checks.filter(x => x.passed).length, failed: checks.filter(x => !x.passed).length, checks};
+  document.body.dataset.testPassed = String(testResults.failed === 0);
+  document.getElementById('results').textContent = JSON.stringify(testResults, null, 2);
+})();
+</script>

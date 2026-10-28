@@ -1,0 +1,712 @@
+{
+ "provenance": {
+  "cli": "2.1.299",
+  "binary_sha256": "2d894a4b1bfaaa9aab72aeff7803e3c73bc2510f279a171f6b8f59f72d17d077",
+  "source_stdout_sha256": "cc66d910af62f6a5631427ecb50dddff45826076f425e5d5abc95c9ad8d76e1f",
+  "isolation": "fresh HOME/config/CWD/XDG/tmp; dummy key; loopback baseURL/MCP; no production host",
+  "env": "CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS=1 as in production launch",
+  "second_send_seconds": 1.77,
+  "note": "Synthetic loopback provider; parent --effort low, child Agent subagent_type manager-quick-max. Child requests carried output_config.effort max, parent low."
+ },
+ "second_send_before_index": 9,
+ "events": [
+  {
+   "type": "system",
+   "subtype": "session_state_changed",
+   "state": "running",
+   "uuid": "5e5b9155-525d-4214-9776-9d91a7be8bbc",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "init",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "model": "claude-opus-5-5",
+   "uuid": "6143edac-5ad0-4656-aa88-74bc0fbe44d0"
+  },
+  {
+   "type": "user",
+   "uuid": "ae970672-e620-40ac-9a75-fb8d4c1583ec",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "role": "user",
+    "content": "FIRST-PARENT-RESEARCH. Start the worker in background."
+   },
+   "isReplay": true
+  },
+  {
+   "type": "assistant",
+   "uuid": "3924b020-0fea-40d2-b476-5283d87367b8",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "id": "msg_inert_0",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_inert_parent_agent",
+      "name": "Agent",
+      "input": {
+       "subagent_type": "manager-quick-max",
+       "description": "Inert child research",
+       "prompt": "CHILD-RESEARCH-MARKER. Call research ping then finish.",
+       "run_in_background": true
+      }
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "type": "system",
+   "subtype": "background_tasks_changed",
+   "tasks": [
+    {
+     "task_id": "aa664ea26188e9efc",
+     "run_id": "0mv916043-11079a34",
+     "task_type": "local_agent",
+     "subagent_type": "manager-quick-max",
+     "description": "Inert child research"
+    }
+   ],
+   "uuid": "90667c05-65ad-41cd-a0a5-e075459caad3",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "task_started",
+   "task_id": "aa664ea26188e9efc",
+   "run_id": "0mv916043-11079a34",
+   "tool_use_id": "toolu_inert_parent_agent",
+   "description": "Inert child research",
+   "subagent_type": "manager-quick-max",
+   "is_backgrounded": true,
+   "spawn_depth": 1,
+   "task_type": "local_agent",
+   "uuid": "690443e7-c01a-4d05-ad25-c94ca6a2deb5",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "user",
+   "uuid": "16a94fd4-d5bc-43fa-8024-73c118654bd3",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_inert_parent_agent",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "Async agent launched successfully. (This tool result is internal metadata \u2014 never quote or paste any part of it, including the agentId below, into a user-facing reply.)\nagentId: aa664ea26188e9efc (internal ID - do not mention to user.)\nThe agent is working in the background. You will be notified automatically when it completes. You know nothing about its results until that notification arrives \u2014 do not report, assume, or predict them; continue other work or respond to the user in the meantime.\nDo not duplicate this agent's work \u2014 avoid working with the same files or topics it is using.\noutput_file: /mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/tmp/pane-round2/probe/probe-958f51b1/tmp/claude-1000/-mnt-e---daniel347x---Dan-Root---repos-opencode-companion-tmp-pane-round2-probe-probe-958f51b1-cwd/d19ef087-3a3d-4250-9141-97003627a7fb/tasks/aa664ea26188e9efc.output\nDo NOT Read or tail this file via the shell tool \u2014 it is the full subagent JSONL transcript and reading it will overflow your context. If the user asks for progress, say the agent is still running; you'll get a completion notification."
+       }
+      ]
+     }
+    ]
+   },
+   "isReplay": null
+  },
+  {
+   "type": "assistant",
+   "uuid": "3c84d1e2-b580-4ba6-8c8c-96c79dea505c",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "id": "msg_inert_1",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "text",
+      "text": "PARENT BACKGROUND CONTINUES"
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "duration_api_ms": 64,
+   "stop_reason": "end_turn",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "total_cost_usd": 0.000256,
+   "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 8,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 0,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-opus-5-5": {
+     "inputTokens": 24,
+     "outputTokens": 8,
+     "cacheReadInputTokens": 0,
+     "cacheCreationInputTokens": 0,
+     "webSearchRequests": 0,
+     "costUSD": 0.000256,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+     "background": 1,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 1,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {
+     "manager-quick-max": 1
+    }
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 2,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "PARENT BACKGROUND CONTINUES",
+   "ttft_ms": 53,
+   "type": "result",
+   "duration_ms": 123,
+   "uuid": "b954065e-91b0-4849-9ca1-7900f993e93e",
+   "ttft_stream_ms": 51,
+   "time_to_request_ms": 40,
+   "first_content_frame_ms": 52,
+   "user_message_uuid": "ae970672-e620-40ac-9a75-fb8d4c1583ec",
+   "user_message_uuids": [
+    "ae970672-e620-40ac-9a75-fb8d4c1583ec"
+   ],
+   "request_sent_wall_ms": 1792038017786,
+   "first_request_input_tokens": 12,
+   "queued_turn_count": 0,
+   "result_index": 0
+  },
+  {
+   "type": "system",
+   "subtype": "init",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "model": "claude-opus-5-5",
+   "uuid": "db80aeba-360c-4d53-be03-a0efcdb60753"
+  },
+  {
+   "type": "user",
+   "uuid": "6e702c47-4699-4775-975f-34f883c7e660",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "role": "user",
+    "content": "SECOND-PARENT-RESEARCH. Reply while child runs."
+   },
+   "isReplay": true
+  },
+  {
+   "type": "assistant",
+   "uuid": "6946bad9-2aec-4d5c-9a2e-bf587221bbb7",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "id": "msg_inert_3",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "text",
+      "text": "PARENT SECOND SEND HANDLED"
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "duration_api_ms": 74,
+   "stop_reason": "end_turn",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "total_cost_usd": 0.000384,
+   "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 4,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 0,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-opus-5-5": {
+     "inputTokens": 36,
+     "outputTokens": 12,
+     "cacheReadInputTokens": 0,
+     "cacheCreationInputTokens": 0,
+     "webSearchRequests": 0,
+     "costUSD": 0.000384,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+     "background": 1,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 1,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {
+     "manager-quick-max": 1
+    }
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 1,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "PARENT SECOND SEND HANDLED",
+   "ttft_ms": 29,
+   "type": "result",
+   "duration_ms": 31,
+   "uuid": "43bf9447-4cbf-4166-9511-307bbc45dafe",
+   "ttft_stream_ms": 28,
+   "time_to_request_ms": 23,
+   "first_content_frame_ms": 29,
+   "user_message_uuid": "6e702c47-4699-4775-975f-34f883c7e660",
+   "user_message_uuids": [
+    "6e702c47-4699-4775-975f-34f883c7e660"
+   ],
+   "request_sent_wall_ms": 1792038018505,
+   "first_request_input_tokens": 12,
+   "queued_turn_count": 0,
+   "result_index": 1
+  },
+  {
+   "type": "assistant",
+   "uuid": "25941303-1b5f-44cd-97a2-5d43ed71a83e",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": "toolu_inert_parent_agent",
+   "message": {
+    "id": "msg_inert_2",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_inert_child_ping",
+      "name": "mcp__research__ping",
+      "input": {}
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "aa664ea26188e9efc",
+   "run_id": "0mv916043-11079a34",
+   "tool_use_id": "toolu_inert_parent_agent",
+   "description": "Inert child research",
+   "subagent_type": "manager-quick-max",
+   "usage": {
+    "total_tokens": 14,
+    "tool_uses": 1,
+    "duration_ms": 6483
+   },
+   "last_tool_name": "mcp__research__ping",
+   "uuid": "0ab1c317-5b93-4c56-a8cf-c866c6804a1d",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "session_state_changed",
+   "state": "requires_action",
+   "uuid": "a3429cb5-9d97-4ccb-8584-d8e79d054fba",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "control_request",
+   "request_id": "08238d62-f929-4b4d-9307-0802d624e9e6",
+   "request": {
+    "subtype": "can_use_tool",
+    "tool_name": "mcp__research__ping",
+    "mcp_server": {
+     "name": "research",
+     "source": "dynamic"
+    },
+    "display_name": "Ping",
+    "input": {},
+    "permission_suggestions": [
+     {
+      "type": "addRules",
+      "rules": [
+       {
+        "toolName": "mcp__research__ping"
+       }
+      ],
+      "behavior": "allow",
+      "destination": "localSettings"
+     }
+    ],
+    "server_policy_ask_only": true,
+    "tool_use_id": "toolu_inert_child_ping",
+    "agent_id": "aa664ea26188e9efc"
+   }
+  },
+  {
+   "type": "control_response",
+   "response": {
+    "subtype": "success",
+    "request_id": "08238d62-f929-4b4d-9307-0802d624e9e6",
+    "response": {
+     "behavior": "allow",
+     "updatedInput": {}
+    }
+   }
+  },
+  {
+   "type": "system",
+   "subtype": "session_state_changed",
+   "state": "running",
+   "uuid": "6f19ca75-fbdb-452c-b2ad-50fedc0d2a9f",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "user",
+   "uuid": "cf33b3c6-80a1-406b-b0cf-e1c5a2cbcebe",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": "toolu_inert_parent_agent",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_inert_child_ping",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "INERT LOOPBACK MCP OK"
+       }
+      ]
+     }
+    ]
+   },
+   "isReplay": null
+  },
+  {
+   "type": "assistant",
+   "uuid": "d2b63a64-0a86-469f-af7f-4ba8b34524ad",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": "toolu_inert_parent_agent",
+   "message": {
+    "id": "msg_inert_4",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "text",
+      "text": "CHILD SYNTHETIC COMPLETED"
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "type": "system",
+   "subtype": "task_updated",
+   "task_id": "aa664ea26188e9efc",
+   "run_id": "0mv916043-11079a34",
+   "patch": {
+    "status": "completed",
+    "end_time": 1792038024335
+   },
+   "uuid": "9028b388-1062-45dd-b771-b59ad5b1c70f",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "task_notification",
+   "task_id": "aa664ea26188e9efc",
+   "run_id": "0mv916043-11079a34",
+   "tool_use_id": "toolu_inert_parent_agent",
+   "status": "completed",
+   "output_file": "/mnt/e/__daniel347x/__Dan_Root/__repos/opencode-companion/tmp/pane-round2/probe/probe-958f51b1/tmp/claude-1000/-mnt-e---daniel347x---Dan-Root---repos-opencode-companion-tmp-pane-round2-probe-probe-958f51b1-cwd/d19ef087-3a3d-4250-9141-97003627a7fb/tasks/aa664ea26188e9efc.output",
+   "summary": "CHILD SYNTHETIC COMPLETED",
+   "usage": {
+    "total_tokens": 22,
+    "tool_uses": 1,
+    "duration_ms": 6531
+   },
+   "uuid": "fe58efc0-49e2-4896-9a0f-6bac58537623",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "background_tasks_changed",
+   "tasks": [],
+   "uuid": "2ff3f08f-aa63-4d94-867d-0038574121f5",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  },
+  {
+   "type": "system",
+   "subtype": "init",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "model": "claude-opus-5-5",
+   "uuid": "7c89de70-75c4-4d8b-a900-1426b7ab0387"
+  },
+  {
+   "type": "assistant",
+   "uuid": "dfba5094-2703-41ea-a98d-22e973483320",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "parent_tool_use_id": null,
+   "message": {
+    "id": "msg_inert_5",
+    "type": "message",
+    "role": "assistant",
+    "model": "claude-opus-5-5",
+    "content": [
+     {
+      "type": "text",
+      "text": "PARENT SECOND SEND HANDLED"
+     }
+    ],
+    "stop_reason": null,
+    "stop_sequence": null,
+    "usage": {
+     "input_tokens": 12,
+     "output_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 0
+    },
+    "context_management": null
+   },
+   "isReplay": null
+  },
+  {
+   "duration_api_ms": 6107,
+   "stop_reason": "end_turn",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb",
+   "total_cost_usd": 0.0007679999999999999,
+   "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 4,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 0,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "",
+    "iterations": [],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-opus-5-5": {
+     "inputTokens": 72,
+     "outputTokens": 24,
+     "cacheReadInputTokens": 0,
+     "cacheCreationInputTokens": 0,
+     "webSearchRequests": 0,
+     "costUSD": 0.0007679999999999999,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "origin": {
+    "kind": "task-notification",
+    "producer": "session-task",
+    "runId": "0mv916043-11079a34"
+   },
+   "subagent_stats": {
+    "spawned": 1,
+    "requested": {
+     "background": 1,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 1,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 1,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {
+     "manager-quick-max": 1
+    }
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 1,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "PARENT SECOND SEND HANDLED",
+   "ttft_ms": 16,
+   "type": "result",
+   "duration_ms": 18,
+   "uuid": "f9cedc8b-d5ed-46c8-92c3-86c63d03e15f",
+   "ttft_stream_ms": 15,
+   "time_to_request_ms": 10,
+   "first_content_frame_ms": 16,
+   "queued_turn_count": 0,
+   "result_index": 2
+  },
+  {
+   "type": "system",
+   "subtype": "session_state_changed",
+   "state": "idle",
+   "uuid": "fd9016d1-4e0c-4cc5-a09d-ce49829f0b82",
+   "session_id": "d19ef087-3a3d-4250-9141-97003627a7fb"
+  }
+ ]
+}

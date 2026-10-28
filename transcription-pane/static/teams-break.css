@@ -1,0 +1,50 @@
+/* Teams message break popover (teams-break.js): one modal dialog per page, top-centre over the dictation
+   box. Its colours come from the page's own theme variables (the pane's style.css, the phone's m.css),
+   with the pane's dark palette as fallback. */
+dialog.teams-break {
+  --tb-bg: var(--panel, var(--control, #1d2027)); --tb-line: var(--line, #2c313b); --tb-text: var(--text, #e6e8ec);
+  --tb-dim: var(--dim, #8a919e); --tb-accent: var(--blue, var(--link, #4da3ff)); --tb-error: var(--red, #ff6b6b);
+  color-scheme: dark; position: fixed; inset: auto; left: 50%; top: 48px; margin: 0;
+  width: min(520px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto;
+  padding: 12px 14px; display: none; flex-direction: column; gap: 6px;
+  background: var(--tb-bg); color: var(--tb-text); border: 2px solid var(--tb-accent); border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .45); font-size: 14px;
+}
+dialog.teams-break[open] { display: flex; }
+dialog.teams-break::backdrop { background: rgba(0, 0, 0, .25); }
+.teams-break .tb-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding-bottom: 6px; border-bottom: 1px solid var(--tb-line); }
+.teams-break .tb-head strong { font-size: 15px; }
+.teams-break .tb-auto, .teams-break .tb-empty { color: var(--tb-dim); font-size: 12px; font-style: italic; }
+.teams-break .tb-radios { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 4px 0; }
+.teams-break .tb-radio { padding: 10px 8px; border: 2px solid var(--tb-line); border-radius: 8px; background: transparent; color: var(--tb-text);
+  font: inherit; font-weight: 600; text-align: center; overflow-wrap: anywhere; cursor: pointer; }
+.teams-break .tb-radio:hover { border-color: var(--tb-accent); }
+.teams-break .tb-radio[aria-checked="true"] { border-color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 30%, var(--tb-bg)); }
+.teams-break .tb-radio:focus-visible { outline: 2px solid var(--tb-text); outline-offset: 2px; }
+.teams-break .tb-key { color: var(--tb-dim); font-size: 11px; font-weight: 400; margin-right: 6px; }
+.teams-break .tb-field { color: var(--tb-dim); font-size: 12px; }
+.teams-break input[type="text"], .teams-break textarea, .teams-break select { width: 100%; font: inherit; color: var(--tb-text); background: transparent;
+  border: 1px solid var(--tb-line); border-radius: 6px; padding: 4px 8px; }
+/* A dropdown's list is drawn from the select's own colours: transparent there gave a white list under
+   near-white text. Opaque theme colours on the select and every option keep it legible in any palette. */
+.teams-break select, .teams-break option { background-color: var(--tb-bg); color: var(--tb-text); }
+.teams-break option:disabled { color: var(--tb-dim); }
+.teams-break textarea { resize: vertical; min-height: 0; }
+.teams-break input:focus-visible, .teams-break textarea:focus-visible, .teams-break select:focus-visible { outline: none; border-color: var(--tb-accent); }
+.teams-break .tb-note { font-size: 12px; color: var(--tb-dim); }
+.teams-break .tb-note:empty { display: none; }
+.teams-break .tb-note[data-error="true"] { color: var(--tb-error); }
+.teams-break .tb-buttons { display: flex; gap: 8px; }
+.teams-break .tb-buttons button { flex: 1; padding: 6px 10px; font: inherit; font-weight: 600; border-radius: 6px; cursor: pointer;
+  color: var(--tb-text); background: transparent; border: 1px solid var(--tb-line); }
+.teams-break .tb-buttons .tb-insert { border-color: var(--tb-accent); background: color-mix(in srgb, var(--tb-accent) 22%, var(--tb-bg)); }
+.teams-break .tb-buttons button:disabled { opacity: .5; cursor: default; }
+.teams-break .tb-speakers { border-top: 1px solid var(--tb-line); padding-top: 6px; }
+.teams-break .tb-speakers > summary { cursor: pointer; color: var(--tb-dim); font-size: 13px; }
+.teams-break .tb-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; margin: 6px 0; }
+.teams-break .tb-slot { display: flex; align-items: center; gap: 6px; }
+.teams-break .tb-slot input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--tb-accent); }
+.teams-break .tb-known { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.teams-break .tb-chip { display: inline-flex; align-items: center; gap: 2px; padding: 0 2px 0 8px; border: 1px solid var(--tb-line); border-radius: 12px; font-size: 12px; }
+.teams-break .tb-forget { border: 0; background: transparent; color: var(--tb-error); font-weight: 700; font-size: 14px; padding: 0 5px; cursor: pointer; }
+@media (max-width: 480px) { .teams-break .tb-slots { grid-template-columns: minmax(0, 1fr); } }

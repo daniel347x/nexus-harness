@@ -1,0 +1,700 @@
+/* ------------------------------------------------------------------ theme
+   One theme, one place: every color, size and weight this viewer uses.
+   Grouped by section; change a value here and the whole pane follows. */
+:root {
+  /* base surface */
+  --bg:#151820; --surface:#1c212b; --surface-2:#202630; --surface-3:#252b36; --surface-hi:#303a4a;
+  --line:#3a4352; --line-strong:#627083; --text:#e1e5eb; --text-2:#b8bfcb; --text-dim:#8b93a1; --text-faint:#666e7c;
+  --link:#a9c9ff; --focus:#a9c9ff; --error-text:#ffb3b3;
+  --font:system-ui,sans-serif; --mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  --fs-base:14px; --fs-prose:14.5px; --fs-small:12.5px; --fs-tiny:11px; --fs-micro:10.5px;
+
+  /* top: status ribbon (always visible) */
+  --activity-bg:#252d3b; --activity-border:#8392aa; --activity-fs:14px;
+  --activity-dot-idle:#8b93a1; --activity-dot-thinking:#b78cff; --activity-dot-writing:#5fd38d;
+  --activity-dot-tool:#7fb2ff; --activity-dot-retrying:#e9c479; --activity-dot-permission:#ff9b6b; --activity-dot-unknown:#5b6372;
+
+  /* context gauge (pie at the left of the status bar): share of the context window used.
+     The fill color moves smoothly: green until --gauge-green-until (%), turning toward
+     orange to be fully orange at --gauge-orange-at, then toward red, fully red at --gauge-red-at. */
+  --gauge-size:15px; --gauge-green:#3fcf7a; --gauge-orange:#f0a030; --gauge-red:#ff4d4d;
+  --gauge-rest:#3a4352; --gauge-unknown:#5b6372; --gauge-ring:#8392aa;
+  --gauge-green-until:40; --gauge-orange-at:58; --gauge-red-at:78;
+
+  /* top: tiny "more info" expander */
+  --more-fs:10.5px; --more-color:#7d8594; --more-alert:#ff8a80;
+
+  /* control ribbon above the conversation */
+  --ribbon-bg:#1a1f28; --ribbon-border:#2c3442; --ribbon-fs:12px; --ribbon-h:28px;
+  --follow-on-bg:#173326; --follow-on-border:#3f9e6a; --follow-on-text:#9fe3bb; --follow-on-dot:#4fd98a;
+  --follow-off-bg:#2e2617; --follow-off-border:#a3864a; --follow-off-text:#f0d39a; --follow-off-dot:#e9c479;
+
+  /* conversation turns, most to least prominent */
+  --you-accent:#3fcf7a; --you-bg:rgba(63,207,122,.11); --you-border:rgba(63,207,122,.55); --you-label:#7ee2a6;
+  --final-accent:#ff6b61; --final-bg:rgba(255,107,97,.085); --final-border:rgba(255,107,97,.5); --final-label:#ff9a92;
+  --mid-accent:rgba(230,150,90,.55); --mid-bg:#21181d; --mid-label:#d9a27c;
+  --label-quiet:.62; /* always-on headers of tool/thinking turns, a little faded into the background */
+  --model-dim:.55; /* a Claude block's recorded model/level beside its role: the role's colour, dimmer */
+  --block-hover-accent:#4ea4ff; /* a hovered block's left bar */
+  --tool-accent:rgba(120,165,235,.4); --tool-bg:#1d2431; --tool-bg-hover:#232c3b; --tool-title:#a9c4ec; --tool-preview:#b9c1cd;
+  --turn-bg:#1d222b; --turn-gap:6px;
+
+  /* thinking blocks */
+  --thinking-bg:#1a1e27; --thinking-border:#2f3745; --thinking-header:#868e9c; --thinking-marker:#ffffff;
+  --thinking-text:#cbd1da; --thinking-note:#6f7785;
+
+  /* event metadata (ids, kinds, statuses) */
+  --meta-color:#5f6775; --meta-fs:10.5px;
+  /* hover copy buttons (message and code block) */
+  --copy-color:#8b93a1; --copy-fs:11px;
+
+  /* event flags (records with no conversation content) */
+  --flag-color:#6f7785; --flag-mark:#a3864a; --flag-fs:10.5px;
+  --running-bg:rgba(233,196,121,.16); --running-border:#e9c479; --running-text:#f0d39a;
+
+  /* tool in/out size gradient (warmth/lift come from the shared emphasizeToolSize) */
+  --size-cold:#8f97a4; --size-hot:#ff6b61; --size-fs:11.5px; --size-lift-scale:1.5;
+  --size-large-fs:14px; --size-huge-fs:17px; --size-huge-bg:rgba(255,107,97,.14);
+
+  /* sidebar */
+  --side-fs:13px; --side-item-bg:transparent; --side-item-hover:#20262f; --side-item-selected:#283245;
+  --side-selected-border:#7fb2ff; --side-label:#e6eaf0; --side-meta:#9ba3b1; --side-live:#4fd98a; --side-group:#7d8594;
+  --side-child-label:#c9cfd8; --side-selected-outline:rgba(169,201,255,.75);
+  /* session rows: --row-gutter is the one left edge every row's text starts at, flat or under a .tree-node
+     (the program head's own inset, so a program's title and its sessions line up); the row's second line is a
+     point above the shared micro size, a little brighter, and its action band one fixed target per control. */
+  --row-gutter:var(--tree-gutter); --side-meta-fs:calc(var(--fs-micro) + 1pt); --side-meta-color:#aeb6c3;
+  --row-open-pad:4px; --row-action-w:30px; --row-action-fs:19px;
+  /* top-level sections only: distinct from the white-to-grey age scale and yellow activity */
+  --section-heading-color:#a9b8ff; --section-heading-fs:15px; --section-heading-toggle-fs:12px;
+  --stub-text:#a39670;
+  /* sidebar role badges: the session's real role, whatever its name says */
+  --badge-fs:10px; --badge-manager:#3fcf7a; --badge-conductor:#b78cff; --badge-quick:#7fb2ff; --badge-helper:#4db6ac;
+  --badge-worker:#a6adb9; --badge-other:#6f7785; --badge-lead:#e9c479;
+  /* program tree: indentation per level, the guide line, program rows, OpenCode rows and their glance */
+  --tree-indent:12px; --tree-gutter:14px; --tree-line:#2f3745; --program-title:#e6eaf0; --program-meta:#9ba3b1; --program-name-faded:#7d8594;
+  --backend-claude:#c9a0ff; --backend-opencode:#6fd3c4; --note-color:#8b93a1; --glance-bg:#1a1f28; --glance-border:#2c3442;
+  /* session list width: the divider's default and bounds live in sessions.js (SIDE_*) */
+  --side-divider:#2c3442; --side-divider-hover:#4a5a74;
+  /* activity at a glance: the outline around an active program, the "waiting" flag on a session row */
+  --active-outline:#e9c479; --waiting-text:#f0d39a; --waiting-border:rgba(233,196,121,.6);
+  /* the line under the newest message when it is not the live head; the ribbon's Reconnect */
+  --edge-stale-bg:#3a2417; --edge-stale-border:#ff9b6b; --edge-stale-text:#ffd2b8; --edge-behind-text:#f0d39a;
+  --reconnect-attention-bg:#4a2a14; --reconnect-attention-border:#ff9b6b;
+  /* ⛔ a usage-limit halt (quota-halt.js): the conversation banner, the row marker, the glance line */
+  --halt-bg:#3a1518; --halt-border:#ff5c5c; --halt-text:#ffc9c9;
+  /* ＋ New Manager at the top of the session list */
+  --new-manager-bg:#173326; --new-manager-border:#3f9e6a; --new-manager-text:#9fe3bb;
+  /* quota row under New Manager (sessions-quota.js): share of each subscription allotment USED.
+     Same smooth color rule and colors as the context gauge, on its own thresholds: green until
+     --quota-green-until (%), fully orange at --quota-orange-at, fully red at --quota-red-at. */
+  --quota-pie:11px; --quota-fs:10.5px; --quota-text:#a3aab6; --quota-provider:#7d8594;
+  --quota-bg:#1a1f28; --quota-border:#2c3442; --quota-sep:#2f3745; --quota-stale-ring:#a3864a;
+  --quota-green-until:50; --quota-orange-at:75; --quota-red-at:90;
+  /* new program-root cells only; existing program names, metadata and controls keep their theme */
+  --program-meter-fs:10px; --program-meter-count-width:7ch; --program-meter-duration-width:9ch; --program-meter-age-width:5ch; --program-meter-gap:6px; --program-meter-live-space:13px;
+  --program-meter-text:#a3aab6; --program-meter-block:#91accb; --program-meter-yellow:#c9aa65;
+  --program-age-today:#b8bfcb; --program-age-yesterday:#a3aab6; --program-age-recent:#8b93a1; --program-age-old:#7d8594;
+}
+
+/* ------------------------------------------------------------------ page */
+:root { color-scheme:dark; font:var(--fs-base)/1.45 var(--font); background:var(--bg); color:var(--text); }
+* { box-sizing:border-box; }
+body { margin:0; padding:12px; max-width:100%; }
+header p { color:var(--text-2); margin:4px 0 10px; }
+h1 { font-size:20px; margin:0; } h2 { font-size:15px; margin:4px 0; overflow-wrap:anywhere; }
+a { color:var(--link); }
+main { display:grid; grid-template-columns:clamp(200px,var(--side-width,34%),75%) 8px minmax(0,1fr); gap:0 3px; height:calc(100vh - 24px); min-height:420px; }
+/* the divider between the session list and the conversation (drag, or Left/Right with focus) */
+.side-divider { width:8px; cursor:col-resize; touch-action:none; border-inline:1px solid var(--side-divider); border-radius:3px; background:transparent; }
+.side-divider:hover,.side-divider.dragging { background:var(--side-divider-hover); }
+body.side-dragging { cursor:col-resize; user-select:none; }
+body:not(.embedded) main { height:calc(100vh - 110px); }
+aside,section { min-width:0; }
+aside { display:flex; flex-direction:column; overflow:hidden; font-size:var(--side-fs); padding-right:2px; }
+button,select { font:inherit; background:var(--surface-3); color:inherit; border:1px solid var(--line-strong); border-radius:4px; padding:4px 8px; }
+button { cursor:pointer; } button:disabled { opacity:.5; cursor:default; } :focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+.controls { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin:4px 0; }
+[role=status] { overflow-wrap:anywhere; } [role=status][data-error=true] { color:var(--error-text); }
+
+/* ------------------------------------------------------------------ sidebar */
+/* overflow-anchor:none: the list keeps its own reading position across redraws (sessions.js listAnchor); iOS WebKit has no native one. */
+#sessions-scroll { flex:1 1 auto; min-height:0; overflow:auto; overflow-anchor:none; }
+.session-stub { color:var(--stub-text); font-size:var(--fs-micro); padding:3px 6px 3px var(--row-gutter); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.program > .program-head { position:sticky; top:0; z-index:1; }
+.program > .program-head:not(:hover) { background:var(--bg); }
+/* New Manager and the list controls stay in view while the list scrolls under them */
+.side-top { position:sticky; top:0; z-index:3; background:var(--bg); padding-bottom:2px; }
+.new-manager { margin-bottom:6px; }
+#claude-new-manager { width:100%; font-weight:650; background:var(--new-manager-bg); border-color:var(--new-manager-border); color:var(--new-manager-text); }
+#claude-new-manager:hover:not(:disabled) { filter:brightness(1.2); }
+#claude-new-manager-form { display:grid; gap:4px; margin-top:5px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--surface); font-size:12px; color:var(--text-2); }
+#claude-new-manager-form[hidden] { display:none; }
+#claude-new-manager-form label { display:grid; gap:2px; }
+#claude-new-manager-form [hidden] { display:none !important; }
+#claude-new-manager-form input,#claude-new-manager-form select,#claude-new-manager-form textarea,#claude-new-sub-text { width:100%; font:inherit; font-size:12.5px; background:var(--surface-3); color:var(--text); border:1px solid var(--line-strong); border-radius:4px; padding:3px 6px; }
+/* ↳ Sub-session beside ＋ New Manager; its first-message box opens under both. */
+.new-manager-buttons { display:flex; gap:4px; }
+.new-manager-buttons #claude-new-manager { flex:1; width:auto; }
+#claude-new-sub { flex:0 0 auto; background:var(--new-manager-bg); border-color:var(--new-manager-border); color:var(--new-manager-text); }
+#claude-new-sub:hover:not(:disabled) { filter:brightness(1.2); }
+#claude-new-manager-form label.new-manager-check { display:flex; gap:5px; align-items:center; }
+#claude-new-manager-form label.new-manager-check input { width:auto; }
+#claude-new-manager-form textarea,#claude-new-sub-text { resize:vertical; line-height:1.35; }
+#claude-first-messages summary { cursor:pointer; }
+#claude-first-messages[open] { display:grid; gap:4px; }
+.new-manager-hint { margin:0; font-size:var(--fs-micro); color:var(--text-2); }
+#claude-new-sub-form { display:grid; gap:4px; margin-top:5px; padding:6px; border:1px solid var(--line); border-radius:4px; background:var(--surface); font-size:12px; color:var(--text-2); }
+#claude-new-sub-form[hidden] { display:none; }
+/* Runtime/model/thinking: one block that moves into whichever box is open, so it carries its own look. */
+.manager-choices-slot:empty { display:none; }
+#manager-new-choices { display:grid; gap:4px; }
+#manager-new-choices label { display:grid; gap:2px; }
+#manager-new-choices [hidden] { display:none !important; }
+#manager-new-choices input,#manager-new-choices select { width:100%; font:inherit; font-size:12.5px; background:var(--surface-3); color:var(--text); border:1px solid var(--line-strong); border-radius:4px; padding:3px 6px; }
+.new-manager-actions { display:flex; gap:6px; flex-wrap:wrap; }
+#claude-new-status { font-size:var(--fs-micro); color:var(--text-2); margin-top:3px; overflow-wrap:anywhere; }
+#claude-new-status:empty { display:none; }
+#claude-new-status[data-state=error] { color:var(--error-text); }
+#sessions-notice { margin:0 2px 4px; font-size:var(--fs-micro); color:var(--text-2); }
+#sessions-notice[hidden] { display:none; }
+#sessions-freshness { margin:0 2px 4px; font-size:var(--fs-micro); color:var(--text-2); }
+#sessions-host-load { margin:0 2px 4px; font-size:var(--fs-micro); color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#sessions-host-load[hidden] { display:none; }
+/* quota row: one line, full width; narrow lists shorten then drop the bracketed time left, then the provider words, then the window names (all on hover) */
+.quota-bar { container-type:inline-size; display:flex; align-items:center; gap:8px; margin:0 0 5px; padding:2px 6px; min-height:19px;
+  border:1px solid var(--quota-border); border-radius:4px; background:var(--quota-bg); color:var(--quota-text);
+  font-size:var(--quota-fs); line-height:1.3; white-space:nowrap; overflow:hidden; cursor:pointer; user-select:none; }
+.quota-bar:empty::before { content:'allotments …'; color:var(--quota-provider); }
+.quota-group { display:flex; align-items:center; gap:7px; min-width:0; }
+.quota-group + .quota-group { border-left:1px solid var(--quota-sep); padding-left:8px; }
+.quota-provider { color:var(--quota-provider); }
+.quota-gauge { display:inline-flex; align-items:center; gap:3px;
+  --quota-color:color-mix(in oklch, var(--gauge-red) calc(clamp(0, (var(--quota-fill, 0) - var(--quota-orange-at)) / (var(--quota-red-at) - var(--quota-orange-at)), 1) * 100%),
+    color-mix(in oklch, var(--gauge-orange) calc(clamp(0, (var(--quota-fill, 0) - var(--quota-green-until)) / (var(--quota-orange-at) - var(--quota-green-until)), 1) * 100%), var(--gauge-green))); }
+.quota-pie { flex:none; width:var(--quota-pie); height:var(--quota-pie); border-radius:50%; box-shadow:0 0 0 1px var(--gauge-ring);
+  background:conic-gradient(var(--quota-color) calc(var(--quota-fill, 0) * 1%), var(--gauge-rest) 0); }
+.quota-pct { color:var(--quota-color); font-weight:600; font-variant-numeric:tabular-nums; }
+.quota-left { color:var(--quota-provider); font-variant-numeric:tabular-nums; }
+.quota-left::before { content:'('; } .quota-left::after { content:')'; }
+.quota-gauge[data-state=unknown] .quota-pie { background:var(--gauge-unknown); opacity:.55; }
+.quota-gauge[data-state=unknown] .quota-pct { color:var(--text-faint); }
+.quota-gauge[data-state=stale] { opacity:.6; }
+.quota-gauge[data-state=stale] .quota-pie { box-shadow:0 0 0 1px var(--quota-stale-ring); }
+.quota-bar[data-busy=true] .quota-pie { animation:quota-reading 1.2s ease-in-out infinite alternate; }
+@keyframes quota-reading { to { opacity:.45; } }
+/* measured natural widths (two-digit figures, + slack): brackets shorten to "(4h)"/"(5d)", then go, then the provider words, then the window names */
+@container (max-width:490px) { .quota-left-minor { display:none; } }
+@container (max-width:405px) { .quota-left { display:none; } }
+@container (max-width:320px) { .quota-provider { display:none; } .quota-group + .quota-group { padding-left:6px; } }
+@container (max-width:255px) { .quota-label { display:none; } .quota-group { gap:5px; } }
+.side-bar { display:flex; gap:4px; align-items:center; margin-bottom:4px; }
+.side-bar select { flex:1; min-width:0; font-size:12px; padding:3px 4px; }
+button.icon { padding:2px 7px; font-size:13px; line-height:1.2; }
+.mini-more { margin:0 0 6px; font-size:var(--fs-micro); color:var(--more-color); }
+.mini-more > summary { cursor:pointer; width:max-content; }
+.mini-more:has([data-error=true]) > summary { color:var(--more-alert); }
+.mini-more p { margin:3px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+/* The key to the rows' telemetry (sessions.js TELE_KEY) inside "list info": plain words, readable on a phone. */
+.tele-key { margin:6px 0 2px; padding:4px 8px; border-left:2px solid var(--line); font-size:var(--fs-small); line-height:1.45; color:var(--text-2); }
+.tele-key h4 { margin:8px 0 3px; font-size:var(--fs-small); color:var(--text); } .tele-key h4:first-child { margin-top:0; font-size:var(--fs-base); }
+.tele-key p { margin:5px 0; white-space:normal; } .tele-key ol { margin:3px 0 6px; padding-left:20px; } .tele-key li { margin:2px 0; }
+.tele-key b { color:var(--text); font-weight:600; } .tele-key code { font-family:var(--mono); font-size:.95em; overflow-wrap:anywhere; }
+#sessions-list h3 { margin:10px 2px 3px; font-size:var(--fs-micro); font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--side-group); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#sessions-list > .session-group > h3 { font-size:var(--section-heading-fs); font-weight:650; color:var(--section-heading-color); }
+#sessions-list > .session-group > h3 > .section-toggle { font-size:var(--section-heading-toggle-fs); color:var(--section-heading-color); opacity:1; }
+/* One row: the open button spans the row, reserving its controls (✎ ⧉ 💬) beside the name and metadata
+   only; the controls occupy the final column over those two lines. Everything else (waits, children, glances) spans the row's
+   full width in the rows below. */
+.session-item { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; border-left:2px solid transparent; border-radius:4px; margin:1px 0; --row-action-count:0; --row-read-space:0px; }
+.session-item:has(> .session-actions > :nth-child(1)) { --row-action-count:1; }
+.session-item:has(> .session-actions > :nth-child(2)) { --row-action-count:2; }
+.session-item:has(> .session-actions > :nth-child(3)) { --row-action-count:3; }
+.session-item:hover { background:var(--side-item-hover); }
+.session-item.selected { background:var(--side-item-selected); border-left-color:var(--side-selected-border); }
+/* Text starts at --row-gutter: the row's 2px selection border sits inside that figure, and the gutter is
+   reserved whether an expander is present or not, so every row (flat, tree, either backend) aligns. */
+.session-item > .session-open { grid-column:1 / -1; grid-row:1; display:block; width:100%; text-align:left; background:transparent; border:0; padding:var(--row-open-pad) 4px var(--row-open-pad) calc(var(--row-gutter) - 2px); border-radius:4px; }
+/* Reserve the action rail beside the first two text lines only. Telemetry and other real lines below them
+   retain the row's full width instead of being squeezed by large targets (especially on narrow phones). */
+.session-open > .session-name,.session-open > .session-meta { margin-right:calc(var(--row-action-count) * var(--row-action-w) + 3px + var(--row-read-space)); }
+.session-item > .session-open[hidden] { display:none; }
+/* Everything that is not the open button or its band spans the row under the text lines. */
+.session-item > :not(.session-open,.session-actions,.session-toggle,.session-copy,.session-rename,.session-glance-chip,.oc-glance-chip,.session-read,.session-rename-input) { grid-column:1 / -1; }
+/* The action band: one horizontal run at the right, as tall as the first two text lines (never the waits,
+   children or glances below), each control a full-height fixed-width target; its width never changes. */
+.session-item > .session-actions { grid-column:2; grid-row:1; display:flex; align-items:stretch; align-self:start; padding-right:3px;
+  height:calc(1.45 * var(--side-fs) + 1.35 * var(--side-meta-fs) + 2 * var(--row-open-pad)); }
+.session-actions > :is(.session-rename,.session-copy,.session-glance-chip,.oc-glance-chip) { position:static; display:flex; flex:none; align-items:center; justify-content:center;
+  width:var(--row-action-w); height:100%; padding:0; text-align:center; font-size:var(--row-action-fs); line-height:1; border-radius:4px; cursor:pointer; user-select:none; }
+.session-actions > :is(.session-rename,.session-copy) { color:var(--side-meta); }
+/* ✎ ⧉ 💬 left to right, whatever order the row appended them in. */
+.session-actions > .session-rename { order:0; }
+.session-actions > .session-copy { order:1; }
+.session-actions > :is(.session-glance-chip,.oc-glance-chip) { order:2; }
+.session-actions > :is(.session-rename,.session-copy,.session-glance-chip,.oc-glance-chip):hover { color:var(--text); background:var(--surface-3); }
+.session-actions > :is(.session-rename,.session-copy,.session-glance-chip,.oc-glance-chip):focus-visible,
+.session-actions > :is(.session-glance-chip,.oc-glance-chip)[aria-expanded=true] { background:var(--surface-3); }
+/* 💬 stays visible; ✎ and ⧉ appear on hover or on the selected row, as they always have. */
+.session-actions > :is(.session-glance-chip,.oc-glance-chip) { opacity:.55; }
+.session-actions > :is(.session-glance-chip,.oc-glance-chip):hover,
+.session-actions > :is(.session-glance-chip,.oc-glance-chip):focus-visible,
+.session-actions > :is(.session-glance-chip,.oc-glance-chip)[aria-expanded=true] { opacity:1; }
+#sessions-list h3 .group-count { font-weight:400; letter-spacing:0; text-transform:none; }
+.group-foot { display:flex; flex-wrap:wrap; gap:10px; padding:2px 6px 6px var(--row-gutter); }
+/* line 1 of each row: the role word, then the name on one line (ellipsis; the whole name is on hover) */
+.session-item .session-name { display:flex; align-items:baseline; gap:0 .35em; min-width:0; white-space:nowrap; }
+.session-item .session-name > .name-text { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.role-word { flex:none; font-weight:650; color:var(--badge-other); }
+.role-word[data-role=manager] { color:var(--badge-manager); } .role-word[data-role=conductor] { color:var(--badge-conductor); }
+.role-word[data-role=quick-worker] { color:var(--badge-quick); } .role-word[data-role=helper] { color:var(--badge-helper); }
+.role-word[data-role=worker] { color:var(--badge-worker); } .role-word[data-role=lead-seat] { color:var(--badge-lead); }
+.backend-chip { display:inline-block; padding:0 4px; border:1px solid currentColor; border-radius:3px; font-size:9.5px; font-weight:650; line-height:12px; letter-spacing:.02em; vertical-align:1px; }
+.backend-chip[data-backend=claude] { color:var(--backend-claude); } .backend-chip[data-backend=opencode] { color:var(--backend-opencode); }
+.session-item .session-note,.session-item .session-crumb { display:block; color:var(--note-color); font-size:var(--fs-micro); font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.85; }
+.session-item .session-crumb { font-style:normal; color:var(--side-group); }
+/* the program tree */
+.program { margin:1px 0 3px; }
+.program-head { position:relative; display:block; cursor:pointer; border-radius:4px; padding:3px 6px 3px var(--tree-gutter); white-space:nowrap; overflow:hidden; }
+.program-head:hover { background:var(--side-item-hover); }
+.program-head > .tree-toggle { left:0; top:3px; }
+.program-title { display:flex; min-width:0; color:var(--program-title); font-weight:650; }
+.program-title > .name-text { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+/* First-turn age changes the root name's colour only; the existing meta colour is its floor. */
+.program-name-age { color:color-mix(in srgb, var(--program-title), var(--program-name-faded) var(--program-name-fade)); }
+/* One rectangle ABOVE the opaque sticky head: complete on a collapsed root too.
+   No layout border, extra outline or click target; the head keeps its sticky/hover rules. */
+.program.active-program { position:relative; border-radius:5px; }
+.program.active-program::after { content:""; position:absolute; inset:0; z-index:2; border:1.5px solid var(--active-outline); border-radius:inherit; pointer-events:none; }
+.session-item.in-active-program { box-shadow:inset 0 0 0 1px var(--active-outline); }
+.halt-flag { flex:none; align-self:center; margin-left:5px; font-size:var(--flag-fs, 11px); line-height:13px; cursor:help; }
+.glance-halt { margin:2px 0 4px; padding:3px 6px; border:1px solid var(--halt-border); border-radius:4px; background:var(--halt-bg); color:var(--halt-text); font-weight:600; overflow-wrap:anywhere; }
+.waiting-flag { flex:none; align-self:center; margin-left:6px; padding:0 5px; border:1px solid var(--waiting-border); border-radius:8px; font-size:9.5px; font-weight:600; line-height:13px; color:var(--waiting-text); }
+.rollup-badge { flex:none; align-self:center; margin-left:6px; padding:0 5px; border:1px solid var(--waiting-border); border-radius:8px; font-size:9.5px; font-weight:600; line-height:13px; opacity:.8; }
+.rollup-badge[data-state=busy] { color:var(--running-text); }
+.rollup-badge[data-state=waiting] { color:var(--waiting-text); }
+.program.live > .program-head .program-title::after { content:""; flex:none; align-self:center; width:7px; height:7px; margin-left:6px; border-radius:50%; background:var(--side-live); }
+.program-meta { display:block; color:var(--program-meta); font-size:var(--fs-micro); overflow:hidden; text-overflow:ellipsis; }
+/* Fixed cells on NEW elements only: the existing name ellipsizes before these shrink. */
+.program-meters { flex:none; display:inline-grid; grid-template-columns:var(--program-meter-count-width) var(--program-meter-duration-width) var(--program-meter-age-width); gap:var(--program-meter-gap); align-self:center; margin-left:var(--program-meter-gap); font:400 var(--program-meter-fs)/1.45 var(--mono); font-variant-numeric:tabular-nums; color:var(--program-meter-text); text-align:right; }
+.program-meter-count,.program-meter-duration { display:flex; justify-content:flex-end; align-items:center; gap:4px; min-width:0; }
+.program-count-blocks { display:inline-flex; justify-content:flex-end; align-items:center; gap:1px; width:17px; flex:none; }
+.program-count-block { display:block; width:2px; height:7px; background:var(--program-meter-block); }
+.program-duration-track { display:flex; justify-content:flex-end; align-items:center; width:18px; flex:none; }
+.program-duration-bar { display:block; height:3px; width:calc(100% * var(--program-duration-fraction,0)); background:var(--program-meter-yellow); }
+.program-duration-label { min-width:4ch; }
+.program-meter-age[data-age=today] { color:var(--program-age-today); }
+.program-meter-age[data-age=yesterday] { color:var(--program-age-yesterday); }
+.program-meter-age[data-age=recent] { color:var(--program-age-recent); }
+.program-meter-age[data-age=old] { color:var(--program-age-old); }
+.program-meter-tail { flex:none; width:var(--program-meter-live-space); }
+.tree-children { margin-left:var(--tree-indent); border-left:1px solid var(--tree-line); }
+.tree-node { position:relative; }
+/* If a row has both launch-tree and native-subagent expanders, stack them in the SAME reserved gutter;
+   even this row's role word and metadata keep the common text edge. */
+.tree-node:has(> .tree-toggle) > .session-item > .session-toggle { top:23px; }
+.tree-toggle { position:absolute; left:0; top:5px; cursor:pointer; user-select:none; width:12px; text-align:center; font-size:10px; line-height:16px; border-radius:3px; color:var(--side-group); }
+.tree-toggle:hover { color:var(--text); background:var(--surface-3); }
+.program-fold { flex:none; align-self:center; margin-left:auto; padding-left:6px; font-size:11px; font-weight:400; color:var(--side-group); opacity:.7; cursor:pointer; user-select:none; }
+.section-toggle { display:inline-block; margin-right:5px; font-size:10px; color:var(--side-group); opacity:.7; cursor:pointer; user-select:none; }
+.section-active { float:right; margin-left:6px; font-size:9.5px; font-weight:400; letter-spacing:0; text-transform:none; color:var(--side-group); opacity:.7; cursor:pointer; user-select:none; }
+.section-active[aria-pressed=true] { color:var(--text-2); opacity:1; }
+.conductor-fold { padding:1px 6px; font-size:var(--fs-micro); color:var(--side-group); opacity:.7; cursor:pointer; user-select:none; }
+.oc-unavailable { margin:0 2px 4px; font-size:var(--fs-micro); color:var(--error-text); opacity:.85; }
+/* a session row's inline glance, either backend (never the conversation view); on the desktop its 💬 chip opens it, the row opens the conversation */
+.session-item.glancing { background:var(--side-item-hover); }
+.oc-glance,.claude-glance { margin:0 4px 5px var(--row-gutter); padding:4px 6px; border:1px solid var(--glance-border); border-radius:4px; background:var(--glance-bg); font-size:var(--fs-micro); color:var(--text-2); }
+.glance-head { color:var(--side-meta); margin-bottom:3px; overflow-wrap:anywhere; }
+.glance-error { color:var(--error-text); margin-right:6px; }
+.glance-msg { margin:3px 0; padding-left:6px; border-left:2px solid var(--line); }
+.glance-msg[data-role=user] { border-left-color:var(--you-accent); } .glance-msg[data-role=assistant] { border-left-color:var(--backend-opencode); }
+.claude-glance .glance-msg[data-role=assistant] { border-left-color:var(--backend-claude); }
+/* the glance's running or latest tool call: name and time, then the conversation row's own compact preview */
+.glance-call { display:block; margin:4px 0 2px; padding-left:6px; border-left:2px solid var(--tool-accent); }
+.glance-call-bar { display:flex; gap:8px; align-items:baseline; }
+.glance-call-name { min-width:0; color:var(--tool-title); font-weight:600; overflow-wrap:anywhere; }
+.glance-call-time { margin-left:auto; flex:none; color:var(--side-meta); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.glance-call[data-state=running] .glance-call-time { color:var(--running-text); }
+.glance-call[data-state=error] .glance-call-time { color:var(--error-text); }
+.glance-call-preview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; white-space:pre-wrap; overflow-wrap:anywhere; font:var(--fs-micro)/1.4 var(--mono); color:var(--tool-preview); }
+.glance-who { display:block; color:var(--text-faint); }
+.glance-text { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:6; overflow:hidden; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--text-2); }
+.glance-foot { display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; margin-top:3px; color:var(--side-meta); }
+.glance-id { font-family:var(--mono); user-select:all; }
+.glance-copy { cursor:pointer; user-select:none; padding:0 3px; border-radius:3px; color:var(--side-meta); }
+.glance-copy:hover { color:var(--text); background:var(--surface-3); } .glance-copy.copied { color:var(--side-live); }
+/* "Open in CodeNomad" and what became of it */
+.glance-focus { display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; margin-top:4px; }
+.focus-open { font:inherit; padding:1px 8px; border:1px solid var(--backend-opencode); border-radius:3px; background:transparent; color:var(--backend-opencode); cursor:pointer; }
+.focus-open:hover:not(:disabled) { background:var(--surface-3); } .focus-open:disabled { opacity:.5; cursor:default; }
+.focus-status { color:var(--side-meta); overflow-wrap:anywhere; }
+.focus-status[data-state=done] { color:var(--side-live); }
+.focus-status[data-state=failed], .focus-status[data-state=expired] { color:var(--error-text); }
+.focus-status[data-missing-tab=true] { color:var(--text); }
+.role-badge { display:inline-block; margin-right:5px; padding:0 5px; border:1px solid currentColor; border-radius:8px; font-size:var(--badge-fs); font-weight:650; line-height:14px; color:var(--badge-other); vertical-align:1px; }
+.role-badge[data-role=manager] { color:var(--badge-manager); } .role-badge[data-role=conductor] { color:var(--badge-conductor); }
+.role-badge[data-role=quick-worker] { color:var(--badge-quick); } .role-badge[data-role=helper] { color:var(--badge-helper); }
+.role-badge[data-role=worker] { color:var(--badge-worker); }
+.session-rename { position:absolute; top:4px; right:22px; cursor:pointer; user-select:none; font-size:12px; line-height:18px; width:16px; text-align:center; border-radius:3px; color:var(--side-meta); opacity:0; }
+.session-item:hover .session-rename,.session-item.selected .session-rename,.session-rename:focus-visible { opacity:1; }
+.session-rename:hover { color:var(--text); background:var(--surface-3); }
+.session-star { flex:none; display:inline-block; color:var(--side-meta); font-size:14px; line-height:18px; padding:0 3px; cursor:pointer; user-select:none; border-radius:3px; }
+.session-star.starred { color:#e8bd58; }
+.session-star:hover,.session-star:focus-visible { background:var(--surface-3); outline:1px solid var(--side-selected-outline); }
+.phone-programs .session-star { min-width:28px; min-height:28px; line-height:28px; text-align:center; touch-action:manipulation; }
+.session-rename-input { display:block; grid-column:1; grid-row:1; width:auto; margin:3px 4px 3px var(--row-gutter); font:inherit; font-weight:600; background:var(--surface-3); color:var(--text); border:1px solid var(--focus); border-radius:4px; padding:2px 6px; }
+.session-twin { display:block; margin:0 0 3px var(--row-gutter); width:max-content; max-width:calc(100% - var(--row-gutter)); cursor:pointer; font-size:var(--fs-micro); color:var(--link); opacity:.75; border-radius:3px; padding:0 4px; }
+.session-twin:hover,.session-twin:focus-visible { opacity:1; background:var(--surface-3); }
+.session-twin[aria-pressed=true] { opacity:1; outline:1px solid var(--side-selected-outline); }
+.session-item .session-name { color:var(--side-label); font-weight:600; }
+.session-item .session-meta { display:block; color:var(--side-meta-color); font-size:var(--side-meta-fs); line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* With its first/latest-turn times the status line may wrap, but only between its parts: the status, its
+   models and each half of its times are one unit (a status too long for the list keeps its ellipsis), so
+   a narrow list moves the times down instead of cutting the models or a time. */
+.session-item .session-meta.meta-times { white-space:normal; text-overflow:clip; }
+.session-meta.meta-times > .meta-status,.session-meta.meta-times > .session-models { display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+.session-meta.meta-times > .meta-status,.session-meta.meta-times > .session-models { white-space:pre; } /* each keeps its leading space */
+/* A program row's meta line wraps the same way: its facts keep their ellipsis, the times move down whole. */
+.program-head .program-meta.meta-times { white-space:normal; text-overflow:clip; }
+.program-meta.meta-times > .meta-status { display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+.program-meta > .session-times { color:var(--program-meta); }
+.session-times { color:var(--side-meta); font-variant-numeric:tabular-nums; }
+.session-meta > .session-times { color:inherit; }
+.session-times > .times-part { white-space:nowrap; }
+.child-times { display:block; font-size:var(--fs-micro); opacity:.9; }
+/* Telemetry (oc.sh telemetry) keeps its own micro-size lines under the brighter/larger metadata: one line per run,
+   oldest first, each opened by its mark (▶️ the fresh start, ↪️ each follow-up that resumed it); "so far" ends the live
+   run's line. A row's runs are one grid, a column per cell (mark | moment → moment → moment → moment | ⚑ | so far), with
+   tabular figures, so the columns line up from line to line; the 1fr last column keeps the others at their own width.
+   A row too narrow for its grid wraps instead (.tele-wrap, sessions.js teleFit): each run's moments flow onto the lines
+   they need, between moments, never inside one, under the first; every cell keeps its grid column's width, so the runs
+   still line up. On the phone a tap opens the whole account (.tele-detail). */
+.session-item .session-tele { display:grid; grid-template-columns:repeat(var(--tele-cols,9),auto) 1fr; justify-content:start; align-items:baseline;
+  color:var(--side-meta); font-size:var(--fs-micro); line-height:1.35; font-variant-numeric:tabular-nums; }
+.session-tele .tele-run,.session-tele .tele-body,.session-tele .tele-unit { display:contents; }
+.session-tele :is(.tele-mark,.tele-cell,.tele-arrow,.tele-flag,.tele-tail) { white-space:pre; }
+.session-tele .tele-mark { grid-column:1; }
+.session-tele .tele-tail { grid-column:-2; padding-left:.25em; color:var(--running-text); }
+.session-item .session-tele.tele-wrap { display:block; }
+.session-tele.tele-wrap > .tele-run { display:flex; align-items:baseline; }
+.session-tele.tele-wrap .tele-mark { flex:none; }
+.session-tele.tele-wrap .tele-body { display:flex; flex-wrap:wrap; align-items:baseline; min-width:0; }
+.session-tele.tele-wrap .tele-unit { display:flex; align-items:baseline; }
+/* A GPT run's phase line (sessions.js teleSpan) under its own line: from the moments' column to the row's end, wrapping
+   between its parts; in a wrapped row, indented past the mark (teleFit sets the indent to the mark column's width). */
+.session-tele .tele-phases { grid-column:2 / -1; white-space:normal; }
+.session-tele .tele-phase { white-space:nowrap; }
+.session-tele.tele-wrap .tele-phases { display:block; }
+.tele-detail { margin:0 6px 4px var(--row-gutter); padding:3px 6px; border-left:2px solid var(--line); color:var(--side-meta); font-size:var(--fs-micro); line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
+.session-item.active { background:var(--running-bg); }
+.session-item.active .session-name::before,.child-list > button.active .child-title::before { content:""; flex:none; display:inline-block; width:7px; height:7px; margin-right:5px; border:2px solid var(--running-border); border-top-color:transparent; border-radius:50%; vertical-align:-1px; animation:pane-spin .9s linear infinite; }
+/* Activity stays visible after the name, rather than pushing only a busy row's role word to the right. */
+.session-item.active .session-name::before { order:1; align-self:center; margin:0 0 0 5px; }
+.child-list > button.active { background:var(--running-bg); }
+@keyframes pane-spin { to { transform:rotate(360deg); } }
+.session-item .session-bg { display:block; color:var(--running-text); font-size:var(--fs-micro); opacity:.8; }
+.session-waits { display:flex; flex-direction:column; gap:3px; padding:0 6px 5px var(--row-gutter); font-size:var(--fs-micro); }
+.session-waits .wait-target { color:var(--running-text); overflow-wrap:anywhere; }
+.session-waits .wait-target[role=button] { cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+.session-item.live .session-name::after { content:""; flex:none; display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%; background:var(--side-live); vertical-align:1px; }
+.session-item.has-gauge .session-name::after { content:none; }
+/* A Claude Manager row's context gauge in the dot's place (managerGauge): the status-bar pie at dot size in a green
+   ring while live (a plain green dot until a share is known); a gray ring, filled gray with the last known share, once closed. */
+.manager-gauge { flex:none; display:inline-block; width:9px; height:9px; margin-left:6px; border-radius:50%; vertical-align:0; box-shadow:0 0 0 1.5px var(--side-live);
+  --gauge-color:color-mix(in oklch, var(--gauge-red) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-orange-at)) / (var(--gauge-red-at) - var(--gauge-orange-at)), 1) * 100%),
+    color-mix(in oklch, var(--gauge-orange) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-green-until)) / (var(--gauge-orange-at) - var(--gauge-green-until)), 1) * 100%), var(--gauge-green)));
+  background:conic-gradient(var(--gauge-color) calc(var(--gauge-fill, 0) * 1%), var(--gauge-rest) 0); }
+.manager-gauge[data-open=true][data-known=false] { background:var(--side-live); }
+.manager-gauge[data-open=false] { box-shadow:inset 0 0 0 1.5px var(--side-meta); background:conic-gradient(var(--side-meta) calc(var(--gauge-fill, 0) * 1%), transparent 0); }
+.manager-gauge[data-open=false][data-known=false] { background:transparent; }
+.session-toggle,.session-copy { position:absolute; top:4px; cursor:pointer; user-select:none; color:var(--thinking-marker); font-size:11px; line-height:18px; width:16px; text-align:center; border-radius:3px; }
+/* The row's left gutter holds its expander, right beside the text's fixed start. */
+.session-toggle { left:0; width:12px; }
+.session-copy { right:4px; color:var(--side-meta); opacity:0; }
+.session-item:hover .session-copy,.session-copy:focus-visible { opacity:1; }
+.session-copy:hover { color:var(--text); background:var(--surface-3); }
+.session-copy.copied { opacity:1; color:var(--side-live); }
+.session-children { margin:0 0 4px var(--row-gutter); padding-left:6px; border-left:1px solid var(--line); }
+.child-list > button { display:block; width:100%; text-align:left; margin:1px 0; padding:3px 6px; background:transparent; border:0; border-radius:3px; font-size:12px; color:var(--side-child-label); overflow-wrap:anywhere; }
+.child-list > button:hover { background:var(--side-item-hover); }
+.child-list > button[aria-pressed=true] { background:var(--side-item-selected); color:var(--text); }
+/* the entry whose conversation is on screen: a thin rectangle on top of its existing look */
+.session-item.selected > .session-open,.child-list > button[aria-pressed=true] { outline:1px solid var(--side-selected-outline); outline-offset:-1px; }
+.session-children .child-title { font-weight:600; }
+.session-children .child-sub { display:block; color:var(--side-meta); font-size:var(--fs-micro); }
+.children-foot { font-size:var(--fs-micro); color:var(--side-meta); display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; padding:1px 6px; }
+/* The detached subagent block's foot disappears while its status is empty and it has no control to offer
+   (Refresh and More move onto a row's meta while they have a purpose). */
+.children-foot:has(#subagents-status:empty):not(:has(button:not([hidden]))) { display:none; }
+.children-foot [role=status] { flex:1; min-width:0; }
+.session-child-controls { display:inline-flex; gap:6px; margin-right:6px; }
+button.link { background:none; border:0; padding:0; color:var(--link); font-size:var(--fs-micro); }
+#subagents-block[data-detached] { margin:10px 0 0; border-top:1px solid var(--line); border-left:0; padding:4px 0 0; }
+#subagents-block[data-detached]::before { content:"Subagents of the selected session"; display:block; font-size:var(--fs-micro); color:var(--side-group); text-transform:uppercase; letter-spacing:.04em; margin:0 0 2px 2px; }
+
+/* ------------------------------------------------------------------ conversation column */
+#history { position:relative; display:flex; flex-direction:column; min-height:0; }
+/* 💬 Conversation | 📄 View: the column's two panes. View lies over the conversation (from just below the switch,
+   --view-top), which stays laid out underneath with its scroll and Following; a reload starts on the conversation. */
+.pane-switch { flex:none; align-self:flex-start; display:flex; gap:2px; margin:0 0 3px; padding:2px; border:1px solid var(--ribbon-border); border-radius:6px; background:var(--ribbon-bg); }
+.pane-switch button { padding:1px 10px; font-size:var(--ribbon-fs); line-height:1.35; border:0; border-radius:4px; background:transparent; color:var(--text-2); }
+.pane-switch button:hover { background:var(--surface-3); }
+.pane-switch button[aria-selected=true] { background:var(--surface-hi); color:var(--text); font-weight:650; }
+.desktop-view { position:absolute; left:0; right:0; bottom:0; top:var(--view-top,30px); z-index:4; display:flex; border:1px solid var(--line); border-radius:6px; background:var(--bg); overflow:hidden; }
+.desktop-view[hidden] { display:none; }
+#desktop-view-frame { flex:1; display:block; width:100%; height:100%; border:0; background:var(--bg); }
+body.side-dragging #desktop-view-frame { pointer-events:none; }
+/* The status topbar is one row: the context pie, the conversation's name immediately beside it, then the
+   activity banner (whose own state dot stays inside it). The name alone may shrink; the pie never does. */
+#history-topbar { flex:none; position:sticky; top:0; z-index:1; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+#history-session-name { order:1; flex:0 1 auto; min-width:0; max-width:min(35%,28ch); color:var(--link); font-size:var(--fs-base); font-weight:650; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#history-session-name:empty { display:none; }
+.context-gauge { order:0; flex:none; position:relative; z-index:auto; left:auto; top:auto; width:var(--gauge-size); height:var(--gauge-size); border-radius:50%; cursor:help;
+  box-shadow:0 0 0 1px var(--gauge-ring);
+  --gauge-color:color-mix(in oklch, var(--gauge-red) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-orange-at)) / (var(--gauge-red-at) - var(--gauge-orange-at)), 1) * 100%),
+    color-mix(in oklch, var(--gauge-orange) calc(clamp(0, (var(--gauge-fill, 0) - var(--gauge-green-until)) / (var(--gauge-orange-at) - var(--gauge-green-until)), 1) * 100%), var(--gauge-green)));
+  background:conic-gradient(var(--gauge-color) calc(var(--gauge-fill, 0) * 1%), var(--gauge-rest) 0); }
+.context-gauge[data-known=false] { background:var(--gauge-unknown); opacity:.55; }
+.context-gauge[data-known=tokens] { background:repeating-conic-gradient(var(--gauge-unknown) 0 10deg, var(--gauge-rest) 10deg 20deg); }
+#history-activity { position:relative; padding:6px 10px 6px 26px; border:1px solid var(--activity-border); border-radius:5px; background:var(--activity-bg); font-size:var(--activity-fs); font-weight:600; overflow-wrap:anywhere; }
+/* In the status row the banner takes the remaining width after the pie and the name. */
+#history-topbar > #history-activity { order:2; flex:1 1 240px; min-width:0; }
+#history-activity::before { content:""; position:absolute; left:10px; top:calc(50% - 4px); width:8px; height:8px; border-radius:50%; background:var(--activity-dot-unknown); }
+#history-activity[data-state=idle]::before { background:var(--activity-dot-idle); }
+#history-activity[data-state=thinking]::before { background:var(--activity-dot-thinking); box-shadow:0 0 6px var(--activity-dot-thinking); }
+#history-activity[data-state=writing]::before { background:var(--activity-dot-writing); box-shadow:0 0 6px var(--activity-dot-writing); }
+#history-activity[data-state=tool]::before { background:var(--activity-dot-tool); box-shadow:0 0 6px var(--activity-dot-tool); }
+#history-activity[data-state=retrying]::before { background:var(--activity-dot-retrying); }
+#history-activity[data-state=permission]::before { background:var(--activity-dot-permission); }
+#history-activity[data-state=busy]::before { background:var(--activity-dot-tool); box-shadow:0 0 6px var(--activity-dot-tool); }
+#history-halt { flex:none; margin:4px 0 0; padding:5px 10px; border:1px solid var(--halt-border); border-radius:5px; background:var(--halt-bg); color:var(--halt-text); font-size:var(--activity-fs); font-weight:600; overflow-wrap:anywhere; white-space:pre-line; }
+/* While the halt line still sits inside the status topbar, it takes a whole second row of it. */
+#history-topbar > #history-halt { order:3; flex:0 0 100%; }
+#history-halt[hidden] { display:none; }
+/* the OpenCode conversation header: where Dan is (title, ses_ id with copy, Open in CodeNomad) */
+.oc-header { flex:none; margin:3px 0 2px; padding:3px 8px; border:1px solid var(--glance-border); border-left:2px solid var(--backend-opencode); border-radius:4px; background:var(--glance-bg); font-size:var(--fs-small); }
+.oc-header-line { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 8px; min-width:0; }
+.oc-header-role { color:var(--text-dim); font-weight:650; }
+.oc-header-title { min-width:0; font-weight:650; color:var(--text); overflow-wrap:anywhere; }
+.oc-header-id { font-family:var(--mono); font-size:var(--fs-micro); color:var(--side-meta); user-select:all; overflow-wrap:anywhere; }
+.oc-header-copy { cursor:pointer; user-select:none; padding:0 3px; border-radius:3px; color:var(--side-meta); }
+.oc-header-copy:hover { color:var(--text); background:var(--surface-3); } .oc-header-copy.copied { color:var(--side-live); }
+.oc-header .glance-focus { margin:0; font-size:var(--fs-micro); }
+.oc-header-missing { font-size:var(--fs-micro); color:var(--error-text); }
+.oc-header-facts { font-size:var(--fs-micro); color:var(--side-meta); overflow-wrap:anywhere; }
+
+/* tiny expander: everything that used to fill the top of the pane */
+#history-more-info { flex:none; font-size:var(--more-fs); color:var(--more-color); margin:1px 0 3px; }
+#history-more-info > summary { cursor:pointer; width:max-content; padding:0 4px; line-height:15px; }
+#history-more-info > summary:hover { color:var(--text-2); }
+#history-more-info .more-alert { display:none; margin-left:5px; color:var(--more-alert); }
+#history-more-info:has([data-error=true]) .more-alert { display:inline; }
+#history-more-info[open] { max-height:45vh; overflow:auto; border-bottom:1px solid var(--line); padding-bottom:6px; }
+.more-body { font-size:12.5px; color:var(--text-2); padding:4px 6px 0; }
+.more-body p { margin:4px 0; }
+#history-source,#history-window,#history-capabilities { color:var(--text-2); overflow-wrap:anywhere; }
+#history-evidence { margin:6px 0; color:var(--text-2); }
+#history-live { white-space:pre-wrap; overflow-wrap:anywhere; max-height:180px; overflow:auto; font:12px/1.4 var(--mono); }
+
+/* control ribbon */
+#history-ribbon { flex:none; display:flex; align-items:center; gap:10px; min-height:var(--ribbon-h); padding:2px 6px; margin-bottom:4px; background:var(--ribbon-bg); border:1px solid var(--ribbon-border); border-radius:5px; font-size:var(--ribbon-fs); color:var(--text-2); overflow:hidden; }
+#history-ribbon button { font-size:var(--ribbon-fs); line-height:1.3; padding:1px 8px; border-radius:11px; background:transparent; border:1px solid var(--line); }
+#history-ribbon button:hover { background:var(--surface-3); }
+#history-follow { display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+#history-follow[aria-pressed=true] { background:var(--follow-on-bg); border-color:var(--follow-on-border); color:var(--follow-on-text); }
+#history-follow[aria-pressed=false] { background:var(--follow-off-bg); border-color:var(--follow-off-border); color:var(--follow-off-text); }
+.follow-dot { width:7px; height:7px; border-radius:50%; background:var(--follow-off-dot); }
+#history-follow[aria-pressed=true] .follow-dot { background:var(--follow-on-dot); animation:follow-pulse 2s ease-in-out infinite; }
+@keyframes follow-pulse { 50% { opacity:.35; } }
+.ribbon-group { display:inline-flex; align-items:center; gap:2px; }
+.ribbon-caption { font-size:var(--fs-tiny); margin-right:2px; }
+.ribbon-caption.you { color:var(--you-label); } .ribbon-caption.final { color:var(--final-label); }
+#history-ribbon button.nav { padding:0 6px; border-radius:3px; border-color:transparent; }
+#history-ribbon button.chip[aria-pressed=true] { background:var(--surface-hi); border-color:var(--line-strong); color:var(--text); }
+#history-ribbon #history-successor { border-color:var(--follow-on-border); color:var(--follow-on-text); }
+#history-ribbon #ribbon-reconnect { flex:none; }
+#history-ribbon #ribbon-reconnect[data-attention=true] { background:var(--reconnect-attention-bg); border-color:var(--reconnect-attention-border); color:var(--edge-stale-text); font-weight:650; }
+#history-follow[data-state=stale] { background:var(--edge-stale-bg); border-color:var(--edge-stale-border); color:var(--edge-stale-text); }
+.ribbon-session { margin-left:auto; color:var(--text-faint); font-size:var(--fs-tiny); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+
+#history-viewport { flex:1; min-height:200px; overflow:auto; overflow-anchor:none; border:1px solid var(--line); border-radius:5px; background:var(--bg); }
+#history-events { padding:2px 0 10px; }
+#running-tools { flex:none; max-height:25vh; overflow:auto; margin-bottom:4px; padding:5px 9px; background:var(--running-bg); border-left:3px solid var(--running-border); font-size:var(--fs-small); }
+.running-tools[hidden] { display:none; }
+.running-tools-title { font-weight:600; color:var(--running-text); }
+.running-tool { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; padding-top:4px; }
+.running-tool-name,.running-tool-time { color:var(--running-text); }
+.running-tool-time { text-align:right; font-variant-numeric:tabular-nums; }
+#running-tools .running-tool-preview { grid-column:1/-1; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--text-2); max-height:3.9em; overflow:auto; }
+/* The floating ↓ Latest badge: a zero-height strip stuck to the viewport's bottom (no layout shift). Accent "N new ↓"
+   while something below has not been seen (seen-latest.js), pulsing about 5 s as new material arrives. */
+#history-latest-dock { position:sticky; bottom:0; height:0; pointer-events:none; }
+#history-latest-badge { position:absolute; right:14px; bottom:10px; pointer-events:auto; padding:5px 12px; font-weight:600; border-radius:999px;
+  background:#283d5b; border:1px solid #91baff; color:#e4e8ef; box-shadow:0 2px 10px rgba(0,0,0,.45); cursor:pointer; }
+#history-latest-badge[hidden] { display:none; }
+#history-latest-badge[data-unseen=true] { background:#8a5200; border-color:#ffc04d; color:#fff; }
+/* A final reply is among the unseen rows: the final-answer bubble's red (--final-accent), not the working orange. */
+#history-latest-badge[data-unseen=final] { background:#9a2a22; border-color:var(--final-accent); color:#fff; }
+#history-latest-badge[data-pulse=on] { animation:latest-new-pulse 1.25s ease-out 4; }
+#history-latest-badge[data-unseen=final][data-pulse=on] { animation:latest-final-pulse 1.25s ease-out 4; }
+@keyframes latest-new-pulse { 0% { box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 0 rgba(255,192,77,.9); } 100% { box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 14px rgba(255,192,77,0); } }
+@keyframes latest-final-pulse { 0% { box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 0 rgba(255,107,97,.9); } 100% { box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 14px rgba(255,107,97,0); } }
+@media (prefers-reduced-motion:reduce) { #history-latest-badge[data-pulse=on] { animation:none; box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 3px #ffc04d; }
+  #history-latest-badge[data-unseen=final][data-pulse=on] { animation:none; box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 3px var(--final-accent); } }
+.seen-end { display:block; height:0; margin:0; padding:0; }
+/* under the newest message whenever it is not the live head: never a silent end */
+#history-edge { margin:0 8px 10px; padding:5px 10px; border:1px dashed var(--line-strong); border-radius:4px; font-size:var(--fs-small); color:var(--edge-behind-text); display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; }
+#history-edge[hidden] { display:none; }
+#history-edge[data-kind=stale] { background:var(--edge-stale-bg); border:1px solid var(--edge-stale-border); color:var(--edge-stale-text); font-weight:600; }
+#history-edge[data-kind=loading] { color:var(--text-dim); border-style:dotted; }
+#history-edge[data-kind=notice] { border:0; padding:0 10px; color:var(--text-dim); }
+#history-edge .edge-damaged { flex-basis:100%; color:var(--text-dim); font-weight:400; }
+#history-edge .edge-action { font-size:var(--fs-small); }
+
+/* ------------------------------------------------------------------ turns */
+.history-event { margin:var(--turn-gap) 8px; padding:6px 10px; background:var(--turn-bg); border-left:3px solid var(--line); border-radius:0 4px 4px 0; overflow-wrap:anywhere; font-size:var(--fs-prose); }
+.history-event pre { margin:6px 0; white-space:pre-wrap; tab-size:4; overflow-wrap:anywhere; font:inherit; }
+.event-label { display:flex; gap:8px; align-items:baseline; line-height:1.3; }
+.event-role { font-size:var(--fs-tiny); font-weight:650; letter-spacing:.03em; color:var(--text-dim); }
+/* the model and thinking level recorded on a Claude block: the role's own type and colour, faded toward the background */
+.event-model { font-size:var(--fs-tiny); font-weight:650; letter-spacing:.03em; color:var(--text-dim); opacity:var(--model-dim); white-space:nowrap; margin-left:-3px; }
+.event-model:empty { display:none; }
+.event-meta { font-size:var(--meta-fs); color:var(--meta-color); margin-left:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+/* hover copy: the message's own Markdown (beside the date), and each rendered code block */
+.event-copy { margin-left:auto; flex:none; cursor:pointer; user-select:none; font-size:var(--copy-fs); line-height:1; padding:1px 3px; border-radius:3px; color:var(--copy-color); opacity:0; }
+.event-copy[hidden] { display:none; }
+.event-copy:not([hidden]) + .event-meta { margin-left:0; }
+.history-event:hover > .event-label > .event-copy,.event-copy:focus-visible,.event-copy.copied { opacity:1; }
+.event-copy:hover,.code-copy:hover { color:var(--text); background:var(--surface-3); }
+.event-copy.copied,.code-copy.copied { color:var(--side-live); }
+/* 🔊 Read aloud, just before the copy button (read-aloud.js opens its player); shown on hover like the copy. */
+.event-speak { margin-left:auto; flex:none; cursor:pointer; user-select:none; font-size:var(--copy-fs); line-height:1; padding:1px 3px; border-radius:3px; color:var(--copy-color); opacity:0; }
+.event-speak[hidden] { display:none; }
+.event-speak:not([hidden]) + .event-copy { margin-left:0; }
+.history-event:hover > .event-label > .event-speak,.event-speak:focus-visible { opacity:1; }
+.event-speak:hover,.thinking-speak:hover { background:var(--surface-3); }
+.event-thinking .thinking-speak { margin-left:8px; cursor:pointer; user-select:none; font-size:var(--copy-fs); padding:0 3px; border-radius:3px; opacity:0; }
+.event-thinking .thinking-speak[hidden] { display:none; }
+.event-thinking > summary:hover > .thinking-speak,.event-thinking .thinking-speak:focus-visible { opacity:1; }
+.code-wrap { position:relative; }
+.code-copy { position:absolute; top:4px; right:4px; cursor:pointer; user-select:none; font-size:var(--copy-fs); line-height:1; padding:2px 4px; border-radius:3px; color:var(--copy-color); background:var(--surface-2); border:1px solid var(--line); opacity:0; }
+.code-wrap:hover > .code-copy,.code-copy:focus-visible,.code-copy.copied { opacity:1; }
+.event-prose { margin:4px 0; white-space:pre-wrap; tab-size:4; }
+.event-prose:empty { display:none; }
+.event-prose[data-rendering=markdown] { white-space:normal; }
+.event-prose > :first-child { margin-top:0; } .event-prose > :last-child { margin-bottom:0; }
+.event-prose p { margin:0.6em 0; }
+.event-prose h1,.event-prose h2,.event-prose h3,.event-prose h4,.event-prose h5,.event-prose h6 { margin:1em 0 0.4em; line-height:1.25; }
+.event-prose h1 { font-size:1.45em; } .event-prose h2 { font-size:1.25em; } .event-prose h3 { font-size:1.1em; }
+.event-prose ul,.event-prose ol { padding-left:1.7em; }
+.event-prose blockquote { margin:0.7em 0; padding:0.2em 0.9em; border-left:3px solid #8392aa; color:#cad8ee; }
+.event-prose code { font:0.9em/1.45 var(--mono); background:var(--bg); padding:0.1em 0.3em; border-radius:3px; }
+.event-prose pre { white-space:pre; overflow:auto; max-width:100%; padding:10px; background:var(--bg); border:1px solid var(--line); border-radius:4px; }
+.event-prose pre code { padding:0; background:transparent; }
+.event-prose table { display:block; overflow:auto; max-width:100%; border-collapse:collapse; margin:0.8em 0; }
+.event-prose th,.event-prose td { border:1px solid var(--line-strong); padding:5px 9px; min-width:80px; }
+.event-prose th { background:var(--surface-hi); font-weight:650; }
+.event-prose tr:nth-child(even) { background:var(--surface-3); }
+.event-prose hr { border:0; border-top:1px solid var(--line-strong); margin:1em 0; }
+
+/* 1 · your own messages: strong green */
+.history-event.turn-user { background:var(--you-bg); border-left:4px solid var(--you-accent); box-shadow:inset 0 0 0 1px var(--you-border); border-radius:0 6px 6px 0; margin-top:14px; }
+.turn-user .event-role { color:var(--you-label); }
+/* 2 · final answers: red */
+.history-event.turn-final { background:var(--final-bg); border-left:4px solid var(--final-accent); box-shadow:inset 0 0 0 1px var(--final-border); border-radius:0 6px 6px 0; }
+.turn-final .event-role,.turn-final .event-model { color:var(--final-label); }
+/* 3 · prose inside a working round: orange bar on a dim red ground, findable while scrolling */
+.history-event.turn-mid { background:var(--mid-bg); border-left-color:var(--mid-accent); }
+.turn-mid .event-role,.turn-tools .event-role,.turn-mid .event-model,.turn-tools .event-model { color:var(--mid-label); }
+.turn-tools .event-prose:not(:empty) { border-left:2px solid var(--mid-accent); padding:3px 8px; background:var(--mid-bg); border-radius:0 3px 3px 0; }
+/* 4 · tool calls: very gentle blue */
+.history-event.turn-tools { background:transparent; border-left-color:var(--tool-accent); padding-top:2px; padding-bottom:2px; }
+.history-event.turn-thinking { background:transparent; border-left-color:var(--thinking-border); padding-top:2px; padding-bottom:2px; }
+.turn-tools > .event-label,.turn-thinking > .event-label { opacity:var(--label-quiet); }
+/* hovering a block lights its left bar, so it is clear which block the pointer is over */
+.history-event:not(.event-flagged):not(.end-of-turn):hover { border-left-color:var(--block-hover-accent); }
+
+/* records with no conversation content */
+.history-event.event-silent { display:none; }
+.history-event.event-flagged { background:transparent; border-left-color:transparent; padding:0 10px; margin-top:0; margin-bottom:0; }
+.event-flagged > .event-label,.event-flagged > .event-prose { display:none; }
+.event-flag { font-size:var(--flag-fs); color:var(--flag-color); line-height:15px; }
+.event-flag > summary { cursor:pointer; width:max-content; }
+.event-flag > summary::marker { color:var(--flag-color); }
+.event-flag .flag-mark { color:var(--flag-mark); margin-right:3px; }
+.event-flag dl { display:grid; grid-template-columns:max-content 1fr; gap:0 10px; margin:2px 0 4px 14px; }
+.event-flag dt { color:var(--flag-color); } .event-flag dd { margin:0; color:var(--text-2); overflow-wrap:anywhere; }
+
+/* subagent activity in the Manager's conversation: tiny colored groups, flag-row look */
+.subagent-run { margin:0 8px 0 10px; }
+.subagent-group { font-size:var(--flag-fs); color:var(--flag-color); line-height:15px; }
+.subagent-group > summary { cursor:pointer; width:max-content; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.subagent-group > summary::marker { color:var(--flag-color); }
+.subagent-group .sg-mark { color:var(--agent-color,var(--flag-mark)); margin-right:3px; }
+.subagent-group .sg-name { color:color-mix(in srgb,var(--agent-color,var(--flag-mark)) 65%,var(--text-2)); font-weight:600; }
+.subagent-group .sg-count,.subagent-group .sg-time { margin-left:6px; }
+.subagent-group.running > summary .sg-mark { animation:follow-pulse 1.4s ease-in-out infinite; }
+.sg-entries { margin:0 0 3px 5px; padding-left:8px; border-left:2px solid color-mix(in srgb,var(--agent-color,var(--flag-mark)) 45%,transparent); }
+.sg-entry { display:flex; gap:7px; align-items:baseline; white-space:nowrap; overflow:hidden; border-radius:2px; padding:0 3px; cursor:pointer; }
+.sg-entry:hover { background:var(--surface-2); color:var(--text-2); }
+.sg-entry .sg-etime { flex:none; color:var(--text-faint); font-variant-numeric:tabular-nums; }
+.sg-entry .sg-ename { flex:none; color:var(--text-dim); }
+.sg-entry .sg-epreview { min-width:0; overflow:hidden; text-overflow:ellipsis; font-family:var(--mono); }
+.sg-entry.running { background:var(--running-bg); color:var(--running-text); }
+.sg-entry.error .sg-ename { color:var(--error-text); }
+
+/* end-of-turn receipt */
+.history-event.end-of-turn { background:transparent; border-left-color:transparent; padding:0 10px; margin-top:2px; }
+.end-of-turn .event-label { display:none; }
+.result-marker { font-size:var(--fs-micro); color:var(--meta-color); border-top:1px dashed var(--line); padding-top:2px; }
+
+/* OpenCode: one quiet dim line for a block with nothing readable (empty, encrypted or loading reasoning; a step with no content yet) */
+.history-event.event-quiet { background:transparent; border-left-color:transparent; padding-top:0; padding-bottom:0; margin-top:0; margin-bottom:0; opacity:.62; }
+.event-quiet > .event-thinking,.event-quiet > .event-prose { display:none; }
+.event-quiet .event-role { font-weight:400; font-style:italic; }
+/* a subagent call's own conversation, beside (never inside) its Inspect bar */
+.oc-child-link { display:block; margin:-1px 0 4px 10px; padding:1px 6px; background:none; border:0; border-radius:3px; color:var(--link); font-size:var(--fs-micro); text-align:left; cursor:pointer; overflow-wrap:anywhere; }
+.oc-child-link:hover,.oc-child-link:focus-visible { background:var(--surface-3); text-decoration:underline; }
+/* an OpenCode shell message: tool-styled, its stored command and output kept under Tools only; never an Inspect bar */
+.history-event.oc-shell .event-prose { font:12px/1.4 var(--mono); }
+.tools-only .history-event.oc-shell .event-prose { display:block; }
+
+/* ------------------------------------------------------------------ thinking */
+.event-thinking { margin:4px 0; padding:3px 8px; border:1px solid var(--thinking-border); border-radius:4px; background:var(--thinking-bg); }
+.event-thinking summary { cursor:pointer; color:var(--thinking-header); font-weight:600; font-size:var(--fs-small); }
+.event-thinking summary::marker { color:var(--thinking-marker); }
+.event-thinking .thinking-note { font-weight:400; font-size:var(--fs-micro); color:var(--thinking-note); margin-left:6px; }
+.event-thinking .thinking-text { color:var(--thinking-text); font-size:var(--fs-small); }
+.event-thinking .thinking-text:empty { display:none; }
+.event-thinking.thinking-empty { border-style:dashed; }
+.event-thinking.thinking-empty summary { cursor:default; list-style:none; }
+.event-thinking.thinking-empty summary::-webkit-details-marker { display:none; }
+
+/* ------------------------------------------------------------------ tool calls */
+.tool-bar { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; width:100%; margin:3px 0; padding:3px 8px; text-align:left; background:var(--tool-bg); border:1px solid transparent; border-left:2px solid var(--tool-accent); border-radius:3px; }
+.tool-bar:hover { background:var(--tool-bg-hover); border-color:var(--line); border-left-color:var(--tool-accent); }
+.tool-bar.accepted { border-left-color:#c9d4e8; background:var(--surface-hi); }
+.tool-bar.pending { border-left-color:#e9c479; } .tool-bar.failed { border-color:#ff8080; }
+.tool-bar.running { background:var(--running-bg); border-left-color:var(--running-border); }
+.tool-bar.running .tool-title { color:var(--running-text); }
+/* 📦 An archived call is its one-line preview: it reads as a tool bar but has nothing to inspect. */
+.tool-bar.archived-call { cursor:default; } .tool-bar.archived-call:hover { background:var(--tool-bg); border-color:transparent; border-left-color:var(--tool-accent); }
+.tool-title { grid-column:1; grid-row:1; overflow-wrap:anywhere; font-size:var(--fs-small); color:var(--tool-title); font-weight:600; }
+.tool-preview { grid-column:1 / -1; grid-row:2; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:var(--preview-lines,3); overflow:hidden; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.4 var(--mono); color:var(--tool-preview); }
+.tool-sizes { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; align-items:baseline; }
+/* The call's total time, left of its sizes, in their size and their cold color; while it runs,
+   its elapsed time in the row's running color. */
+.tool-time { font-size:var(--size-fs); color:var(--size-cold); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.tool-bar.running .tool-time { color:var(--running-text); }
+.tool-size { font-size:calc(var(--size-fs) + var(--tool-size-lift,0px) * var(--size-lift-scale)); color:color-mix(in srgb,var(--size-cold), var(--size-hot) var(--tool-size-warmth,0%)); white-space:nowrap; }
+.tool-size[data-tier=large] { font-size:calc(var(--size-large-fs) + var(--tool-size-lift,0px) * var(--size-lift-scale)); font-weight:650; }
+.tool-size[data-tier=huge] { font-size:calc(var(--size-huge-fs) + var(--tool-size-lift,0px) * var(--size-lift-scale)); font-weight:750; background:var(--size-huge-bg); padding:0 5px; border-radius:3px; }
+
+.tools-only .event-prose,.tools-only .event-thinking { display:none; } .tools-only .history-event:not(.has-tools) { display:none; }
+@media(max-width:640px) { main { grid-template-columns:minmax(0,1fr); height:auto; } .side-divider { display:none; } aside { max-height:240px; } #history-viewport { height:60vh; flex:none; } }
+@media(forced-colors:active) { .tool-size { color:CanvasText; } .tool-bar.accepted { border-left-color:Highlight; } }
+/* The same component embedded in the Claude pane needs no second-tab chrome. */
+body.embedded > header { display: none; }
+/* View's root widget showed this row ("show it in Programs / the sidebar"): a short flash, then the row as it was. */
+@keyframes opc-reveal-flash { 0%, 40% { background: rgba(154,195,255,.32); box-shadow: inset 0 0 0 2px #9ac3ff; } 100% { background: transparent; box-shadow: inset 0 0 0 0 transparent; } }
+.reveal-flash { animation: opc-reveal-flash 1.2s ease-out 2; border-radius: 8px; }

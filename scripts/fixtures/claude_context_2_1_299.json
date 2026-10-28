@@ -1,0 +1,48 @@
+{
+  "provenance": {
+    "cli": "2.1.299 (Claude Code)",
+    "native_uuid": "b154cc24-119c-40b9-b3d5-d5be48079f1f",
+    "date": "2026-10-14",
+    "source": "owned U07 native get_context_usage probe; exact selected response fields, not a complete frame",
+    "source_stdout_sha256": "1ba155c7e5f323eaef578d433d07da3bbea479367278e87b4ccbb99052cf48fb",
+    "auth": "claude.ai/firstParty/Max; no overage observed",
+    "request": {"subtype": "get_context_usage"}
+  },
+  "before_first_turn": {
+    "autocompactSource": "auto",
+    "totalTokens": 14984,
+    "maxTokens": 1000000,
+    "rawMaxTokens": 1000000,
+    "model": "claude-haiku-5-5",
+    "isAutoCompactEnabled": false,
+    "apiUsage": null
+  },
+  "after_tool_turn": {
+    "autocompactSource": "auto",
+    "totalTokens": 19559,
+    "maxTokens": 1000000,
+    "rawMaxTokens": 1000000,
+    "model": "claude-haiku-5-5",
+    "isAutoCompactEnabled": false,
+    "apiUsage": {
+      "input_tokens": 2,
+      "output_tokens": 7,
+      "cache_creation_input_tokens": 141,
+      "cache_read_input_tokens": 19416
+    }
+  },
+  "turn_usage_not_occupancy": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 19557,
+    "cache_read_input_tokens": 19416,
+    "output_tokens": 106
+  },
+  "native_model_usage_window_witness": {"contextWindow": 1000000, "maxOutputTokens": 128000},
+  "tool_time_publication": {
+    "source_native_uuid": "f609cdd5-bc7e-428b-8243-7b113ec67e50",
+    "source_stdout_sha256": "524b7463b34921eb62bbdbd9549e06cc2a9606b53817f0ab65a5162ed6a11582",
+    "assistant_provisional_output_tokens": 23,
+    "final_output_tokens": 32,
+    "model_facing_tool_result_preceded_final_usage": true
+  }
+}

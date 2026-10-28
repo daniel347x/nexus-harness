@@ -1,0 +1,538 @@
+<!doctype html><meta charset="utf-8"><title>Actual phone page — first-class OpenCode Managers (inert host and provider)</title>
+<style>iframe{width:390px;height:1000px;border:0}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone Manager page"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,why)=>{for(let i=0;i<800;i++){if(fn())return;await sleep(5);}throw new Error('fixture wait did not settle'+(why?' · '+why:''));};
+  try {
+    const base=new URL('../static/',location.href),shared=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const read=async(name,root=base)=>(await fetch(new URL(name,root))).text();
+    const [html,css,marked,purify,markdown,defaults,core,refineView,app,manifest,reading,previews,records,seenLatest,highlighter,diffView,diffCss,statusToastCss,statusToast,quotaHalt,accountsJS,accountsCSS,teamsCss,glareCss,managerJs,teamsJs,handleLinks,managerOrder]=await Promise.all([
+      read('m.html'),read('m.css'),read('vendor/marked.umd.js'),read('vendor/purify.min.js'),read('message-markdown.js'),
+      read('refine-defaults.js'),read('refine-core.js'),read('refine-view.js'),read('m.js'),read('m.webmanifest'),read('tool-reading.js'),
+      read('tool-preview-core.js',shared),read('tool-record-text.js',shared),read('seen-latest.js'),read('vendor/highlight.min.js'),
+      read('diff-view.js'),read('diff-view.css'),read('status-toast.css'),read('status-toast.js'),read('quota-halt.js'),
+      read('account-switch.js'),read('account-switch.css'),read('teams-break.css'),read('glare.css'),read('opencode-manager.js'),read('teams-break.js'),read('handle-links.js'),read('manager-order.js')]);
+    const safe=text=>text.replace(/<\/script/gi,'<\\/script');
+    const SID_A='ses_'+'a'.repeat(12)+'A'.repeat(14), SID_B='ses_'+'b'.repeat(12)+'B'.repeat(14),
+      SID_W='ses_'+'c'.repeat(12)+'C'.repeat(14), SID_LAUNCH='ses_'+'d'.repeat(12)+'D'.repeat(14);
+    const WIT_A='a'.repeat(64), WIT_B='b'.repeat(64), WIT_L='d'.repeat(64);
+    const C={source:'host',role:'Manager',uuid:'11111111-1111-4111-8111-111111111111',executionId:'cc-11111111-1111-4111-8111-111111111111',
+      generation:1,targetRef:'claude-target',sessionRef:'claude-session',scopes:[{label:'main',scopeRef:'claude-main'}],title:'Claude Manager',
+      createdAt:'2026-10-20T10:00:00Z',lifecycle:'live',capabilities:{nativeInput:true,controls:true,reconnect:true}};
+    const target=(sid,witness)=>({backend:'opencode',sessionId:sid,witness});
+    const ocRow=(sid,title,model,createdAt)=>({id:sid,kind:'manager',role:'Manager',backend:'opencode',manager:true,title,agent:'manager',
+      model:model,createdAt,busy:false,directory:'/w/manager-sessions'});
+    const modelFlash={providerID:'openrouter',id:'deepseek/flash',name:'Zeta Flash',variants:{low:{},medium:{},max:{}},limit:{context:872000},enabled:true};
+    const modelSol={providerID:'openrouter',id:'deepseek/sol',name:'Alpha Sol',variants:{low:{},medium:{},high:{},xhigh:{},max:{}},limit:{context:872000},enabled:true};
+    const fx={store:new Map(),storage:[],requests:[],intentPosts:[],sendPosts:[],controlPosts:[],claudePosts:[],launches:[],creates:0,
+      A:ocRow(SID_A,'OpenCode A','openrouter/deepseek/flash#medium','2026-10-21T10:00:00Z'),
+      B:ocRow(SID_B,'OpenCode B','openrouter/deepseek/flash#medium','2026-10-21T09:00:00Z'),
+      W:ocRow(SID_W,'OpenCode worker','openrouter/deepseek/flash#medium','2026-10-21T08:00:00Z'),C,
+      targets:[target(SID_A,WIT_A),target(SID_B,WIT_B)],sessions:new Map(),messages:new Map(),ops:new Map(),holdAck:new Set(),holdAckAll:false,
+      lossSendOnce:false,lossLaunchOnce:false,conflictNext:false,busy:false,hideProgramsA:false,failClaudeInventory:false,holdModel:false,deferManager:false,witnessBump:false,completeLaunchOnReceipt:false,pendingLaunch:null,
+      interruptedResult:true,interruptUncertain:false,controlApplied:true,now:Date.parse('2026-10-21T12:00:00Z'),seq:0,providerCalls:0,
+      claudeReceipts:new Map(),postErrors:[]};
+    fx.W.manager=false; fx.W.kind='worker'; fx.W.role='Worker';
+    fx.targets.push(target(SID_LAUNCH,WIT_L));
+    window.phoneOcFixture=fx;
+    const mock=`
+      const fx=parent.phoneOcFixture;
+      addEventListener('error',e=>fx.postErrors.push(e.message));
+      addEventListener('unhandledrejection',e=>fx.postErrors.push('rejection: '+String(e.reason?.message||e.reason)));
+      Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=>'',writeText:async value=>{fx.clipboardWrites=(fx.clipboardWrites||[]);fx.clipboardWrites.push(String(value));}}});
+      Date.now=()=>fx.now;
+      const vv=new EventTarget();viewport=vv;viewport.height=innerHeight;viewport.offsetTop=0;
+      Object.defineProperty(window,'visualViewport',{configurable:true,value:viewport});
+      for(const id of ['m-programs-frame','m-glimpse-frame']){
+        const frame=document.getElementById(id);
+        Object.defineProperty(frame,'src',{configurable:true,set(value){frame.dataset.requestedSrc=value;frame.setAttribute('src','about:blank');}});
+      }
+      Object.defineProperty(window,'localStorage',{value:{get length(){return fx.store.size;},key:i=>[...fx.store.keys()][i]??null,
+        getItem:k=>{fx.storage.push(['get',k]);return fx.store.get(k)??null;},
+        setItem:(k,v)=>{fx.storage.push(['set',k,String(v)]);fx.store.set(k,String(v));},
+        removeItem:k=>fx.store.delete(k)}});
+      const env=x=>({schemaVersion:1,backend:'opencode',...x}),claudeEnv=x=>({schemaVersion:1,backend:'claude',...x});
+      const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
+      const targetOf=sid=>fx.targets.find(t=>t.sessionId===sid);
+      const newId=kind=>{fx.seq++;return (kind==='launch'?'ses_':'msg_')+String(fx.seq).padStart(12,'0')+'S'+String(fx.seq).padStart(13,'0');};
+      const ocRowOf=sid=>[fx.A,fx.B,fx.W].find(r=>r.id===sid)||fx.sessions.get(sid)||null;
+      const modelOf=row=>typeof row?.model==='string'?(String(row.model).includes('sol')?fx.models[1]:fx.models[0]):row?.model;
+      const addLaunched=rec=>{const sid=rec.nativeId;fx.creates++;
+        fx.sessions.set(sid,{id:sid,title:rec.intent.name,agent:rec.intent.agent,model:rec.intent.model,directory:'/w/manager-sessions',
+          createdAt:fx.now,manager:true,kind:'manager',role:'Manager',busy:false});
+        fx.targets.push({backend:'opencode',sessionId:sid,witness:'d'.repeat(64)});
+        fx.pendingLaunch=null;rec.state='created';rec.acknowledged=true;return rec;};
+      const enrich=rec=>{
+        if(!rec)return null;
+        if(rec.kind==='send'){
+          if(rec.state==='prepared')return rec;
+          if(fx.holdAckAll||fx.holdAck.has(rec.nativeId))return rec;
+          const item=fx.messages.get(rec.nativeId);if(!item)return {...rec,state:'uncertain'};
+          const text=(item.payload&&item.payload.text)??item.text;
+          if(item.id!==rec.nativeId||item.sessionID!==rec.intent.target.sessionId||item.type!=='user'||text!==rec.intent.submitted)
+            return {...rec,state:'conflict',acknowledged:false,detail:'Native id has a different body/target/type; not acknowledged'};
+          return {...rec,state:item.box,acknowledged:true,detail:'Exact native '+item.box+' evidence'};
+        }
+        if(rec.kind==='launch'){
+          const s=fx.sessions.get(rec.nativeId);if(!s)return rec;
+          const t=targetOf(s.id);if(!t)return rec;
+          if(s.agent===rec.intent.agent&&JSON.stringify(s.model)===JSON.stringify(rec.intent.model)&&s.title===rec.intent.name)
+            return {...rec,state:'created',acknowledged:true,target:t};
+          return {...rec,state:'conflict',acknowledged:false,detail:'Existing native session differs from the requested launch'};
+        }
+        if(rec.intent.operation==='set_model'){
+          if(fx.holdModel)return rec;
+          const sid=rec.intent.target.sessionId,row=ocRowOf(sid);
+          if(!fx.controlApplied)return {...rec,state:'uncertain'};
+          if(row)row.model=rec.intent.model;
+          return {...rec,state:'applied',acknowledged:true,readback:rec.intent.model};
+        }
+        return rec;
+      };
+      const managerState=sid=>{const row=ocRowOf(sid),t=targetOf(sid);if(!row||!t||row.manager!==true)return null;
+        return env({target:t,sessionId:sid,title:row.title,agent:row.agent,model:modelOf(row),directory:row.directory,createdAt:row.createdAt,
+          busy:fx.busy,observedAt:fx.now/1000,capabilities:{send:true,control:true,context:true},
+          context:{status:'measured',basis:'input + cache read + cache write + output + reasoning',usedTokens:1234,window:872000,measuredAt:fx.now/1000-5}});};
+      window.fetch=async(url,options={})=>{
+        url=String(url);fx.requests.push([url,options.method||'GET']);
+        if(url==='https://openrouter.ai/api/v1/chat/completions'){
+          fx.providerCalls++;const body=JSON.parse(options.body);
+          return json({choices:[{finish_reason:'stop',message:{content:'Refined '+body.messages[body.messages.length-1].content.slice(0,12)}}]});
+        }
+        const u=new URL(url,parent.location.href),q=Object.fromEntries(u.searchParams),body=options.body?JSON.parse(options.body):null;
+        let data;
+        // A stopped Claude host: its own routes answer as the pane does then (launch defaults and first messages are pane-served).
+        if(fx.claudeDown&&/^\\/api\\/claude\\/(sessions|state|events|receipt|control-receipt|send|control|launch-manager|reconnect|context|target)$/.test(u.pathname)){
+          fx.claudeHost.push(u.pathname);return json(claudeEnv({status:'unavailable',error:'host unavailable; retained history is independent'}),502);}
+        if(u.pathname==='/api/claude/sessions'){
+          if(fx.failClaudeInventory)return json(claudeEnv({status:'unavailable',error:'fixture Claude host down'}),503);
+          data=claudeEnv({sessions:q.role==='Manager'?[fx.C]:[],hasMore:false,status:'complete'});
+        }else if(u.pathname==='/api/claude/accounts')data=claudeEnv({available:true,selected:{label:'personal',identity:{email:'fixture@example.invalid',plan:'Max 20×'}},
+          accounts:[{label:'personal',enrolled:true}],operation:null});
+        else if(u.pathname==='/api/claude/account-switch')data=claudeEnv({operation:null});
+        else if(u.pathname==='/api/usage'&&q.account)data={schemaVersion:1,backend:'usage',now:fx.now/1000,ageSeconds:60,refreshing:false,
+          claude:{ok:true,account:{label:q.account},windows:[]}};
+        else if(u.pathname==='/api/claude/state'){
+          data=claudeEnv({targetRef:q.targetRef,executionId:q.executionId,generation:1,uuid:fx.C.uuid,source:'host',role:'Manager',
+            capabilities:fx.C.capabilities,lifecycle:'live',liveState:{native_session_state:'idle',primary_turn_open:false}});
+        }else if(u.pathname==='/api/claude/events'){
+          data=claudeEnv({sessionRef:q.sessionRef,scopeRef:q.scopeRef,source:'host',role:'Manager',executionId:fx.C.executionId,generation:1,
+            fileEpoch:'claude-epoch',events:[],eventUpdates:[],deltaCursor:'claude-delta',hasMore:false,status:'complete',
+            contextReadout:{state:'measured',occupancy_tokens:5000,window_tokens:200000,measured_at:fx.now/1000}});
+        }else if(u.pathname==='/api/claude/receipt'){
+          const r=fx.claudeReceipts.get(q.messageUuid);
+          data=claudeEnv({targetRef:q.targetRef,executionId:q.executionId,generation:Number(q.generation),uuid:fx.C.uuid,receipt:r||null});
+        }else if(u.pathname==='/api/claude/control-receipt')data=claudeEnv({targetRef:q.targetRef,executionId:q.executionId,generation:Number(q.generation),controlReceipt:null});
+        else if(u.pathname==='/api/claude/send'){
+          fx.claudePosts.push(body);
+          const receipt={execution_id:body.executionId,generation:body.generation,message_uuid:body.messageUuid,original:body.original,submitted:body.submitted,
+            durable:true,acknowledged:true,status:'acknowledged'};
+          fx.claudeReceipts.set(body.messageUuid,receipt);
+          data=claudeEnv({targetRef:body.targetRef,executionId:body.executionId,generation:body.generation,uuid:fx.C.uuid,receipt});
+        }else if(u.pathname==='/api/claude/launch-defaults')data=claudeEnv({name:'Manager-Session-190',model:'claude-opus-5-5',effort:'xhigh'});
+        else if(u.pathname==='/api/claude/first-messages'&&fx.firstMessages)data=claudeEnv({...fx.firstMessages,defaults:{},custom:{}});
+        else if(u.pathname==='/api/claude/context'){
+          const text='[USER] Claude context\\n[ASSISTANT] buildContext',mode=q.historyMode||'whole';
+          data=claudeEnv({status:'stored',source:'host',targetRef:q.targetRef,targetRevision:Number(q.targetRevision),executionId:fx.C.executionId,generation:1,
+            text,bytes:new TextEncoder().encode(text).length,turns:2,historyMode:mode,historyBoundaries:[]});
+        }else if(u.pathname==='/api/usage')return json({schemaVersion:1,backend:'usage',status:'origin',error:'fixture'},403);
+        else if(u.pathname==='/api/opencode/programs'){
+          const rows=[fx.A,fx.B].filter(r=>!(fx.hideProgramsA&&r.id===SID_A)).concat([fx.W]);
+          data=env({status:'complete',sessions:rows,observedAt:fx.now/1000});
+        }else if(u.pathname==='/api/opencode/manager'){
+          if(fx.deferManager)await new Promise(resolve=>fx.managerRelease=resolve);
+          let state=managerState(q.id);
+          if(state&&fx.witnessBump&&q.id===fx.A.id)state={...state,target:{...state.target,witness:'e'.repeat(64)}};
+          if(!state)return json(env({status:'not-manager',error:'This session is not an owned root OpenCode Manager'}),409);
+          data=state;
+        }else if(u.pathname==='/api/opencode/manager-models'){
+          data=env({target:targetOf(q.id),models:fx.models});
+        }else if(u.pathname==='/api/opencode/launch-defaults')data=env({models:fx.models,agents:['manager','manager-gpt'],agent:'manager',mcp:[{name:'workflowy',status:'connected'}],sent:false});
+        else if(u.pathname==='/api/opencode/intent'){
+          fx.intentPosts.push(body);
+          const prior=fx.ops.get(body.operationId);if(prior)return json(env(prior));
+          const rec={operationId:body.operationId,intent:body,kind:body.kind,state:'prepared',nativeId:body.kind==='control'?null:newId(body.kind),
+            acceptedAt:fx.now/1000,acknowledged:false};
+          fx.ops.set(rec.operationId,rec);return json(env(rec));
+        }else if(u.pathname==='/api/opencode/send'){
+          fx.sendPosts.push(body);const rec=fx.ops.get(body.operationId);
+          if(!rec)return json(env({error:'missing'}),404);
+          if(rec.state!=='prepared')return json(env(enrich(rec)));
+          rec.state='accepted';fx.seq++;
+          const text=fx.conflictNext?'A different body':rec.intent.submitted;fx.conflictNext=false;
+          fx.messages.set(rec.nativeId,{id:rec.nativeId,sessionID:rec.intent.target.sessionId,type:'user',delivery:rec.intent.delivery,
+            box:fx.busy?'pending':'delivered',text,payload:{text}});
+          if(fx.lossSendOnce){fx.lossSendOnce=false;return json(env({error:'fixture lost Send reply'}),503);}
+          data=enrich(rec);
+        }else if(u.pathname==='/api/opencode/launch-manager'){
+          fx.launches.push(body);const rec=fx.ops.get(body.operationId);
+          if(!rec)return json(env({error:'missing'}),404);
+          if(rec.state!=='prepared')return json(env(enrich(rec)));
+          if(fx.lossLaunchOnce){
+            fx.lossLaunchOnce=false;fx.pendingLaunch=rec;rec.state='accepted';
+            return json(env({error:'fixture lost launch reply'}),503);
+          }
+          data=enrich(addLaunched(rec));
+        }else if(u.pathname==='/api/opencode/receipt'){
+          fx.receiptReads=(fx.receiptReads||[]);fx.receiptReads.push(q.operationId);
+          let rec=fx.ops.get(q.operationId);
+          if(rec&&fx.pendingLaunch===rec&&fx.completeLaunchOnReceipt)data=env(enrich(addLaunched(rec)));
+          else data=rec?env(enrich(rec)):env({error:'missing'});
+          if(!rec)return json(data,404);
+        }else if(u.pathname==='/api/opencode/control'){
+          fx.controlPosts.push(body);const rec=fx.ops.get(body.operationId);
+          if(!rec)return json(env({error:'missing'}),404);
+          if(rec.state!=='prepared')return json(env(enrich(rec)));
+          if(rec.intent.operation==='set_model'){
+            if(fx.holdModel){rec.state='accepted';rec.acknowledged=false;}
+            else {if(fx.controlApplied)rec.state='applied';rec.acknowledged=true;}
+          }
+          else{
+            rec.state='accepted';fx.interruptCount=(fx.interruptCount||0)+1;
+            const result=fx.interruptedResult;rec.interrupted=result;rec.repliedAt=fx.now/1000;
+            if(fx.interruptUncertain){fx.interruptUncertain=false;rec.interrupted=undefined;return json(env({error:'fixture lost Interrupt reply'}),503);}
+          }
+          data=enrich(rec);
+        }else if(u.pathname==='/api/opencode/events'){
+          const sid=q.id,row=ocRowOf(sid);
+          if(!row)return json(env({status:'missing',error:'OpenCode session missing'}),404);
+          const rows=row.manager===true?[
+            {seq:1,kind:'user',text:'OpenCode prompt',uuid:'u1',recordRef:'r1',scope:'main',calls:[],thinking:[],partial:false,time:fx.now/1000-60},
+            {seq:2,kind:'assistant',text:'OPENCODE_ANSWER **bold**',uuid:'u2',recordRef:'r2',scope:'main',calls:[],thinking:[],partial:false,time:fx.now/1000-30}
+          ]:[{seq:1,kind:'user',text:'WORKER_PROMPT',uuid:'w1',recordRef:'wr1',scope:'main',calls:[],thinking:[],partial:false,time:fx.now/1000-40},
+            {seq:2,kind:'assistant',text:'WORKER_ANSWER',uuid:'w2',recordRef:'wr2',scope:'main',calls:[],thinking:[],partial:false,time:fx.now/1000-20}];
+          data=env({source:'opencode',sessionRef:sid,scopeRef:'main',fileEpoch:'oc-epoch',busy:fx.busy,observedAt:fx.now/1000,
+            runningCalls:[],events:q.cursor?[]:rows,eventUpdates:[],deltaCursor:'oc-delta',hasMore:false,status:'complete'});
+        }else if(u.pathname==='/api/opencode/activity')data=env({status:'complete',observedAt:fx.now/1000,active:fx.busy?[SID_A,SID_B]:[],
+          sessions:[]});
+        else if(u.pathname==='/api/opencode/context'){
+          fx.contextRequests=(fx.contextRequests||[]);fx.contextRequests.push(q);
+          const text='[USER] Whole A\\n\\n---\\n\\n[ASSISTANT] Reply A',mode=q.historyMode||'whole';
+          data=env({target:targetOf(q.id),text,bytes:new TextEncoder().encode(text).length,historyMode:mode,users:1,
+            historyBoundaries:[{id:'m1',end:8},{id:'m2',end:text.length}],contextHash:'x'});
+        }else throw new Error('No real transport permitted: '+url);
+        return json(data);
+      };
+    `;
+    // The shared model list the iframe's mock needs, exposed on the fixture (a parent object cannot be built inside its own string).
+    const models=[modelFlash,modelSol,{providerID:'openai',id:'gpt-6.1-sol-fast',name:'GPT-6.1 Sol Fast',variants:{low:{},medium:{},high:{},xhigh:{}},limit:{context:872000},enabled:true}];
+    fx.models=models;
+    let w,d,api,box;
+    const frame=document.getElementById('phone');
+    const mount=async()=>{
+      frame.srcdoc=html.replace(/<link[^>]+>/g,'').replace('</head>',()=>'<style>'+css+'</style><style>'+accountsCSS+'</style><style>'+teamsCss+'</style><style>'+diffCss+'</style><style>'+statusToastCss+'</style><style>'+glareCss+'</style></head>')
+        .replace(/  <script src="[^"]+"><\/script>/g,'')
+        .replace(/<\/body>/,()=>[mock,marked,purify,markdown,records,previews,reading,highlighter,diffView,defaults,core,refineView,seenLatest,quotaHalt,managerOrder,statusToast,managerJs,accountsJS,teamsJs,handleLinks,app+'\nparent.phoneOcFixture.api=phoneManager;'].map(x=>'<script>'+safe(x)+'<\/script>').join('')+'</body>');
+      await new Promise(r=>frame.onload=r);
+      w=frame.contentWindow;d=w.document;api=phoneOcFixture.api;
+      await until(()=>api&&!api.state.listBusy&&!api.state.pollBusy,'phone start');
+    };
+    const el=id=>d.getElementById('m-'+id),edit=text=>{box.value=text;box.dispatchEvent(new w.Event('input',{bubbles:true}));};
+    const click=async(id,done)=>{el(id).click();await until(done);};
+    const waitSend=()=>until(()=>!api.state.sending,'send settle');
+    const recs=()=>[...fx.store].filter(([k])=>k.startsWith('pane_m_v1:manager:opencode:send:')).map(([,v])=>JSON.parse(v));
+    await mount();
+    box=el('draft');
+
+    check('the actual page loads the shared OpenCode Manager script before the phone adapter',html.indexOf('/opencode-manager.js')>0&&html.indexOf('/opencode-manager.js')<html.indexOf('/m.js'));
+    check('cold inventory mixes one Claude Manager and genuine OpenCode Managers, never the worker',el('managers').children.length===3&&
+      [...el('managers').children].map(b=>b.textContent).join('|').includes('OpenCode A')&&!el('managers').textContent.includes('OpenCode worker')&&
+      api.state.managers.filter(t=>t.backend==='opencode').length===2);
+
+    // A Claude inventory failure must not hide OpenCode Managers.
+    fx.failClaudeInventory=true;await mount();box=el('draft');await sleep(500);
+    check('OpenCode Managers stay listed and selectable when the Claude inventory fails',api.state.managers.filter(t=>t.backend==='opencode').length===2&&
+      [...el('managers').children].some(b=>b.textContent.includes('OpenCode A'))&&/Claude Managers unavailable/.test(el('list-status').textContent));
+    fx.failClaudeInventory=false;await mount();box=el('draft');
+
+    // A selected OpenCode Manager is a writable chat through the existing viewer reader.
+    await api.selectManager(SID_A);await until(()=>el('messages').textContent.includes('OPENCODE_ANSWER'),'A conversation');
+    check('selecting an OpenCode Manager validates and renders its exact conversation; the composer stays writable',api.state.selected===SID_A&&api.state.target.backend==='opencode'&&
+      api.state.target.witness===WIT_A&&api.state.chat.reader.backend==='opencode'&&el('composer').dataset.readonly==='false'&&
+      el('state').textContent.includes('OpenCode Manager'));
+
+    // Send with no conversation watcher: no events read may be needed, one journaled POST, exact native evidence clears text.
+    const eventsBefore=fx.requests.filter(([u])=>u.startsWith('/api/opencode/events')).length;
+    fx.busy=true;edit('Long dictated original 雪 with everything, no crop.');
+    const original=box.value;
+    await api.send();await waitSend();await until(()=>fx.sendPosts.length===1,'first send');
+    let op=fx.intentPosts.at(-1);
+    check('busy Send is a native steer: full original/submitted/target/delivery saved before the one POST and no watcher read',op.kind==='send'&&op.original===original&&op.submitted===original.trim()&&
+      op.delivery==='steer'&&op.target.sessionId===SID_A&&op.target.witness===WIT_A&&fx.sendPosts.length===1&&
+      fx.requests.filter(([u])=>u.startsWith('/api/opencode/events')).length===eventsBefore&&recs().length===1);
+    check('the exact pending steer clears the unchanged draft and retains the full original',box.value===''&&recs()[0].intent.original===original&&
+      JSON.parse(fx.store.get('pane_m_v1:draft')).text===''&&el('original').value===original&&/Durably pending/.test(el('status').textContent));
+
+    // A draft edit while the pre-Send manager read is in flight cancels before any journal/POST.
+    const postsBeforeRace=fx.sendPosts.length;
+    fx.deferManager=true;edit('Race original');const raceSend=api.send();await until(()=>fx.managerRelease,'manager deferred');
+    edit('Race changed while awaiting');fx.managerRelease();fx.deferManager=false;await raceSend;await waitSend();
+    check('a draft edit during the pre-Send read is refused before begin/POST',box.value==='Race changed while awaiting'&&fx.sendPosts.length===postsBeforeRace&&/Text changed/.test(el('status').textContent));
+    // A changed creation/directory witness is a different target, never silently adopted.
+    fx.witnessBump=true;edit('Witness changed');await api.send();await waitSend();
+    check('a changed OpenCode creation/directory witness is refused, not adopted',fx.sendPosts.length===postsBeforeRace&&/witness changed/.test(el('status').textContent)&&box.value==='Witness changed');
+    fx.witnessBump=false;
+
+    // A lost reply/held receipt keeps Send locked; reload restores that same operation and never posts again.
+    fx.busy=false;fx.holdAckAll=true;edit('Lost but never repeated.');await api.send();await waitSend();
+    const held=recs().find(r=>r.intent.original==='Lost but never repeated.');
+    check('a held receipt keeps the unresolved Send locked with one POST and its original',!!held&&fx.sendPosts.length===2&&el('send').disabled&&box.value==='Lost but never repeated.');
+    const posts=fx.sendPosts.length;
+    await mount();box=el('draft');
+    check('reload rebinds the same OpenCode target and restores the unresolved lock without a second POST',api.state.selected===SID_A&&el('send').disabled&&box.value==='Lost but never repeated.'&&fx.sendPosts.length===posts);
+    fx.holdAckAll=false;await api.pollReceipts();await until(()=>box.value==='','restored exact text clears');
+    check('on the exact delivered receipt the restored unchanged draft may clear, original retained',box.value===''&&fx.sendPosts.length===posts&&
+      recs().find(r=>r.operationId===held.operationId).handledAck===true);
+
+    // Edited draft never clears; a delayed ACK for A cannot clear or hold B.
+    fx.holdAckAll=true;edit('A original');await api.send();await waitSend();
+    edit('Edited after the Send.');fx.holdAckAll=false;await api.pollReceipts();
+    check('an edited draft is never cleared by a delayed ACK and the original stays in the journal',box.value==='Edited after the Send.'&&
+      recs().find(r=>r.intent.original==='A original').handledAck===true);
+    fx.holdAckAll=true;await api.send();await waitSend();
+    const heldA=recs().find(r=>r.intent.original==='Edited after the Send.');
+    await api.selectManager(SID_B);await until(()=>api.state.target.sessionId===SID_B,'B selected');edit('B draft must survive A.');
+    fx.holdAckAll=false;await api.pollReceipts();
+    check('a delayed OpenCode ACK for A neither clears nor holds B',box.value==='B draft must survive A.'&&!el('send').disabled&&
+      recs().find(r=>r.operationId===heldA.operationId).handledAck===true);
+
+    // A first admission with a different body is a visible conflict, never a clear; the release link is the way out.
+    fx.conflictNext=true;edit('Conflict text');await api.send();await waitSend();
+    check('a native conflict is shown, not acknowledged, and holds the same Send',el('status').dataset.error==='true'&&/different|conflict/i.test(el('status').textContent)&&box.value==='Conflict text'&&el('send').disabled);
+    fx.now+=31000;await api.pollReceipts();await until(()=>el('release').querySelector('a'),'release link');
+    el('release').querySelector('a').click();await until(()=>!el('send').disabled,'released send');
+    check('I checked — release it clears only the hold and retains the original',!el('send').disabled&&recs().find(r=>r.intent.original==='Conflict text').releasedAt>0);
+
+    // ＋ New Manager on OpenCode: real catalog + variant, one persisted launch intent, no opening turn.
+    const claudeLaunchBefore=fx.requests.filter(([u])=>u.startsWith('/api/claude/launch-manager')).length;
+    const openLaunchBefore=fx.launches.length,sendsBeforeLaunch=fx.sendPosts.length;
+    await api.openNewManager();el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    await until(()=>el('new-oc-model').options.length>=2&&el('new-agent').options.length>=2,'OpenCode launch defaults');
+    el('new-name').value='Manager-Session-900';el('new-oc-model').value='1';el('new-oc-model').dispatchEvent(new w.Event('change'));
+    el('new-oc-variant').value='max';el('new-oc-variant').dispatchEvent(new w.Event('change'));
+    await api.launchManager();await until(()=>api.state.launch===null&&api.state.selected&&api.state.selected.startsWith('ses_'),'OpenCode launch selected');
+    const launchedId=api.state.selected,launchIntents=fx.intentPosts.filter(i=>i.kind==='launch'),launchIntent=launchIntents.at(-1);
+    check('New Manager launches the chosen real catalog model and thinking variant, selected with no opening turn',launchIntent&&launchIntent.model.providerID==='openrouter'&&
+      launchIntent.model.id==='deepseek/sol'&&launchIntent.model.variant==='max'&&launchIntent.agent==='manager'&&fx.creates===1&&
+      fx.launches.length===openLaunchBefore+1&&fx.sendPosts.length===sendsBeforeLaunch&&
+      fx.requests.filter(([u])=>u.startsWith('/api/claude/launch-manager')).length===claudeLaunchBefore&&
+      el('new-form').hidden&&el('managers').textContent.includes('Manager-Session-900'));
+
+    // A launch whose reply is lost completes on the same intent after a reload; never a second session.
+    fx.lossLaunchOnce=true;fx.completeLaunchOnReceipt=false;
+    await api.openNewManager();el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    await until(()=>el('new-oc-model').options.length>=2,'second launch defaults');el('new-name').value='Manager-Session-901';
+    await api.launchManager();await until(()=>api.state.launch&&api.state.launch.phase==='waiting','waiting launch');
+    const lostLaunch=api.state.launch,createsBefore=fx.creates,launchIntentsBefore=launchIntents.length;
+    el('new-runtime').value='claude';el('new-runtime').dispatchEvent(new w.Event('change'));
+    const claudeStartFree=!el('new-start').disabled;
+    el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    const ocStartHeld=el('new-start').disabled;
+    check('an unresolved OpenCode launch holds only the OpenCode Start, never the Claude runtime',claudeStartFree&&ocStartHeld);
+    const repeatedLaunches=fx.intentPosts.filter(i=>i.kind==='launch').length;
+    await api.launchManager();
+    check('a repeated Start while launch is uncertain queries its saved create id, never creates a second intent',fx.intentPosts.filter(i=>i.kind==='launch').length===repeatedLaunches);
+    fx.completeLaunchOnReceipt=true;await mount();await sleep(1200);
+    check('a lost launch resolves to the same native session after reload, never a second create',api.state.selected===lostLaunch.nativeId&&
+      fx.creates===createsBefore+1&&fx.intentPosts.filter(i=>i.kind==='launch').length===launchIntentsBefore+1);
+
+    // A saved OpenCode Manager is revalidated by its full id even when the programs inventory omits it.
+    fx.hideProgramsA=true;fx.store.set('pane_m_v1:target',SID_A);await mount();box=el('draft');
+    await until(()=>api.state.target&&api.state.target.sessionId===SID_A,'saved target by sid');
+    check('a saved OpenCode Manager outside the list window is restored by GET /api/opencode/manager',api.state.selected===SID_A&&
+      [...el('managers').children].some(b=>b.textContent.includes('OpenCode A'))&&api.state.chat.reader.backend==='opencode');
+    fx.hideProgramsA=false;
+
+    // Refine: whole, explicit budget, and explicit no-context, through the guarded server prose route.
+    fx.store.set('refine_provider','openrouter');fx.store.set('refine_openrouter_api_key','fixture');fx.store.set('refine_openrouter_model','fixture/model');
+    await api.selectManager(SID_A);edit('Refine this passage.');const contextBefore=(fx.contextRequests||[]).length;
+    await api.refine();await sleep(600);
+    check('Refine reads the whole OpenCode Manager context from the guarded route and splices its output ['+JSON.stringify({box:box.value,status:el('status').textContent,ctx:(fx.contextRequests||[]).slice(-1),statusError:el('status').dataset.error})+']',
+      (fx.contextRequests||[])[contextBefore]?.historyMode==='whole'&&
+      (fx.contextRequests||[])[contextBefore]?.id===SID_A&&box.value!=='Refine this passage.');
+    fx.store.set('refine_history_mode','budgeted');edit('Refine this again.');await api.refine();await until(()=>box.value.includes('Refined'),'budget refine');
+    check('Budgeted history is explicit in the request and bounded',(fx.contextRequests||[]).at(-1)?.historyMode==='budgeted'&&(fx.contextRequests||[]).at(-1)?.budgetBytes==='51200');
+    edit('Refine without context.');const noContextBefore=(fx.contextRequests||[]).length;
+    el('no-context').checked=true;el('no-context').dispatchEvent(new w.Event('change'));
+    await api.refine();await until(()=>box.value.includes('Refined'),'no-context refine');
+    check('an explicit no-context Refine makes no conversation read and still refines',(fx.contextRequests||[]).length===noContextBefore&&
+      el('no-context').checked&&box.value.includes('Refined'));
+    await api.refineView();await until(()=>!el('refine-sheet').hidden&&el('rv-body').textContent.length>20,'no-context view');
+    check('What Refine sends shows the full prompt under an explicit no-context choice',el('rv-body').textContent.includes('transcription')||el('rv-body').querySelector('.rv-prompt'));
+    api.closeRefineView();api.state.target=null;api.state.selected=null;edit('No validated target needed.');
+    const contextlessReads=(fx.contextRequests||[]).length;
+    await api.refine();await until(()=>box.value.includes('Refined'),'no-context without target');
+    check('explicit no-context Refine does not require a validated or selected Manager',box.value.includes('Refined')&&(fx.contextRequests||[]).length===contextlessReads);
+    await api.selectManager(SID_A);
+    api.closeRefineView();el('no-context').checked=false;el('no-context').dispatchEvent(new w.Event('change'));fx.store.set('refine_history_mode','whole');
+
+    // The hold-chip sheet: real catalog and variants, an applied setter while busy, readback for future calls.
+    fx.busy=true;await api.openTune(SID_A);await until(()=>api.state.tune&&api.state.tune.data&&api.state.tune.models.length>=2,'tune catalog');
+    check('the held-chip sheet is the OpenCode catalog, not Claude thinking',!el('tune-oc').hidden&&el('tune-efforts').hidden&&el('tune-oc-model').options.length>=2);
+    // The display is name-sorted (Alpha Sol before Zeta Flash) while pickOcModel must still read the ORIGINAL model.
+    const solOption=[...el('tune-oc-model').options].find(o=>o.textContent.includes('Alpha Sol'));
+    el('tune-oc-model').value=solOption.value;el('tune-oc-model').dispatchEvent(new w.Event('change'));
+    const maxButton=[...el('tune-oc-variants').querySelectorAll('button')].find(b=>b.dataset.value==='max');maxButton.click();
+    const controlsBefore=fx.controlPosts.length;await api.applyTune();await until(()=>!api.state.tune.busy&&fx.controlPosts.length===controlsBefore+1,'model applied');
+    const setter=fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='set_model').at(-1);
+    check('a busy OpenCode Manager accepts the name-sorted catalog model+variant with a verified readback for future calls',setter&&setter.model.id==='deepseek/sol'&&
+      setter.model.variant==='max'&&/applied and verified/.test(el('tune-status').textContent)&&/future calls/.test(el('tune-status').textContent)&&
+      !fx.intentPosts.some(i=>i.operation==='get_settings'));
+    // Default removes the variant (not a lockout, a real choice); a read error does not disable an explicit setter.
+    const defaultButton=[...el('tune-oc-variants').querySelectorAll('button')].find(b=>b.dataset.value==='');
+    defaultButton.click();api.state.tune.readError='fixture read error';await api.applyTune();await until(()=>!api.state.tune.busy&&fx.controlPosts.length===controlsBefore+2,'default variant');
+    const noVariant=fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='set_model').at(-1);
+    check('Default/removal is a real variant choice and a read error does not block an explicit setter',!!defaultButton&&defaultButton.dataset.value===''&&
+      defaultButton.getAttribute('aria-checked')==='true'&&noVariant&&noVariant.model.id==='deepseek/sol'&&!Object.hasOwn(noVariant.model,'variant'));
+    // An unresolved previous setter does not hold a new explicit setter.
+    fx.holdModel=true;const flashOption=[...el('tune-oc-model').options].find(o=>o.textContent.includes('Zeta Flash'));
+    el('tune-oc-model').value=flashOption.value;el('tune-oc-model').dispatchEvent(new w.Event('change'));
+    await api.applyTune();await waitSend();const pendingCount=fx.controlPosts.length;
+    await api.applyTune();await waitSend();
+    check('an unresolved setter does not lock the next explicit model setter',fx.controlPosts.length===pendingCount+1);
+    fx.holdModel=false;api.closeTune();
+    await api.loadManagers();await api.selectManager(SID_B);edit('B draft while tuning A');await api.openTune(SID_A);
+    await until(()=>api.state.tune?.data&&api.state.tune.models.length>=2,'tune without selecting');
+    [...el('tune-oc-variants').querySelectorAll('button')].find(b=>b.dataset.value==='low').click();
+    const heldControlCount=fx.controlPosts.length;await api.applyTune();
+    check('holding another Manager chip changes that Manager without selecting it or touching this draft '+JSON.stringify({before:heldControlCount,after:fx.controlPosts.length,selected:api.state.selected,status:el('tune-status').textContent,note:el('status').textContent,draft:box.value,latest:fx.intentPosts.filter(i=>i.kind==='control').at(-1)}),fx.controlPosts.length===heldControlCount+1&&
+      fx.intentPosts.filter(i=>i.kind==='control').at(-1).target.sessionId===SID_A&&api.state.selected===SID_B&&box.value==='B draft while tuning A');
+    api.closeTune();await api.selectManager(SID_A);
+
+    // Interrupt: always available on a validated Manager, one journaled request, no retry while its receipt is uncertain.
+    edit('Draft survives interrupt.');const interruptsBefore=fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='interrupt').length;
+    let confirms=0;w.confirm=()=>{confirms++;return false;};
+    await api.interrupt();await until(()=>fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='interrupt').length===interruptsBefore+1,'interrupt posted');
+    check('Interrupt is one no-confirm native request with no idle gate',confirms===0&&
+      fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='interrupt').length===interruptsBefore+1&&
+      /Native accepted the interrupt/.test(el('status').textContent)&&box.value==='Draft survives interrupt.');
+    fx.interruptUncertain=true;await api.interrupt();await waitSend();
+    const interruptCount=fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='interrupt').length;
+    await api.interrupt();
+    check('an uncertain Interrupt is only queried: a second tap never sends another',fx.intentPosts.filter(i=>i.kind==='control'&&i.operation==='interrupt').length===interruptCount);
+
+    // A worker is read-only, even when opened from Programs by its ses_ id.
+    await api.selectManager(SID_A);const selectedBefore=api.state.selected,sendsBeforeWorker=fx.sendPosts.length;
+    api.openSession({type:'open-session',schemaVersion:1,session:{backend:'opencode',id:SID_W,title:'OpenCode worker'}});
+    await until(()=>api.state.viewing&&api.state.viewing.chat&&el('messages').textContent.includes('WORKER_ANSWER'),'worker view');
+    await api.send();
+    check('a worker stays view-only: no writable target, no Send, the Manager selection untouched',!!api.state.viewing&&api.state.selected===selectedBefore&&
+      el('composer').dataset.readonly==='true'&&/Read-only/.test(el('status').textContent)&&fx.sendPosts.length===sendsBeforeWorker);
+    api.leaveViewer();
+    check('leaving a read-only view returns to the OpenCode Manager chat, not a forged Claude target',api.state.viewing===null&&api.state.target.backend==='opencode'&&
+      api.state.chat.reader.backend==='opencode'&&api.state.chat.sessionRef===SID_A);
+
+    // Context view: its own OpenCode section, measured native figure, apart from the Claude gauges/allotments.
+    await api.selectManager(SID_A);api.showView('context');await api.readContexts();
+    check('Context shows a per-OpenCode-Manager measured readout in its own section',el('context-opencode').textContent.includes('1K / 872K')&&
+      el('context-opencode').textContent.includes('input + cache read')&&el('context-managers').textContent.includes('Claude Manager'));
+
+    // A delayed Claude ACK is for another backend/target and may not clear this OpenCode Manager's draft.
+    const cOp={schemaVersion:1,target:{schemaVersion:1,backend:'claude',targetRef:fx.C.targetRef,executionId:fx.C.executionId,generation:1,source:'host',role:'Manager',uuid:fx.C.uuid,title:fx.C.title},
+      messageUuid:'22222222-2222-4222-8222-222222222222',original:'Claude original',submitted:'Claude original',createdAt:fx.now-1000,state:'accepted',
+      witness:{page:'another-page',selectionRevision:1,draftRevision:1,executionId:fx.C.executionId}};
+    fx.store.set('pane_m_v1:send:'+cOp.messageUuid,JSON.stringify(cOp));
+    fx.claudeReceipts.set(cOp.messageUuid,{execution_id:fx.C.executionId,generation:1,message_uuid:cOp.messageUuid,original:cOp.original,submitted:cOp.submitted,durable:true,acknowledged:true,status:'acknowledged'});
+    fx.store.set('pane_m_v1:target',SID_A);fx.store.set('pane_m_v1:draft',JSON.stringify({schemaVersion:1,target:SID_A,text:'OpenCode draft kept'}));
+    await mount();await until(()=>api.state.selected===SID_A&&api.state.target,'reload mixed');box=el('draft');box.value='OpenCode draft kept';
+    await api.pollReceipts();
+    check('a delayed Claude ACK for another target neither clears nor holds the OpenCode Manager draft',box.value==='OpenCode draft kept'&&!el('send').disabled);
+    fx.store.set('pane_m_v1:target:opencode:'+SID_A,JSON.stringify(target(SID_A,'f'.repeat(64))));await mount();
+    await until(()=>api.state.target?.sessionId===SID_A,'saved witness reload');const beforeStaleSend=fx.sendPosts.length;
+    edit('Must not silently follow a replaced witness');await api.send();
+    check('reload keeps the saved creation/folder witness and never silently sends to its replacement',fx.sendPosts.length===beforeStaleSend&&/witness changed/.test(el('status').textContent));
+    await api.selectManager(SID_A);
+
+    // A launch saved under A is not adopted after the user moved to B (persisted selection token + epoch).
+    fx.lossLaunchOnce=true;fx.completeLaunchOnReceipt=false;
+    await api.openNewManager();el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    await until(()=>el('new-oc-model').options.length>=2,'stale launch catalog');el('new-name').value='Manager-Session-902';
+    await api.launchManager();await until(()=>api.state.launch&&api.state.launch.phase==='waiting','stale launch waiting');
+    await api.selectManager(SID_B);
+    const createsBeforeStale=fx.creates;fx.completeLaunchOnReceipt=true;await mount();await sleep(800);
+    check('a launch intent saved under A is not adopted after a moved selection (away/back/two tabs)',api.state.selected===SID_B&&
+      fx.creates===createsBeforeStale&&fx.store.get('pane_m_v1:target')===SID_B);
+
+    // The first message and ↳ New sub-session (saved defaults on from here): the chips put the newest primary before its
+    // sub-session; ＋ sends the default once, number filled in; ↳ names the next letter and sends the edited box once.
+    // Neither ever touches the draft. (The live Claude Manager without a number goes last: liveness never reorders.)
+    fx.firstMessages={manager:'Hello, Manager-Session-{N}.',subSession:'Sub-session {N}-{letter} of Manager-Session-{N}.\n\nReason for this sub-session: '};
+    fx.A.title='Manager-Session-219-a';fx.B.title='Manager-Session-219';fx.hideProgramsA=false;
+    await mount();box=el('draft');await until(()=>el('managers').textContent.includes('Manager-Session-219-a'),'numbered chips');
+    const chipNames=[...el('managers').children].map(n=>n.textContent.trim());
+    check('chips: the newest primary leftmost, its sub-session right after it, the live unnumbered Claude Manager last ['+chipNames.join(' | ')+']',
+      chipNames[0].includes('Manager-Session-219')&&!chipNames[0].includes('219-a')&&chipNames[1].includes('Manager-Session-219-a')&&
+      chipNames.at(-1).includes('Claude Manager'));
+    const sendIntents=()=>fx.intentPosts.filter(i=>i.kind==='send');
+    edit('My own draft stays.');
+    await api.openNewManager();el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    await until(()=>el('new-oc-model').options.length>=2&&el('first-manager').value.startsWith('Hello'),'first-message defaults');
+    el('new-name').value='Manager-Session-220';const sendsBeforeOpening=sendIntents().length;
+    await api.launchManager();await until(()=>sendIntents().length===sendsBeforeOpening+1&&!api.state.sending,'New Manager first message');
+    check('＋ New Manager sends the saved default once, its number filled in, to the new Manager; the draft is untouched',
+      sendIntents().at(-1).original==='Hello, Manager-Session-220.'&&sendIntents().at(-1).target.sessionId===api.state.selected&&box.value==='My own draft stays.');
+    await api.openNewSub();
+    check('↳ names the newest primary’s next letter and fills the saved sub-session default',!el('sub-form').hidden&&el('new-form').hidden&&
+      el('sub-title').textContent==='Sub-session 220-a of Manager-Session-220'&&el('sub-text').value==='Sub-session 220-a of Manager-Session-220.\n\nReason for this sub-session: ');
+    el('sub-text').value+='watch the test run';const sendsBeforeSub=sendIntents().length;
+    await api.launchNewSub();await until(()=>sendIntents().length===sendsBeforeSub+1&&!api.state.sending,'sub-session first message');
+    check('↳ Send launches Manager-Session-220-a and sends the edited box once as its first message; the draft is untouched',
+      fx.intentPosts.filter(i=>i.kind==='launch').at(-1).name==='Manager-Session-220-a'&&el('sub-form').hidden&&
+      sendIntents().at(-1).original==='Sub-session 220-a of Manager-Session-220.\n\nReason for this sub-session: watch the test run'&&
+      sendIntents().at(-1).target.sessionId===api.state.selected&&box.value==='My own draft stays.');
+
+    // The crisis route on the phone: a page loaded while the Claude host is stopped lists no Claude chip, yet ↳ still
+    // numbers from the Claude Managers this phone last saw, and its box carries New Manager's own runtime/model/thinking.
+    fx.C.title='Manager-Session-226';await mount();box=el('draft');await until(()=>el('managers').textContent.includes('Manager-Session-226'),'226 listed');
+    check('a good Claude read is remembered on the phone, names only',JSON.parse(fx.store.get('pane_m_v1:claude_manager_names')||'[]').some(n=>n.includes('Manager-Session-226')));
+    fx.claudeDown=true;fx.claudeHost=[];await mount();box=el('draft');
+    await until(()=>/Claude Managers unavailable/.test(el('list-status').textContent),'cold page with the Claude host down');
+    edit('Phone crisis draft.');await api.openNewSub();
+    const rectM=id=>el(id).getBoundingClientRect(),choicesM=el('new-choices');
+    check('cold ↳ before ＋ New Manager defaults to Opus 5.5 / xhigh',el('new-model').value==='claude-opus-5-5'&&el('new-effort').value==='xhigh'&&
+      el('new-choice').textContent==='claude-opus-5-5 · xhigh');
+    check('cold page, Claude host down: ↳ names 226-a and shows New Manager’s own runtime/model/thinking in its box, Claude by default',
+      !api.state.managers.some(t=>t.backend==='claude')&&el('sub-title').textContent==='Sub-session 226-a of Manager-Session-226'&&
+      el('sub-choices-slot').contains(choicesM)&&el('new-runtime').value==='claude'&&!el('sub-form').hidden&&el('new-form').hidden&&
+      /last saw/.test(el('sub-status').textContent)&&rectM('new-runtime').width>200&&rectM('sub-text').bottom<=rectM('new-runtime').top&&
+      rectM('new-options').bottom<=rectM('sub-send').top);
+    el('new-runtime').value='opencode';el('new-runtime').dispatchEvent(new w.Event('change'));
+    await until(()=>el('new-oc-model').options.length===3&&el('new-agent').options.length>=2,'sub-session catalog');
+    el('new-options').open=true;
+    el('new-agent').value='manager-gpt';el('new-agent').dispatchEvent(new w.Event('change'));
+    el('new-oc-model').value='2';el('new-oc-model').dispatchEvent(new w.Event('change'));
+    el('new-oc-variant').value='xhigh';el('new-oc-variant').dispatchEvent(new w.Event('change'));
+    check('OpenCode in the ↳ box shows persona, catalog model and thinking (the Claude fields hidden) and names the choice',
+      w.getComputedStyle(el('new-oc-fields')).display!=='none'&&w.getComputedStyle(el('new-claude-fields')).display==='none'&&
+      rectM('new-oc-variant').width>0&&/manager-gpt/.test(el('new-choice').textContent));
+    el('sub-text').value+='the Claude host is down';const sendsBeforeCrisis=sendIntents().length;
+    await api.launchNewSub();await until(()=>sendIntents().length===sendsBeforeCrisis+1&&!api.state.sending,'crisis sub-session first message');
+    const crisisLaunch=fx.intentPosts.filter(i=>i.kind==='launch').at(-1);
+    check('Claude host down: OpenCode · GPT-6.1 Sol Fast · xhigh starts Manager-Session-226-a, selects it and sends the box once; the draft stays',
+      crisisLaunch.name==='Manager-Session-226-a'&&crisisLaunch.agent==='manager-gpt'&&crisisLaunch.model.providerID==='openai'&&
+      crisisLaunch.model.id==='gpt-6.1-sol-fast'&&crisisLaunch.model.variant==='xhigh'&&
+      sendIntents().at(-1).original==='Sub-session 226-a of Manager-Session-226.\n\nReason for this sub-session: the Claude host is down'&&
+      sendIntents().at(-1).target.sessionId===api.state.selected&&api.state.selected===fx.ops.get(crisisLaunch.operationId)?.nativeId);
+    check('… with the sub-session box closed, the draft untouched and no Claude host launch or Send ['+fx.claudeHost.join(', ')+']',
+      el('sub-form').hidden&&box.value==='Phone crisis draft.'&&!fx.claudeHost.some(p=>/launch-manager|\/send$|reconnect/.test(p))&&
+      !fx.requests.some(([u])=>u.startsWith('/api/claude/launch-manager')));
+    await api.openNewManager();
+    check('＋ New Manager takes the same controls back, still on the choice made in the ↳ box',el('new-choices-slot').contains(choicesM)&&
+      el('sub-form').hidden&&!el('new-form').hidden&&el('new-runtime').value==='opencode'&&el('new-agent').value==='manager-gpt');
+    fx.claudeDown=false;
+
+    check('no fixture/script error escaped during the run',fx.postErrors.length===0);
+    const passed=checks.filter(c=>c.passed).length;
+    document.body.dataset.testPassed=String(checks.every(c=>c.passed));
+    document.getElementById('results').textContent=JSON.stringify({passed,failed:checks.length-passed,total:checks.length,checks},null,1);
+    window.__checks=checks;
+  }catch(e){
+    document.body.dataset.testPassed='false';
+    document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(c=>c.passed).length,failed:checks.length-checks.filter(c=>c.passed).length,total:checks.length,error:String(e&&e.stack||e),checks},null,1);
+    window.__checks=checks;window.__error=String(e&&e.stack||e);
+  }
+})();
+</script>

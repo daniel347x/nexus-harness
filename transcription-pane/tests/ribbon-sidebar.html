@@ -1,0 +1,105 @@
+<!doctype html><meta charset="utf-8"><title>Manager ribbon and sidebar · actual markup, inert reads</title>
+<style>body{margin:0}iframe{width:1200px;height:900px;border:0}#phone{width:390px}pre{white-space:pre-wrap}</style>
+<iframe id="desktop"></iframe><iframe id="phone"></iframe><pre id="results">running…</pre>
+<script>
+(async()=>{
+  const checks=[],check=(name,ok)=>{checks.push({name,passed:!!ok});if(!ok)throw Error(name);},sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const safe=s=>s.replace(/<\/script/gi,'<\\/script');
+  try {
+    const base=new URL('../static/',location.href),read=async p=>(await fetch(new URL(p,base))).text();
+    const [desktop,phone,css,phoneCss,glareCss,js,order]=await Promise.all(['sessions.html','m-programs.html','sessions.css','m-programs.css','glare.css','sessions.js','manager-order.js'].map(read));
+    const sharedBase=new URL('../../chrome-extension/codenomad-session-watcher/',base);
+    const core=await (await fetch(new URL('tool-preview-core.js',sharedBase))).text();
+    const errors=[],calls=[];window.ribbonFixture={errors,calls};
+    const mock=`
+      const fixture=parent.ribbonFixture;addEventListener('error',e=>fixture.errors.push(e.message));
+      addEventListener('unhandledrejection',e=>fixture.errors.push(String(e.reason)));
+      window.setInterval=()=>0;window.BroadcastChannel=class{postMessage(){}};
+      Object.defineProperty(window,'localStorage',{value:{getItem:()=>null,setItem(){}}});
+      Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{}}});
+      const U=n=>String(n).padStart(8,'0')+'-0000-4000-8000-000000000000',now=Date.now()/1000;
+      const cc=(n,title,extra={})=>({uuid:U(n),executionId:'cc-'+U(n),sessionRef:'ref'+n,generation:1,
+        source:'host',role:'manager',displayRole:'manager',title,sessionLabel:title,nameSource:'chosen',cwd:'/fixture/manager-sessions',createdAt:now-n,
+        lifecycle:'live',state:'ready',capabilities:{nativeInput:true,controls:true,subagents:true},scopes:[{label:'main',scopeRef:'main'}],
+        liveState:{state:'ready',primary_turn_open:false,background_tasks:{},activity:{state:'idle',lastEventAt:now-5}},...extra});
+      const oc=(id,title,extra={})=>({id,title,backend:'opencode',kind:'manager',role:'Manager',manager:true,program:null,
+        agent:'manager-gpt',model:'openai/gpt-fixture',createdAt:now-100,busy:false,...extra});
+      const a=cc(1,'Manager-Session-227'),b=cc(2,'Manager-Session-227-b'),old=cc(3,'Manager-Session-225');
+      const oa=oc('ses_manager227a','Manager-Session-227-a'),older=oc('ses_manager225a','Manager-Session-225-a');
+      const child=oc('ses_nativechild','Existing OpenCode child',{kind:'subagent',role:'subagent',manager:false,parentId:older.id});
+      const worker=cc(4,'Lead seat · independent work',{role:'worker',displayRole:'lead-seat',capabilities:{},sessionLabel:null});
+      window.rows={a,b,old,oa,older,child,worker,claude:[a,b,old,worker],oc:[oa,older,child]};
+      const env=x=>({schemaVersion:1,backend:'claude',...x});
+      window.fetch=async(url,opts={})=>{fixture.calls.push([String(url),opts.method||'GET']);if(opts.method&&opts.method!=='GET')throw Error('read-only fixture');
+        const u=new URL(url,'http://fixture'),q=u.searchParams;let d;
+        if(u.pathname==='/api/claude/sessions')d=env({sessions:rows.claude,hasMore:false,status:'complete'});
+        else if(u.pathname==='/api/opencode/programs')d={schemaVersion:1,backend:'opencode',status:'complete',sessions:rows.oc,observedAt:now};
+        else if(u.pathname==='/api/claude/turns')d=env({turnFacts:null});
+        else if(u.pathname==='/api/claude/subagents'){
+          if(rows.childFailure)return new Response(JSON.stringify({error:'fixture discovery failed'}),{status:503});
+          const children=rows.childPages||[];d=env({sessions:children.length?[children[q.has('cursor')?1:0]]:[],hasMore:children.length>1&&!q.has('cursor'),nextCursor:'next',status:'complete'});
+        }
+        else if(u.pathname==='/api/claude/events')d=env({sessionRef:q.get('sessionRef'),scopeRef:'main',fileEpoch:'epoch',leafRef:null,targetRef:null,
+          events:[],hasMore:false,deltaCursor:'delta',status:'complete',change:'snapshot',branches:[],traces:[],diagnostics:[],
+          liveState:rows.a.liveState,contextReadout:{state:'measured',occupancy_tokens:360000,window_tokens:1000000,measured_at:now-60}});
+        else d={schemaVersion:1,status:'unavailable',backend:'opencode',error:'not needed',sessions:[]};
+        return new Response(JSON.stringify(d));};`;
+    async function mount(id,markup,extra='') {
+      const frame=document.getElementById(id),ready=new Promise(r=>frame.onload=r);
+      frame.srcdoc=markup.replace(/<link[^>]+>/g,'').replace(/<script[^>]*src="[^"]+"><\/script>/g,'')
+        .replace('</head>',()=>'<style>'+css+'\n'+extra+'</style></head>')
+        .replace('</body>',()=>[mock,core,order,js.replace("if(typeof document!=='undefined'","if(false && typeof document!=='undefined'"),
+          'window.api=opcClaudeHistory.create(document);api.state.inventory=rows.claude;api.state.inventoryAt=Date.now();api.state.oc={rows:rows.oc,status:"complete",observedAt:Date.now()};api.inventory();'].map(s=>'<script>'+safe(s)+'<\/script>').join('')+'</body>');
+      await ready;await sleep(30);return {w:frame.contentWindow,d:frame.contentDocument,api:frame.contentWindow.api,rows:frame.contentWindow.rows};
+    }
+    const f=await mount('desktop',desktop),el=id=>f.d.getElementById(id);
+    const managerNames=pin=>[...pin.querySelectorAll('.session-name:has(> .role-word[data-role=manager]) > .name-text')].map(n=>n.textContent).join('|');
+    const names=()=>managerNames(el('sessions-pinned'));
+    const family227='Manager-Session-227|Manager-Session-227-a|Manager-Session-227-b';
+    check('reload with no selected conversation pins newest complete mixed-backend numbered group',names()===family227&&f.api.state.session===null);
+    const managers=[...el('sessions-pinned').querySelectorAll('.session-item')],roles=managers.map(n=>n.querySelector('.role-word').getBoundingClientRect().left),metas=managers.map(n=>n.querySelector('.session-meta').getBoundingClientRect().left);
+    check('flat Claude and tree-wrapped OpenCode Manager role and second lines align at the same left edge',Math.max(...roles)-Math.min(...roles)<1&&Math.max(...metas)-Math.min(...metas)<1);
+    check('capability-only native Manager and childless OpenCode Manager have no empty expander',!managers.some(n=>n.querySelector('.session-toggle'))&&!managers[1].parentNode.querySelector(':scope > .tree-toggle'));
+    check('OpenCode Manager with actual children retains its existing working expander',!![...el('sessions-list').querySelectorAll('.tree-node')].find(n=>n.querySelector('.name-text')?.textContent==='Manager-Session-225-a')?.querySelector(':scope > .tree-toggle'));
+    const rail=managers[0].querySelector('.session-actions'),icons=[...rail.children],rects=icons.map(n=>n.getBoundingClientRect()),open=managers[0].querySelector('.session-open');
+    check('pencil, copy, balloon share one horizontal easy-hit rail spanning both text lines',icons.map(n=>n.textContent).join('')==='✎⧉💬'&&rects.every(r=>r.width>=28&&r.height>=30)&&Math.max(...rects.map(r=>r.top))-Math.min(...rects.map(r=>r.top))<1&&rects[0].height>=open.getBoundingClientRect().height-8);
+    const height=managers[0].getBoundingClientRect().height;rail.style.display='none';const without=managers[0].getBoundingClientRect().height;rail.style.display='';
+    check('larger action targets do not increase the two-line entry height',Math.abs(height-without)<1);
+    check('second line is one point larger than its old 10.5px baseline',Math.abs(parseFloat(f.w.getComputedStyle(managers[0].querySelector('.session-meta')).fontSize)-(10.5+4/3))<.1);
+    await f.api.browse(f.rows.old);check('choosing an older Manager replaces the top group',names()==='Manager-Session-225|Manager-Session-225-a');
+    await f.api.browse(f.rows.worker);check('reading a lead seat retains the deliberately older group',names()==='Manager-Session-225|Manager-Session-225-a'&&el('history-session-name').textContent===f.rows.worker.title);
+    await f.api.browse(f.rows.a);await f.api.children();
+    check('empty native discovery draws neither expander nor empty third line',!el('sessions-pinned').querySelector('.session-toggle')&&el('subagents-block').hidden&&!f.d.body.textContent.includes('no subagents yet')&&!el('sessions-pinned').textContent.includes('view-only'));
+    f.rows.childPages=[1,2].map(n=>({...f.rows.worker,role:'subagent',displayRole:'subagent',source:'native',parentUuid:f.rows.a.uuid,agentId:'agent'+n,sessionRef:'child'+n,title:'Native child '+n,scopes:[{label:'main',scopeRef:'main'}]}));
+    await f.api.children();
+    check('real native children gain an expander and More on metadata, no redundant first-page Refresh/footer',!!el('sessions-pinned').querySelector('.session-toggle')&&el('subagents-more').closest('.session-meta')&&!el('subagents-more').hidden&&el('subagents-refresh').hidden&&f.w.getComputedStyle(el('subagents-status').parentNode).display==='none');
+    el('subagents-more').click();await sleep(30);
+    check('More keeps the later page and exposes first-page Refresh in the first two lines',f.api.state.childPaged&&f.api.state.children[0].sessionRef==='child2'&&!el('subagents-refresh').hidden&&el('subagents-refresh').closest('.session-meta')&&(el('subagents-more')?.hidden??true));
+    el('subagents-refresh').click();await sleep(30);
+    check('Refresh resumes first-page automatic discovery without changing conversation',!f.api.state.childPaged&&f.api.state.children[0].sessionRef==='child1'&&f.api.state.session.uuid===f.rows.a.uuid);
+    f.rows.childFailure=true;await f.api.children();
+    check('a real discovery error retains its warning, children and metadata retry',/fixture discovery failed/.test(el('subagents-status').textContent)&&!el('subagents-refresh').hidden&&f.api.state.children.length===1);
+    f.rows.childFailure=false;f.rows.childPages=[];await f.api.children();
+    for(const state of ['idle','thinking','writing','tool','retrying','permission','unknown']) {
+      f.api.state.liveState.activity={state,lastEventAt:Date.now()/1000-5};f.api.state.liveState.background_tasks={bg:{task_type:'local_bash'}};f.api.activity();
+      check('desktop ribbon omits '+state+' and background activity words',!/(?:Idle|Thinking|Writing|Running tool|Retrying|Waiting for permission|activity unknown|in background)/i.test(el('history-activity').textContent)&&/last event \d+ s ago.*context 360K \/ 1M \(36%\).*as of \d{2}:\d{2}/.test(el('history-activity').textContent));
+    }
+    f.api.state.liveState.settings_unverified=true;f.api.state.observationError='offline';f.api.activity();
+    check('genuine observation and settings warnings remain',/Offline \/ observation unavailable/.test(el('history-activity').textContent)&&/⚠ settings unverified/.test(el('history-activity').textContent));
+    const long='Manager-Session-227 · '+'A long chosen session name '.repeat(8);f.api.state.session={...f.rows.a,sessionLabel:long};f.api.activity();
+    const name=el('history-session-name'),pie=el('context-gauge'),nr=name.getBoundingClientRect(),pr=pie.getBoundingClientRect();
+    check('full current session name sits immediately after pie, ellipsizes at a maximum width, hover is whole',name.textContent===long&&name.title===long&&nr.left>=pr.right&&nr.left-pr.right<15&&nr.width<=350&&name.scrollWidth>name.clientWidth&&f.w.getComputedStyle(name).textOverflow==='ellipsis');
+    const p=await mount('phone',phone,phoneCss+'\n'+glareCss),pin=p.d.getElementById('sessions-pinned'),pn=()=>managerNames(pin);
+    check('phone Programs has the same newest-group reload fallback',pn()===family227&&p.api.state.session===null);
+    p.api.selectManagerFamily(p.rows.old,[...p.rows.claude,...p.rows.oc]);p.api.selectManagerFamily(p.rows.worker,[...p.rows.claude,...p.rows.oc]);p.api.selectManagerFamily(null,[...p.rows.claude,...p.rows.oc]);
+    check('phone non-Manager/null picker updates retain older chosen family',pn()==='Manager-Session-225|Manager-Session-225-a');
+    const proles=[...pin.querySelectorAll('.role-word[data-role=manager]')].map(n=>n.getBoundingClientRect().left);
+    check('phone Claude and OpenCode Manager left edges align too',Math.max(...proles)-Math.min(...proles)<1);
+    const pm=pin.querySelector('.session-meta'),normal=parseFloat(p.w.getComputedStyle(pm).fontSize);p.d.documentElement.dataset.glare='on';
+    check('phone second line is enlarged normally and glare follows with its own point increase',normal>=10.5+4/3-.1&&parseFloat(p.w.getComputedStyle(pm).fontSize)>normal);
+    check('all fixture operations were reads; no source errors',calls.every(([,method])=>method==='GET')&&errors.length===0);
+    document.body.dataset.testPassed='true';
+  }catch(e){checks.push({name:'exception',passed:false,error:String(e.stack||e)});document.body.dataset.testPassed='false';}
+  document.getElementById('results').textContent=JSON.stringify(checks,null,2);
+})();
+</script>

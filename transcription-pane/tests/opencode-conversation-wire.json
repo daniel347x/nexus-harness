@@ -1,0 +1,31 @@
+{
+  "provenance": "Synthetic non-secret corpus shaped from live V2 2026-10-19 observations (reasoning/text have no id; tool has no callID); additional schema cases are synthetic. Provider envelope values below are test sentinels, never live provider data.",
+  "session": {"id":"ses_fixture0001","title":"OpenCode handoff fixture","agent":"quick-worker","model":{"id":"recorded-session-model","variant":"high"},"time":{"created":1792390000000},"location":{"directory":"/fixture/workspace"},"parentID":"ses_parent00001"},
+  "messages": [
+    {"id":"msg_user","type":"user","text":"# Whole prompt\n\nRead every stored block.","files":[{"path":"/recorded/file"}],"agents":["worker"],"skills":["review"],"time":{"created":1792390001000}},
+    {"id":"msg_work","type":"assistant","agent":"quick-worker","model":{"id":"block-model","variant":"xhigh"},"cost":0,"tokens":{"input":10,"output":20,"reasoning":3,"cache":{"read":4,"write":0}},"finish":"tool-calls","time":{"created":1792390002000,"streamed":1792390009000,"completed":1792390010000},"providerState":{"secret":"TEST_SENTINEL_MESSAGE"},"content":[
+      {"type":"reasoning","text":"Recorded reasoning.","time":{"created":1792390002100,"completed":1792390002200},"state":{"reasoningEncryptedContent":"TEST_SENTINEL_REASONING"}},
+      {"type":"reasoning","text":"","time":{"created":1792390002300,"completed":1792390002400},"state":{"reasoningEncryptedContent":"TEST_SENTINEL_ENCRYPTED"}},
+      {"type":"reasoning","text":"","time":{"created":1792390002500,"completed":1792390002600}},
+      {"type":"text","text":"## Work\n\nStored prose **in full**.","state":{"providerState":"TEST_SENTINEL_TEXT"}},
+      {"type":"tool","id":"prt_real","name":"subagent","time":{"created":1792390003000,"ran":1792390004000,"completed":1792390005000},"providerState":{"secret":"TEST_SENTINEL_TOOL"},"providerResultState":{"secret":"TEST_SENTINEL_RESULT"},"state":{"status":"completed","input": { "n":1e+02, "zero":-0, "providerState":"ordinary input key" },"content":[{"type":"text","text":"child started"},{"type":"image", "data":"AA==","n":1e+02}],"metadata":{"sessionID":"ses_child000001","status":"running"}}},
+      {"type":"future-part","text":"Unknown parts stay readable.","providerState":"TEST_SENTINEL_UNKNOWN"},
+      {"type":"tool","name":"missing-id","state":{"status":"completed","input":false,"content":[]}}
+    ]},
+    {"id":"msg_empty_user","type":"user","text":"","time":{"created":1792390011000}},
+    {"id":"msg_synthetic","type":"synthetic","description":"Background output","text":"Full synthetic text","time":{"created":1792390012000}},
+    {"id":"msg_system","type":"system","description":"System fact","text":"Full system text","time":{"created":1792390013000}},
+    {"id":"msg_skill","type":"skill","skill":"skill-id","name":"Review skill","text":"Full skill text","time":{"created":1792390014000}},
+    {"id":"msg_shell","type":"shell","command":"printf hello","status":"exited","exit":0,"output":{"output":"hello\nall stored output","cursor":23,"size":23,"truncated":false},"time":{"created":1792390015000,"completed":1792390016000}},
+    {"id":"msg_compact","type":"compaction","status":"completed","model":{"id":"compact-model"},"cost":0.25,"summary":"Recorded summary","recent":"Recorded recent","providerContext":{"secret":"TEST_SENTINEL_COMPACTION"},"time":{"created":1792390017000}},
+    {"id":"msg_agent","type":"agent-switched","agent":"new-agent","previous":"old-agent","time":{"created":1792390018000}},
+    {"id":"msg_model","type":"model-switched","model":{"id":"new-model"},"previous":{"id":"old-model"},"time":{"created":1792390019000}},
+    {"id":"msg_location","type":"location-switched","location":{"directory":"/new"},"previous":{"directory":"/old"},"time":{"created":1792390020000}},
+    {"id":"msg_final","type":"assistant","agent":"final-agent","model":{"id":"final-model","variant":"medium"},"cost":0.5,"tokens":{"input":99,"output":8,"reasoning":7,"cache":{"read":6,"write":5}},"finish":"stop","time":{"created":1792390021000,"completed":1792390022000},"content":[{"type":"text","text":"Final answer"}]},
+    {"id":"msg_idle","type":"idle","outcome":"succeeded","time":{"created":1792390023000}},
+    {"id":"msg_unknown","type":"future-message","text":"Unknown messages stay readable.","facts":{"recorded":true},"providerState":"TEST_SENTINEL_FUTURE","time":{"created":1792390024000}},
+    {"id":"msg_error","type":"assistant","error":{"name":"RecordedError","message":"failed step"},"retry":{"attempt":2,"at":1792390026000,"error":"retry observation"},"finish":"error","cost":0,"content":[],"time":{"created":1792390025000,"completed":1792390026000}},
+    {"id":"msg_interrupted","type":"idle","outcome":"interrupted","time":{"created":1792390027000}},
+    {"id":"msg_started","type":"assistant","agent":"live-agent","model":{"id":"live-model","variant":"high"},"content":[{"type":"reasoning","text":"","time":{"created":1792390028000}},{"type":"text","text":"stored current block"},{"type":"tool","id":"prt_running","name":"shell","time":{"created":1792390029000},"state":{"status":"running","input":{"command":"work"}}}],"time":{"created":1792390028000}}
+  ]
+}

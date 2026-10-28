@@ -1,0 +1,111 @@
+<!doctype html><meta charset="utf-8"><title>Phone outdoor glare mode — actual /m and Programs markup</title>
+<style>body{margin:0}iframe{width:390px;height:844px;border:0;display:block}pre{white-space:pre-wrap}</style>
+<iframe id="phone" title="Actual phone page"></iframe><pre id="results">running…</pre>
+<script>
+// The ☀ switch (glare.js) on the actual /m markup and styles, with the actual Programs page in its frame. glare.js runs in
+// <head> where the pages load it, so a probe at the top of <body> sees what the first paint shows. No m.js or sessions.js:
+// the switch needs neither (phone-programs.html covers the sidebar in glare mode, phone-ui-demo.html sweeps whole views).
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async fn=>{for(let i=0;i<400;i++){try{if(fn())return true;}catch(_){}await sleep(5);}return false;};
+  const fx=window.glareFixture={store:new Map(),pageStorage:[],frameStorage:[],viewStorage:[],probes:[],errors:[]};
+  const KEY='pane_m_v1:glare';
+  let d=null;
+  try {
+    const base=new URL('../static/',location.href),read=async n=>(await fetch(new URL(n,base))).text();
+    const [html,css,teamsCss,glareCss,glareJs,progHtml,sessionsCss,progCss,viewHtml,viewCss]=await Promise.all(
+      ['m.html','m.css','teams-break.css','glare.css','glare.js','m-programs.html','sessions.css','m-programs.css','glimpse.html','glimpse.css'].map(read));
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    // One origin's storage for every page here, each read and write recorded per page.
+    const storage=log=>`addEventListener('error',e=>top.glareFixture.errors.push(e.message));
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return top.glareFixture.store.size;},key:i=>[...top.glareFixture.store.keys()][i]??null,
+        getItem:k=>{top.glareFixture.${log}.push(['get',k]);return top.glareFixture.store.get(k)??null;},
+        setItem:(k,v)=>{top.glareFixture.${log}.push(['set',k,String(v)]);top.glareFixture.store.set(k,String(v));},
+        removeItem:k=>{top.glareFixture.${log}.push(['remove',k]);top.glareFixture.store.delete(k);}}});`;
+    const page=(source,styles,log)=>source.replace(/<link rel="stylesheet"[^>]+>/g,'').replace(/<link[^>]+>/g,'')
+      .replace('<script src="/glare.js"><\/script>',()=>styles.map(s=>'<style>'+s+'</style>').join('')+'<script>'+safe(storage(log))+'<\/script><script>'+safe(glareJs)+'<\/script>')
+      .replace(/ *<script src="[^"]+"><\/script>\n?/g,'')
+      .replace(/(<body[^>]*>)/,'$1<script>top.glareFixture.probes.push(['+JSON.stringify(log)+',document.documentElement.dataset.glare||"off"])<\/script>');
+    const phonePage=page(html,[css,teamsCss,glareCss],'pageStorage'),programsPage=page(progHtml,[sessionsCss,progCss,glareCss],'frameStorage');
+    // The View page keeps its own embedded check (an inline script before glare.js); its renderer files are not needed here.
+    const viewPage=page(viewHtml,[viewCss,glareCss],'viewStorage');
+    check('both pages load glare.css after their own sheets and glare.js in <head>',
+      /m\.css[\s\S]*teams-break\.css[\s\S]*glare\.css[\s\S]*glare\.js[\s\S]*<\/head>/.test(html)&&/m-programs\.css[\s\S]*glare\.css[\s\S]*glare\.js[\s\S]*<\/head>/.test(progHtml)&&
+      /<html[^>]*data-glare-follow/.test(progHtml)&&!/<html[^>]*data-glare-follow/.test(html));
+    const frame=document.getElementById('phone');
+    const load=async()=>{const loaded=new Promise(r=>frame.onload=r);frame.srcdoc=phonePage;await loaded;d=frame.contentDocument;return frame.contentWindow;};
+    let w=await load();
+    const $=id=>d.getElementById(id),cs=(n,p)=>w.getComputedStyle(typeof n==='string'?d.querySelector(n):n)[p];
+    const button=()=>$('m-glare'),on=doc=>doc.documentElement.dataset.glare==='on';
+    check('off by default: no glare at the first paint, ☀ not pressed, nothing kept',fx.probes.at(-1)?.join()==='pageStorage,off'&&!on(d)&&
+      button().getAttribute('aria-pressed')==='false'&&!fx.store.has(KEY)&&fx.pageStorage.every(([op,key])=>op==='get'&&key===KEY));
+    // Layout: the ☀ at the end of the views row; on a phone (≤ 440 px) Chat · Programs · Context · View shrink to their words, so
+    // all four are in view with none clipped (View is never off the right edge: L8 of [ap:830HMA]), at 390 and 375 px; the page never widens.
+    const fits=()=>{const views=$('m-views'),b=button().getBoundingClientRect(),v=views.getBoundingClientRect();
+      return views.scrollWidth<=views.clientWidth+1&&b.width>=44&&b.height>=v.height-1&&Math.abs(b.top-v.top)<1&&b.left>v.right&&
+        d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&[...views.children].map(c=>c.textContent).join('|')==='Chat|Programs|Context|View'&&
+        [...views.children].every(c=>c.getBoundingClientRect().right<=v.right+1&&c.scrollWidth<=c.clientWidth+1);};
+    // The page widths of real phones (desktop Chrome's frame scrollbar taken off; an iPhone's overlays): 390 and 375 (the smallest current iPhone).
+    const scrollbar=390-d.documentElement.clientWidth,width=async px=>{frame.style.width=(px+scrollbar)+'px';await sleep(30);return d.documentElement.clientWidth===px;};
+    check('☀ sits at the end of the views row, thumb-sized; all four views in view, none clipped, on a 390 px phone',await width(390)&&fits());
+    check('… and on a 375 px phone',await width(375)&&fits());
+    frame.style.width='390px';await sleep(30);
+    // Without glare nothing changes: the phone's own colours and sizes.
+    const normal={view:cs('#m-view-programs','color'),lines:cs('.m-lines','fontSize'),caption:cs('.m-caption','fontSize'),prose:null};
+    check('without glare the page keeps its own colours and sizes',normal.view==='rgb(184, 194, 212)'&&normal.lines==='13px'&&normal.caption==='13px'&&
+      cs(':root','color')==='rgb(228, 232, 239)');
+    // Chat's ⛔ usage-limit halt banner (m.js fills it; shown here by hand): its red frame, light red text.
+    const halt=$('m-halt');halt.textContent='⛔ Halted: Max usage limit reached (five-hour), resets 14:50. Nothing resumes by itself.';halt.hidden=false;
+    check('the ⛔ halt banner: a red frame on a dark red ground, light red text',halt.checkVisibility()&&cs(halt,'borderTopColor')==='rgb(255, 92, 92)'&&
+      cs(halt,'color')==='rgb(255, 201, 201)'&&cs(halt,'backgroundColor')==='rgb(58, 21, 24)');
+    // The Latest badge's accent "N new ↓" (seen-latest.js sets data-unseen; m.js is not loaded here).
+    const latest=$('m-latest'),accent=on=>{latest.hidden=!on;latest.textContent=on?'2 new ↓':'↓ Latest';if(on)latest.dataset.unseen='true';else delete latest.dataset.unseen;};
+    accent(true);
+    check('the Latest badge\'s accent "N new ↓": amber with white text, apart from the plain blue',cs(latest,'backgroundColor')==='rgb(138, 82, 0)'&&cs(latest,'color')==='rgb(255, 255, 255)'&&
+      cs(latest,'fontSize')==='13px');
+    accent(false);
+    button().click();await sleep(10);
+    check('one tap: glare on, ☀ pressed and lit, the choice kept as pane_m_v1:glare',on(d)&&button().getAttribute('aria-pressed')==='true'&&
+      fx.store.get(KEY)==='on'&&cs(button(),'backgroundColor')==='rgb(255, 215, 94)');
+    check('the dim greys turn near white and the small print grows',cs('#m-view-programs','color')==='rgb(241, 244, 249)'&&cs(':root','color')==='rgb(255, 255, 255)'&&
+      cs('.m-lines','fontSize')==='14px'&&cs('.m-caption','fontSize')==='14px');
+    check('in glare the ⛔ halt banner brightens its text and frame, the same ground',cs(halt,'color')==='rgb(255, 227, 227)'&&cs(halt,'borderTopColor')==='rgb(255, 122, 122)'&&
+      cs(halt,'backgroundColor')==='rgb(58, 21, 24)');
+    accent(true);
+    check('in glare the accent badge keeps its amber and white text, its print grown like the rest',cs(latest,'backgroundColor')==='rgb(138, 82, 0)'&&
+      cs(latest,'color')==='rgb(255, 255, 255)'&&cs(latest,'fontSize')==='14px');
+    latest.dataset.unseen='final';
+    check('in glare the final-reply badge keeps its red and white text',cs(latest,'backgroundColor')==='rgb(154, 42, 34)'&&cs(latest,'color')==='rgb(255, 255, 255)');
+    accent(false);
+    // The Programs page in the phone's frame follows the page around it and never keeps anything itself.
+    const programs=$('m-programs-frame'),frameLoaded=new Promise(r=>programs.onload=r);programs.srcdoc=programsPage;await frameLoaded;
+    const pd=programs.contentDocument,pw=programs.contentWindow,aside=()=>pw.getComputedStyle(pd.querySelector('aside')).fontSize;
+    check('a Programs frame opened while glare is on starts lit (before its first paint), with no storage of its own',
+      fx.probes.at(-1)?.join()==='frameStorage,on'&&on(pd)&&fx.frameStorage.length===0&&aside()==='15px');
+    button().click();await sleep(10);
+    check('another tap: off on the page and in the frame at once, the kept choice removed',!on(d)&&!on(pd)&&button().getAttribute('aria-pressed')==='false'&&
+      !fx.store.has(KEY)&&aside()==='14px'&&cs('#m-view-programs','color')===normal.view&&fx.frameStorage.length===0);
+    // Another /m tab turns it on: this page follows through the storage event, and passes it to its frame.
+    fx.store.set(KEY,'on');w.dispatchEvent(new w.StorageEvent('storage',{key:KEY,newValue:'on'}));await sleep(10);
+    check('another phone tab turning it on: this page and its frame follow',on(d)&&on(pd)&&button().getAttribute('aria-pressed')==='true');
+    // The View page in its own frame: it starts lit while glare is on, keeps nothing, and follows a tap at once.
+    const view=$('m-glimpse-frame'),viewLoaded=new Promise(r=>view.onload=r);view.srcdoc=viewPage;await viewLoaded;
+    const vd=view.contentDocument,vw=view.contentWindow,small=()=>vw.getComputedStyle(vd.getElementById('g-asof')).fontSize;
+    check('a View frame opened while glare is on starts lit (before its first paint), a follower with no storage and no ☀ of its own',
+      fx.probes.at(-1)?.join()==='viewStorage,on'&&on(vd)&&vd.documentElement.hasAttribute('data-glare-follow')&&fx.viewStorage.length===0&&small()==='14.5px'&&
+      vw.getComputedStyle(vd.getElementById('g-glare')).display==='none');
+    button().click();await sleep(10);
+    check('a tap off reaches the View frame at once',!on(d)&&!on(vd)&&small()==='13px'&&fx.viewStorage.length===0);
+    button().click();await sleep(10);
+    check('and back on',on(d)&&on(vd)&&on(pd));
+    // A reload with the choice kept starts lit, before the first paint.
+    w=await load();
+    check('a reload starts in glare mode before the first paint, ☀ pressed',fx.probes.at(-1)?.join()==='pageStorage,on'&&on(d)&&$('m-glare').getAttribute('aria-pressed')==='true');
+    check('the page key is the phone\'s own: it never reads or writes another key for glare',
+      fx.pageStorage.every(([,key])=>key===KEY)&&fx.frameStorage.length===0&&fx.viewStorage.length===0&&fx.errors.length===0);
+  } catch(e) { if(!checks.some(c=>!c.passed))checks.push({name:'fixture: '+e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>

@@ -1,0 +1,449 @@
+<!doctype html><meta charset="utf-8"><title>View page (glimpse.html) — actual page, actual shared renderer, inert B2 transport</title>
+<style>body{margin:0}iframe{width:390px;height:844px;border:0;display:block}pre{white-space:pre-wrap}</style>
+<iframe id="page" title="Actual View page"></iframe><pre id="results">running…</pre>
+<script>
+// The actual static/glimpse.html with its actual scripts and styles, and the extension's actual shared renderer
+// (marked 15, KaTeX, its initializer, glimpse-md-render.js/.css) served at /nexus-md/ from the configured NEXUS
+// checkout by the fixture server's test-only alias. Only fetch is replaced (an inert B2 transport). The page sits in a
+// frame here, as in /m, so it is a glare follower of this page (window.opcGlare below).
+(async()=>{
+  const checks=[],record=(name,ok)=>checks.push({name,passed:!!ok}),check=(name,ok)=>{record(name,ok);if(!ok)throw new Error(name);};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,what='fixture wait')=>{for(let i=0;i<600;i++){try{if(fn())return true;}catch(_){}await sleep(5);}throw new Error(what+' did not settle');};
+  const NO_TAB='Open a Workflowy tab with the NEXUS extension on the PC; groups/Docks/symbols need its settings. Raw node/subtree works without it.';
+  const bytes=t=>new TextEncoder().encode(t).length;
+  const md=['# Pane Views · SkyView','',
+    'Raw HTML stays raw: <span class="raw-span" style="color:#7fe0d6">teal span</span> and a live handler <img class="raw-img" src="/no-such-image.png" onerror="this.dataset.ran=\'yes\'" alt="">','',
+    '<div class="raw-block" data-x="1">A raw block with <b>bold</b> inside</div>','',
+    '| Column A | Column B | Column C | Column D | Column E |','| --- | --- | --- | --- | --- |','| one | two | three | four | five |','',
+    '```js','const veryLongLine = "'+'raw '.repeat(60)+'";','```','',
+    'Inline math $e^{i\\pi} + 1 = 0$, and money $5 and $10 stays money.','',
+    '$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$','',
+    'Entities: &amp; &lt;tag&gt; &copy; and a [link](https://example.com). Raw again: raw.'].join('\n');
+  const large=['# Large slice',...Array.from({length:1200},(_,i)=>'Paragraph '+i+' of the large slice, with **bold** text.\n'),'```','fenced block that must stay whole','```','','Last paragraph.'].join('\n');
+  const fx=window.glimpseFixture={requests:[],renders:[],rowCalls:[],cacheRefreshes:0,catalogReads:0,clipboard:[],errors:[],storage:[],glare:false,
+    catalog:{status:200,body:{schemaVersion:1,docks:[{handle:'[ap:DOCK01]',name:'⭐ Pane Views · program Dock #prog-dock'}],
+      groups:[{handle:'grp-1a2b3c4d',name:'opc · pane slice group'}],errors:[],readAt:'2026-10-22T07:00:00Z'}},
+    markdown:()=>md,renderReply:null,cacheReply:null,assetReply:null};
+  window.opcGlare=Object.freeze({on:()=>fx.glare});  // the page around the frame (/m's role)
+  const mock=`
+    const fx=parent.glimpseFixture;
+    addEventListener('error',e=>fx.errors.push(String(e.message||e.target?.src||'resource error')));
+    addEventListener('unhandledrejection',e=>fx.errors.push('rejection: '+String(e.reason?.message||e.reason)));
+    Object.defineProperty(window,'localStorage',{configurable:true,value:{get length(){return 0;},key:()=>null,
+      getItem:k=>{fx.storage.push(['get',k]);return null;},setItem:(k,v)=>fx.storage.push(['set',k,v]),removeItem:k=>fx.storage.push(['remove',k])}});
+    Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:t=>{fx.clipboard.push(String(t));return Promise.resolve();}}});
+    // A spy on the shared row painter: the page gets the same frozen exports, and renderRowList records its call, then runs
+    // the real export with the very same arguments (no second painter; an asset without the export stays without it).
+    let sharedMd=null;
+    Object.defineProperty(window,'GlimpseMd',{configurable:true,get:()=>sharedMd,set:v=>{const real=v?.renderRowList;
+      sharedMd=typeof real!=='function'?v:Object.freeze({...v,renderRowList:(...args)=>{fx.rowCalls.push({container:args[0],rows:args[1],opts:args[2]});return real(...args);}});
+      fx.realRowList=real;}});
+    const realFetch=window.fetch.bind(window),json=(status,body)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+    window.fetch=async(url,options={})=>{
+      const u=new URL(String(url),parent.location.href);fx.requests.push([u.pathname,options.method||'GET']);
+      if(u.pathname.startsWith('/nexus-md/'))return fx.assetReply?.(u.pathname)||realFetch(url,options);
+      if(u.pathname==='/api/glimpse/catalog'){fx.catalogReads++;return json(fx.catalog.status,fx.catalog.body);}
+      if(u.pathname==='/api/glimpse/render'){
+        const body=JSON.parse(options.body);fx.renders.push(body);
+        const reply=fx.renderReply?await fx.renderReply(body):null;
+        if(reply)return json(reply.status,reply.body);
+        const markdown=fx.markdown(body);
+        return json(200,{schemaVersion:1,markdown,bytes:new TextEncoder().encode(markdown).length,renderedAt:'2026-10-22T07:42:10Z',request:body});
+      }
+      if(u.pathname==='/api/glimpse/cache-refresh'){fx.cacheRefreshes++;const r=fx.cacheReply?.()||{status:200,body:{schemaVersion:1,attemptedAt:'2026-10-22T07:50:00Z',completedAt:'2026-10-22T07:50:03Z'}};return json(r.status,r.body);}
+      throw new Error('No real transport permitted: '+url);
+    };`;
+  // ?shot=pickers-docks|pickers-groups|pickers-desktop stops the run there, that picker open, for a Chrome screenshot;
+  // ?shot=layout-collapsed|layout-open|layout-open-chooser stops after the first Dock pick, the Controls bar so
+  // (chrome --headless=new --window-size=390,1100 --screenshot=… …/glimpse-view.html?shot=pickers-docks).
+  const SHOT=new URLSearchParams(location.search).get('shot'),shot=name=>{if(SHOT===name)throw Object.assign(new Error('stopped for the '+name+' screenshot'),{shot:true});};
+  let w,d,api;
+  try {
+    const base=new URL('../static/',location.href),html=await (await fetch(new URL('glimpse.html',base))).text();
+    const safe=t=>t.replace(/<\/script/gi,'<\\/script');
+    // The page's own pane files from transcription-pane/static (the fixture serves the repository, not the pane's routes).
+    const page=(rewrite=t=>t)=>rewrite(html).replace('<script>',()=>'<script>'+safe(mock)+'<\/script>\n  <script>')
+      .replace(/(src|href)="\/((?:glimpse|glare|handle-links|view-history|view-pickers)\.(?:js|css))"/g,(_,a,f)=>a+'="/transcription-pane/static/'+f+'"');
+    const frame=document.getElementById('page');
+    const load=async(rewrite)=>{const loaded=new Promise(r=>frame.onload=r);frame.srcdoc=page(rewrite);await loaded;w=frame.contentWindow;d=w.document;
+      api=w.opcGlimpseView;await until(()=>api&&fx.catalogReads>0&&api.state.catalog,'catalog');};
+    const g=id=>d.getElementById('g-'+id),cs=(n,p)=>w.getComputedStyle(typeof n==='string'?d.querySelector(n):n)[p];
+    const last=()=>fx.renders.at(-1),settled=()=>until(()=>!api.state.busy,'render');
+    // A tap on catalog entry i's picker row (view-pickers.js: one button per entry, its full name as its title).
+    const rowOf=(id,index)=>[...g(id).querySelectorAll('.g-pleaf')].find(b=>b.title===api.state.catalog[id==='dock'?'docks':'groups'][index].name);
+    const tapRow=(id,index)=>{g(id+'-box').open=true;rowOf(id,index).click();};
+    const pick=async(id,index)=>{tapRow(id,index);await until(()=>!api.state.busy&&api.state.held?.label.startsWith(id==='dock'?'Dock':'Group'),'pick '+id);};
+    // --- the page's own make-up: shared renderer only, in the extension's order; no pane chat renderer; no frame/sanitizer
+    check('scripts in the shared order: marked 15 → KaTeX → its initializer → glimpse-md-render.js → glimpse.js; styles KaTeX → overrides → shared render CSS → glimpse.css → glare.css',
+      ['/nexus-md/marked.min.js','/nexus-md/katex/katex.min.js','/nexus-md/marked-katex-init.js','/nexus-md/glimpse-md-render.js','/glimpse.js'].every((s,i,a)=>!i||html.indexOf(a[i-1])<html.indexOf(s))&&
+      ['/nexus-md/katex/katex.min.css','/nexus-md/katex-overrides.css','/nexus-md/glimpse-md-render.css','/glimpse.css','/glare.css'].every((s,i,a)=>!i||html.indexOf(a[i-1])<html.indexOf(s))&&
+      !/vendor\/marked|purify|message-markdown|<iframe|sandbox/i.test(html)&&html.indexOf('data-glare-follow')<html.indexOf('/glare.js'));
+    const banner=(await (await fetch('/nexus-md/marked.min.js')).text()).slice(0,200);
+    check('the alias serves the extension\'s marked 15 ['+banner.slice(0,60)+']',/marked v15\./.test(banner));
+    await load();
+    check('cold: one catalog read, no render, no cache refresh; favorite Docks and groups listed by their full names',fx.catalogReads===1&&fx.renders.length===0&&fx.cacheRefreshes===0&&
+      [...g('dock').querySelectorAll('.g-prow')].map(o=>o.textContent).join('|')==='⭐ Pane Views · program Dock #prog-dock'&&
+      [...g('group').querySelectorAll('.g-prow')].map(o=>o.textContent).join('|')==='opc · pane slice group'&&g('catalog-errors').textContent==='');
+    // --- the layout: no header; the two history rows on top; one thin Controls bar; open by itself while nothing is shown
+    const ctlShown=()=>!g('ctl-body').hidden&&g('ctl-toggle').getAttribute('aria-expanded')==='true',top=n=>(typeof n==='string'?g(n):n).getBoundingClientRect().top;
+    check('no header row (no catalog count, no Refresh cache), and nothing rendered yet: the controls stand open, the chooser in them',
+      !d.querySelector('header,#g-head,#g-cache,#g-catalog-status,#g-title')&&ctlShown()&&g('pick').open&&g('dock-box').getClientRects().length>0&&g('asof').textContent.startsWith('Choose a Dock'));
+    check('the shared module loaded: GlimpseMd frozen with its four functions, and the extension\'s marked (not the pane\'s)',Object.isFrozen(w.GlimpseMd)&&
+      ['toHtml','sourceHtml','compileSourceSearch','escapeHtml'].every(k=>typeof w.GlimpseMd[k]==='function')&&typeof w.marked?.parse==='function'&&g('assets').hidden&&
+      ![...d.scripts].some(s=>/vendor\/marked|purify/.test(s.src)));
+    check('embedded: a glare follower (no ☀ of its own, no glare storage), compact by default',d.documentElement.hasAttribute('data-glare-follow')&&cs('#g-glare','display')==='none'&&
+      fx.storage.every(([op,k])=>op!=='set'||k.startsWith('pane_view_history_v1:')));
+    // --- a favorite Dock on a phone: compact (headings only), visibly labelled, with Full
+    const t0=performance.now();
+    await pick('dock',0);
+    const firstPaint=performance.now()-t0;
+    check('a Dock pick renders at once with B2\'s exact request: kind parcel, {dock}, headings_only true on a phone ['+JSON.stringify(last())+']',
+      JSON.stringify(last())==='{"kind":"parcel","value":{"dock":"[ap:DOCK01]"},"options":{"headings_only":true,"include_rows":true}}'&&fx.renders.length===1);
+    check('the compact view says so beside the as-of line, with Full',!g('compact').hidden&&g('compact-text').textContent==='Compact view: headings only, not the whole document.'&&
+      /^Dock · ⭐ Pane Views · program Dock #prog-dock · Rendered at .+ · daemon cache snapshot · headings only · [\d,]+ bytes$/.test(g('asof').textContent)&&g('asof').dataset.last==='false');
+    check('the shared output, exactly: what the page painted is GlimpseMd.toHtml of the held Markdown',api.state.painted===w.GlimpseMd.toHtml(md,{view:'rendered',contentFormat:'markdown',findRegex:null})&&
+      api.state.held.markdown===md&&api.state.painted.includes('<table>'));
+    const doc=g('doc');
+    await until(()=>doc.querySelector('.raw-img')?.dataset.ran==='yes','raw image handler');
+    check('raw HTML goes straight into the document: elements, styles and even an inline handler (no sanitizer, no escaping, no frame)',
+      doc.querySelector('span.raw-span')?.style.color==='rgb(127, 224, 214)'&&doc.querySelector('div.raw-block[data-x="1"] b')?.textContent==='bold'&&
+      doc.querySelector('.raw-img').dataset.ran==='yes'&&!d.querySelector('#g-scroll iframe'));
+    check('table, code, KaTeX math, money and entities as the dock shows them',doc.querySelectorAll('table th').length===5&&doc.querySelector('pre code')?.textContent.includes('veryLongLine')&&
+      !!doc.querySelector('.katex')&&!!doc.querySelector('.katex-display')&&doc.textContent.includes('$5 and $10')&&doc.textContent.includes('©')&&doc.textContent.includes('<tag>')&&
+      doc.querySelector('a[href="https://example.com"]')&&cs(doc.querySelector('h1'),'fontWeight')==='600');
+    record('first Dock paint '+Math.round(firstPaint)+' ms (fixture, virtual time)',true);
+    const bar=g('ctl-toggle').getBoundingClientRect(),strip=g('hist').getBoundingClientRect();
+    check('a pick folds the controls: the history rows at the very top, then the thin bar ('+Math.round(bar.height)+' px), then the compact notice and the document; nothing else',
+      !ctlShown()&&!g('hist').hidden&&strip.top<=10&&bar.height<=24&&bar.top>=strip.bottom&&bar.top-strip.bottom<=8&&bar.width>=g('hist').getBoundingClientRect().width-2&&
+      top('status')>=bar.bottom&&top('status')-bar.bottom<=8&&!g('bar').getClientRects().length&&!g('pick').getClientRects().length&&!g('asof').getClientRects().length&&
+      top('scroll')>bar.bottom&&g('rows-box').hidden);
+    const docShut=g('scroll').getBoundingClientRect().height;
+    g('ctl-toggle').click();await sleep(20);
+    check('the bar opens the controls under it: the chooser (one line, folded after the render), the toolbar below it and the as-of line, pushing the document down',
+      ctlShown()&&!g('pick').open&&top('pick')>=g('ctl-toggle').getBoundingClientRect().bottom&&top('bar')>=g('pick').getBoundingClientRect().bottom&&
+      top('asof')>=g('bar').getBoundingClientRect().bottom&&g('scroll').getBoundingClientRect().height<docShut-40&&
+      fx.storage.some(([op,k,v])=>op==='set'&&k==='pane_view_controls_open_v1:framed'&&v==='1'));
+    g('pick').open=true;await sleep(20);
+    check('… the chooser is its own expander inside: opened, it pushes the toolbar down',top('bar')>=g('pick').getBoundingClientRect().bottom&&g('dock-box').getClientRects().length>0);
+    g('pick').open=false;g('ctl-toggle').click();await sleep(20);
+    check('… and the bar folds them all away again',!ctlShown()&&!g('bar').getClientRects().length&&Math.abs(g('scroll').getBoundingClientRect().height-docShut)<2);
+    if(SHOT?.startsWith('layout-')){api.openHandle('[ap:C3Q9NM]','node',{from:'view'});await settled();  // a second entry: the ‹ › row shows
+      if(SHOT==='layout-open')g('ctl-toggle').click();
+      if(SHOT==='layout-open-chooser'){g('ctl-toggle').click();g('pick').open=true;}
+      shot(SHOT);}
+    g('full').click();await settled();
+    check('Full: the same scope without headings-only or recent; the compact label goes',JSON.stringify(last())==='{"kind":"parcel","value":{"dock":"[ap:DOCK01]"},"options":{"headings_only":false,"include_rows":true}}'&&
+      g('compact').hidden&&/ · full · /.test(g('asof').textContent));
+    // --- Rendered | Source and Source find: no daemon call
+    const renders=fx.renders.length;
+    g('source').click();
+    const pre=doc.querySelector('pre.glimpse-md-preview-plain'),hits=(md.match(/raw/gi)||[]).length;
+    check('Source shows the exact held Markdown through the shared sourceHtml, no request',pre&&pre.textContent===md&&fx.renders.length===renders&&
+      api.state.painted===w.GlimpseMd.toHtml(md,{view:'source',contentFormat:'markdown',findRegex:null}));
+    const find=g('find'),type=v=>{find.value=v;find.dispatchEvent(new w.Event('input'));};
+    type('raw');
+    check('find: the shared compiler and marks, count and current ('+g('count').textContent+')',g('count').textContent==='1 / '+hits&&doc.querySelectorAll('mark.glimpse-dock-src-hit').length===hits&&
+      doc.querySelectorAll('mark.glimpse-dock-src-hit--current').length===1&&doc.querySelector('mark.glimpse-dock-src-hit').classList.contains('glimpse-dock-src-hit--current'));
+    g('next').click();
+    const marks=()=>[...doc.querySelectorAll('mark.glimpse-dock-src-hit')];
+    check('next moves the current mark',g('count').textContent==='2 / '+hits&&marks()[1].classList.contains('glimpse-dock-src-hit--current')&&!marks()[0].classList.contains('glimpse-dock-src-hit--current'));
+    g('prev').click();g('prev').click();
+    check('previous wraps to the last match',g('count').textContent===hits+' / '+hits&&marks().at(-1).classList.contains('glimpse-dock-src-hit--current'));
+    const scroller=g('scroll'),seen=n=>{const r=n.getBoundingClientRect(),b=scroller.getBoundingClientRect();return r.top>=b.top&&r.bottom<=b.bottom;};
+    check('the current match is scrolled into view inside the document, never the page',seen(marks().at(-1))&&d.documentElement.scrollTop===0&&d.body.scrollTop===0);
+    type('"unbalanced');
+    check('a malformed query shows the shared compiler\'s own message',g('count').textContent==='unbalanced quotes'&&g('count').dataset.error==='true'&&!marks().length);
+    type('"live handler" teal');
+    check('quoted phrases and several terms, as the dock\'s grammar does',g('count').textContent==='1 / 2'&&marks().map(m=>m.textContent).join('|')==='teal|live handler');
+    type('zzzz-nothing');check('no matches says so',g('count').textContent==='no matches');
+    g('rendered').click();type('raw');
+    check('typing a find in Rendered switches to Source (find is Source find)',api.state.view==='source'&&g('source').getAttribute('aria-pressed')==='true'&&g('count').textContent==='1 / '+hits);
+    type('');g('rendered').click();
+    check('the toggles and find made no daemon call',fx.renders.length===renders&&fx.cacheRefreshes===0);
+    // --- Copy MD: the whole held Markdown
+    g('copy').click();await until(()=>fx.clipboard.length===1,'copy');
+    check('Copy MD copies the full held Markdown',fx.clipboard[0]===md&&/^Copied the whole Markdown · [\d,]+ bytes$/.test(g('note').textContent));
+    // --- Refresh re-sends the same request; Refresh cache is its own button, reported, never repeated
+    const before=JSON.stringify(last());g('refresh').click();await settled();
+    check('Refresh renders the current request again, exactly, and never refreshes the cache',fx.renders.length===renders+1&&JSON.stringify(last())===before&&fx.cacheRefreshes===0&&
+      !fx.requests.some(([p])=>p==='/api/glimpse/cache-refresh'));
+    // --- a raw node without a tab, a Dock that needs one, and the last successful document kept
+    g('handle').value='[ap:C3Q9NM]';g('handle-render').click();await settled();
+    check('a pasted handle reads as Node by default: {node}, its body (no headings-only)',JSON.stringify(last())==='{"kind":"parcel","value":{"node":"[ap:C3Q9NM]"},"options":{"headings_only":false,"include_rows":true}}'&&
+      api.state.held.label==='Node · [ap:C3Q9NM]');
+    fx.renderReply=body=>body.value.dock?{status:502,body:{schemaVersion:1,status:'daemon',error:NO_TAB+' no live Workflowy tab'}}:null;
+    d.querySelector('[data-how="dock"]').click();g('handle').value='[ap:DOCK02]';g('handle-render').click();await settled();
+    check('the Dock preset sends {dock}; without a tab the error is shown in plain words and the node stays, labelled last successful',
+      JSON.stringify(last())==='{"kind":"parcel","value":{"dock":"[ap:DOCK02]"},"options":{"headings_only":true,"include_rows":true}}'&&!g('error').hidden&&
+      g('error').textContent.includes(NO_TAB)&&g('asof').textContent.startsWith('Last successful: Node · [ap:C3Q9NM] · Rendered at')&&g('asof').dataset.last==='true'&&
+      api.state.held.label==='Node · [ap:C3Q9NM]');
+    g('copy').click();await until(()=>fx.clipboard.length===2,'copy after failure');
+    check('Copy MD after a failure still copies the last successful document',fx.clipboard[1]===md);
+    d.querySelector('[data-how="subtree"]').click();fx.renderReply=null;g('handle-render').click();await settled();
+    check('the Subtree preset sends {subtree} (compact on a phone) and clears the error',JSON.stringify(last())==='{"kind":"parcel","value":{"subtree":"[ap:DOCK02]"},"options":{"headings_only":true,"include_rows":true}}'&&g('error').hidden);
+    // --- the spec box: Parcel or Estate, chosen, never guessed
+    g('spec-box').open=true;g('spec').value='{"tags":["opc-pane"],"root":"25a49a99"}';g('spec-render').click();await settled();
+    check('a Parcel spec in JSON goes as its object',JSON.stringify(last())==='{"kind":"parcel","value":{"tags":["opc-pane"],"root":"25a49a99"},"options":{"headings_only":true,"include_rows":true}}');
+    d.querySelector('[data-kind="estate"]').click();g('spec').value='[ap:ESTATE1]';g('spec-render').click();await settled();
+    check('an Estate handle goes as kind estate, exactly as typed, each parcel keeping its own read (no headings_only unless ticked)',
+      JSON.stringify(last())==='{"kind":"estate","value":"[ap:ESTATE1]","options":{}}'&&!g('headings').checked);
+    fx.renderReply=()=>({status:400,body:{schemaVersion:1,status:'request',error:'invalid JSON render specification'}});
+    d.querySelector('[data-kind="parcel"]').click();g('spec').value='{"node": oops';g('spec-render').click();await settled();
+    check('an odd spec is passed on as typed and the pane\'s refusal is shown, not a local one',last().value==='{"node": oops'&&g('error').textContent.includes(' · invalid JSON render specification\nStill showing the last successful: '));
+    fx.renderReply=null;
+    // --- options: sort and direction, recent, and Full clearing both
+    g('sort').value='modified';g('sort').dispatchEvent(new w.Event('change'));await settled();
+    check('sort by modified sends sort_by + direction (newest first) and shows the direction control',!g('direction').hidden&&
+      JSON.stringify(last().options)==='{"headings_only":true,"sort_by":"modified","sort_direction":"desc","include_rows":true}');
+    g('recent').value='last 20';g('recent').dispatchEvent(new w.Event('change'));await settled();
+    check('recent is sent and labelled',last().options.recent==='last 20'&&g('compact-text').textContent==='Compact view: headings only · recent last 20, not the whole document.'&&
+      / · by modified, newest first · /.test(g('asof').textContent));
+    g('full').click();await settled();
+    check('Full clears headings-only and the recent window (sort kept)',JSON.stringify(last().options)==='{"headings_only":false,"sort_by":"modified","sort_direction":"desc","include_rows":true}'&&g('compact').hidden&&g('recent').value==='');
+    g('sort').value='saved';g('sort').dispatchEvent(new w.Event('change'));await settled();
+    check('Saved order (the scope\'s own) sends no sort and hides direction',JSON.stringify(last().options)==='{"headings_only":false,"include_rows":true}'&&g('direction').hidden);
+    g('sort').value='none';g('sort').dispatchEvent(new w.Event('change'));await settled();
+    check('Document order sends sort_by none, says so, and hides direction',JSON.stringify(last().options)==='{"headings_only":false,"sort_by":"none","include_rows":true}'&&g('direction').hidden&&
+      / · full · document order · /.test(g('asof').textContent));
+    g('sort').value='saved';g('sort').dispatchEvent(new w.Event('change'));await settled();
+    // --- the last choice wins
+    let releaseOld;fx.renderReply=body=>body.value.group?new Promise(r=>releaseOld=()=>r(null)):null;
+    tapRow('group',0);await until(()=>releaseOld,'deferred group');
+    g('handle').value='[ap:NEWEST]';d.querySelector('[data-how="node"]').click();g('handle-render').click();await until(()=>api.state.held?.label==='Node · [ap:NEWEST]','newest');
+    releaseOld();await sleep(60);
+    check('an older reply never replaces a newer choice',api.state.held.label==='Node · [ap:NEWEST]'&&g('asof').textContent.startsWith('Node · [ap:NEWEST]')&&fx.renders.at(-2).value.group==='grp-1a2b3c4d');
+    fx.renderReply=null;
+    // --- a large slice: a counted first bound, Show all in batches, Copy MD whole
+    fx.markdown=()=>large;
+    const tl=performance.now();await pick('group',0);const largePaint=performance.now()-tl;
+    const total=api.state.total;
+    check('a large document mounts its first 200 blocks and says how many there are ('+g('more-text').textContent+')',doc.children.length===200&&total>1200&&!g('more').hidden&&
+      g('more-text').textContent==='Showing 200 of '+total.toLocaleString('en-US')+' blocks · the whole document is held; Copy MD copies all of it');
+    g('copy').click();await until(()=>fx.clipboard.length===3,'large copy');
+    check('Copy MD copies the whole large Markdown, not the mounted part',fx.clipboard[2]===large&&bytes(fx.clipboard[2])===api.state.held.bytes);
+    const ts=performance.now();g('show-all').click();await until(()=>g('more').hidden,'show all');const showAllMs=performance.now()-ts;
+    check('Show all appends the rest: every block of the shared output, the fence whole',doc.children.length===total&&doc.lastElementChild.textContent==='Last paragraph.'&&
+      doc.querySelector('pre code')?.textContent==='fenced block that must stay whole\n');
+    record('large slice ('+bytes(large).toLocaleString('en-US')+' bytes, '+total+' blocks): first paint '+Math.round(largePaint)+' ms, Show all '+Math.round(showAllMs)+' ms (fixture, virtual time)',true);
+    g('source').click();
+    check('its Source view holds every byte in one shared <pre>',doc.querySelector('pre.glimpse-md-preview-plain').textContent===large&&g('more').hidden);
+    g('rendered').click();fx.markdown=()=>md;
+    // --- 390 px and wide: the page never widens; code, tables and math scroll inside; thumb-sized controls, 16 px fields
+    await pick('dock',0);api.toggleControls(true);g('pick').open=true;await sleep(20);
+    const frameEl=document.getElementById('page'),noSideways=()=>d.documentElement.scrollWidth<=d.documentElement.clientWidth+1&&d.body.scrollWidth<=d.body.clientWidth+1;
+    const code=doc.querySelector('pre');
+    check('at 390 px: no sideways page; the long code line scrolls inside its block; the document scrolls inside itself',w.innerWidth<=390&&noSideways()&&
+      code.scrollWidth>code.clientWidth&&code.getBoundingClientRect().right<=d.documentElement.clientWidth+1&&cs('#g-scroll','overflowY')==='auto');
+    const controls=[...d.querySelectorAll('#g-bar button, .g-go, #g-full, .g-seg button')].filter(b=>b.getClientRects().length);
+    check('touch-sized controls ('+controls.filter(b=>b.getBoundingClientRect().height<40).map(b=>b.id||b.textContent).join(',')+') and 16 px fields (iOS does not zoom)',
+      controls.length>=10&&controls.every(b=>b.getBoundingClientRect().height>=40)&&
+      ['find','handle','spec','recent','sort'].every(id=>cs(g(id),'fontSize')==='16px'));
+    frameEl.style.width='375px';await sleep(30);
+    check('at 375 px too',noSideways());
+    frameEl.style.width='1280px';frameEl.style.height='900px';await sleep(30);
+    const tops=[...g('bar').children].filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect().top);
+    check('wide: the same, the toolbar on one row ['+tops.map(Math.round).join(',')+']',noSideways()&&Math.max(...tops)-Math.min(...tops)<10);
+    frameEl.style.width='390px';frameEl.style.height='844px';await sleep(30);
+    // --- glare: the page follows the page around it, before and after it loads, with no storage of its own
+    const normal=cs('#g-asof','fontSize');
+    w.opcGlare.apply(true);await sleep(10);
+    check('glare reaches it at once: brighter, larger small print ('+normal+' → '+cs('#g-asof','fontSize')+')',d.documentElement.dataset.glare==='on'&&cs('#g-asof','fontSize')==='14.5px'&&normal==='13px'&&
+      cs('#g-ctl-toggle','fontSize')==='13.5px'&&cs('#g-ctl-toggle','color')==='rgb(211, 218, 229)');
+    w.opcGlare.apply(false);await sleep(10);
+    check('and off again',!d.documentElement.dataset.glare&&cs('#g-asof','fontSize')==='13px');
+    fx.glare=true;await load();
+    check('a View opened while glare is on starts lit, before its first paint, storing nothing but its history and its Controls bar',d.documentElement.dataset.glare==='on'&&fx.storage.every(([op,k])=>op!=='set'||/^pane_view_(history|controls_open)_v1:/.test(k)));
+    fx.glare=false;
+    // --- the row list: the daemon's rows (S1's real replies), the extension's painter, a tap's focused view, the bound
+    const ENV=(await (await fetch('/transcription-pane/tests/fixtures/glimpse-rows/envelopes.json')).json()).records,env=n=>JSON.parse(JSON.stringify(ENV[n].structuredContent));
+    const ORACLE=(await (await fetch('/transcription-pane/tests/fixtures/glimpse-rows/row-oracle-canonical.json')).json()).case;
+    const reply=(body,e,at)=>({status:200,body:{schemaVersion:1,markdown:e.markdown,bytes:bytes(e.markdown),renderedAt:at||'2026-10-22T08:00:00Z',request:body,
+      ...('rows' in e?{rows:e.rows}:{}),...(e.render_spec?{render_spec:e.render_spec}:{})}});
+    fx.rowCalls=[];await load();
+    const asc=env('raw_root_created_asc'),list=g('rows'),rowEls=()=>[...list.querySelectorAll('.glimpse-md-dock-row')],shown=()=>rowEls().filter(r=>r.getClientRects().length);
+    fx.renderReply=body=>reply(body,env(body.value.focus?'raw_root_created_asc_tap':'raw_root_created_asc'));
+    await pick('dock',0);
+    check('a Dock\'s rows arrive with its document: the list sits above it, painted by the shared GlimpseMd.renderRowList (the real export ran) into #g-rows.glimpse-md-row-list with the held canonical array',
+      !g('rows-box').hidden&&g('rows-box').open&&fx.rowCalls.length===1&&fx.rowCalls[0].container===list&&list.classList.contains('glimpse-md-row-list')&&typeof fx.realRowList==='function'&&
+      fx.rowCalls[0].rows===api.state.held.rows&&rowEls().length===7&&g('rows-box').getBoundingClientRect().bottom<=g('scroll').getBoundingClientRect().top+1&&g('rows-count').textContent==='7 rows'&&
+      JSON.stringify(last())==='{"kind":"parcel","value":{"dock":"[ap:DOCK01]"},"options":{"headings_only":true,"include_rows":true}}');
+    check('the dock\'s names, order, indent and guides: one row per canonical row, its label, depth and 14 px indent; the spec\'s sort passed through',
+      rowEls().map(r=>r.querySelector('.glimpse-md-dock-label').textContent).join('|')===asc.rows.map(r=>r.name).join('|')&&
+      rowEls().every((r,i)=>r.style.getPropertyValue('--glimpseDockDepth')===String(asc.rows[i].depth)&&r.querySelector('.glimpse-md-dock-indent').style.width===asc.rows[i].depth*14+'px')&&
+      fx.rowCalls[0].opts.sortBy==='created'&&fx.rowCalls[0].opts.sortDir==='asc'&&fx.rowCalls[0].opts.primary===-1&&fx.rowCalls[0].opts.selected.size===0);
+    check('no 📘/bullet/halo icons on canonical rows (the accepted gap: the daemon\'s rows carry no live-DOM kind)',
+      rowEls().every(r=>r.querySelector('.glimpse-md-dock-icon').textContent===''&&!r.querySelector('.glimpse-md-dock-bullet,.glimpse-md-dock-bullet--halo'))&&!list.textContent.includes('📘'));
+    check('the shared row rules style the host\'s rows (font, colour, no wrap, the guide overlay as wide as the depth)',cs(rowEls()[2],'fontSize')==='12.5px'&&cs(rowEls()[2],'whiteSpace')==='pre'&&
+      cs(rowEls()[2],'color')==='rgb(205, 210, 216)'&&w.getComputedStyle(rowEls()[2],'::before').width==='28px'&&w.getComputedStyle(rowEls()[0],'::before').width==='0px');
+    // a tap: the second Architecture occurrence (repeated uuid), focused through the same render
+    const heldSpec=JSON.stringify(api.state.held.spec),twin=asc.rows[5];
+    rowEls()[5].click();await settled();
+    const sent=last(),wantFocus={mode:'row',uuid:twin.uuid,ancestor_path:twin.ancestor_path,occurrence:1};
+    check('a tap sends a deep copy of the held render_spec with only focus replaced by the row\'s {mode, uuid, ancestor_path, occurrence}, options {include_rows:true}',
+      JSON.stringify(sent)===JSON.stringify({kind:'parcel',value:{...JSON.parse(heldSpec),focus:wantFocus},options:{include_rows:true}})&&Object.keys(sent.value).length===19&&
+      twin.uuid===asc.rows[1].uuid&&twin.occurrence===1&&fx.renders.filter(r=>r.value.focus).length===1);
+    const sel=()=>rowEls().map((r,i)=>r.classList.contains('selected')?i:-1).filter(i=>i>=0);
+    check('the focused document and the whole list arrive together; the tapped occurrence is selected (filled marker), found by full identity',
+      api.state.held.markdown===env('raw_root_created_asc_tap').markdown&&rowEls().length===7&&JSON.stringify(sel())==='[5]'&&rowEls()[5].querySelector('.glimpse-md-dock-marker').textContent==='●'&&
+      g('doc').textContent.includes('Cache body')&&!g('doc').textContent.includes('Resolver body')&&/› Architecture #arch--expand · Rendered at /.test(g('asof').textContent));
+    check('the painter focused the list itself, and nothing scrolled the page',d.activeElement===list&&d.documentElement.scrollTop===0&&d.body.scrollTop===0);
+    rowEls()[1].click();await settled();
+    check('the other occurrence of the same uuid sends its own ancestor_path and occurrence and selects its own row',JSON.stringify(last().value.focus)===JSON.stringify({mode:'row',uuid:asc.rows[1].uuid,ancestor_path:asc.rows[1].ancestor_path,occurrence:0})&&JSON.stringify(sel())==='[1]');
+    // W1: the real phone default must be echoed, not masked by a recorded full spec.
+    const compact=env('raw_root_created_asc');compact.render_spec.headings_only=true;
+    fx.renderReply=body=>reply(body,body.value.focus?env('raw_root_created_asc_tap'):compact);
+    await pick('dock',0);
+    const compactHeld=api.state.held,compactSpec=JSON.stringify(compactHeld.spec);
+    check('W1 cold compact base still has its row list and Full',last().options.headings_only===true&&rowEls().length===7&&!g('compact').hidden&&!g('full').hidden);
+    rowEls()[5].click();await settled();
+    check('W1 phone compact tap posts headings_only false; only focus and headings_only change; held spec unchanged',last().value.headings_only===false&&
+      JSON.stringify(last())===JSON.stringify({kind:'parcel',value:{...JSON.parse(compactSpec),focus:wantFocus,headings_only:false},options:{include_rows:true}})&&JSON.stringify(compactHeld.spec)===compactSpec);
+    check('W1 full focused note has its body and truthful status/compact bar',g('doc').textContent.includes('Cache body')&&/ · full · /.test(g('asof').textContent)&&
+      !/headings only/.test(g('asof').textContent)&&g('compact').hidden&&g('headings').checked);
+    const focusedRequest=JSON.stringify(last());g('refresh').click();await settled();
+    check('W1 Refresh repeats the exact full focused request',JSON.stringify(last())===focusedRequest);
+    // §7: taps A then B, replies in both orders
+    for(const order of [['A','B'],['B','A']]){
+      const queue=[];fx.renderReply=body=>new Promise(r=>queue.push({body,r}));
+      rowEls()[2].click();await until(()=>queue.length===1,'tap A');rowEls()[4].click();await until(()=>queue.length===2,'tap B');
+      const [A,B]=queue,give={A:()=>A.r(reply(A.body,{...env('raw_root_created_asc_tap'),markdown:'# A only\n',rows:asc.rows.slice(0,3)},'2026-10-22T08:01:00Z')),
+        B:()=>B.r(reply(B.body,{...env('raw_root_created_asc_tap'),markdown:'# B wins\n'},'2026-10-22T08:02:00Z'))};
+      for(const k of order){give[k]();await sleep(30);}
+      await settled();
+      check('§7 tap A then B, replies '+order.join(' → ')+': B\'s document, list, selection and as-of win',api.state.held.markdown==='# B wins\n'&&rowEls().length===7&&JSON.stringify(sel())==='[4]'&&
+        api.state.held.renderedAt==='2026-10-22T08:02:00Z'&&g('doc').textContent.includes('B wins')&&/› Deploy step · Rendered at /.test(g('asof').textContent));
+    }
+    // §7: a failed tap keeps the last document and list as one labelled snapshot; the stale-focus error stays visible
+    const stale=ENV.stale_focus.structuredContent.error.extra.legacy_result.error,heldBefore=api.state.held,calls=fx.rowCalls.length;
+    fx.renderReply=()=>({status:502,body:{schemaVersion:1,status:'daemon',error:stale}});
+    rowEls()[6].click();await settled();
+    check('§7 a failed tap: the last document and list stay, labelled last successful; no row claims the focus that failed; the stale-focus error is shown',api.state.held===heldBefore&&
+      fx.rowCalls.length===calls&&JSON.stringify(sel())==='[4]'&&g('asof').textContent.startsWith('Last successful: ')&&g('error').textContent.endsWith(stale+'\nStill showing the last successful: '+heldBefore.label)&&list.dataset.busy==='false');
+    // §7: an old daemon's document-only reply, overlapping a newer render, never repaints the newer choice
+    let releaseDock=null;fx.renderReply=body=>body.value.dock?new Promise(r=>releaseDock=()=>r(reply(body,{markdown:'# Old daemon dock\n'}))):reply(body,env('slice_group'));
+    tapRow('dock',0);await until(()=>releaseDock,'deferred old dock');
+    await pick('group',0);releaseDock();await sleep(60);
+    check('§7 an old daemon\'s document-only reply landing after a newer group render changes nothing',api.state.held.label.startsWith('Group')&&rowEls().length===4&&!g('rows-box').hidden&&
+      api.state.held.markdown===env('slice_group').markdown);
+    fx.renderReply=body=>reply(body,{markdown:'# Old daemon\n'});g('refresh').click();await settled();
+    check('an old daemon (no rows) is the document alone: no list, no warning',g('rows-box').hidden&&g('error').hidden&&api.state.held.markdown==='# Old daemon\n'&&last().options.include_rows===true);
+    fx.renderReply=body=>reply(body,env('slice_group'));g('refresh').click();await settled();
+    check('§7 the daemon upgraded between renders: the next render has its list, nothing configured',!g('rows-box').hidden&&rowEls().length===4);
+    // the oracle: the extension's own painted bytes for the canonical case (S2's immutable capture of the untouched dock painter)
+    const oracleRows=ORACLE.rows.map((r,i)=>{const {text,...rest}=r;return {...rest,name:text,uuid:'oracle-'+i,ancestor_path:[],occurrence:0};});
+    const oracleSpec={...env('raw_root_created_asc').render_spec,sort_by:ORACLE.sortBy,sort_direction:ORACLE.sortDir};
+    fx.renderReply=body=>reply(body,{markdown:'# oracle\n',rows:JSON.parse(JSON.stringify(oracleRows)),render_spec:body.value.focus?body.value:oracleSpec});
+    g('refresh').click();await settled();rowEls()[ORACLE.primary].click();await settled();
+    const cssText=list=>{const t=d.createElement('div');for(const [k,v] of list){if(k.startsWith('--'))t.style.setProperty(k,v);else t.style[k]=v;}return t.style.cssText;};
+    const ser=n=>({tag:n.tagName.toLowerCase(),className:n.className,text:[...n.childNodes].filter(c=>c.nodeType===3).map(c=>c.data).join(''),style:n.style.cssText,title:n.title,children:[...n.children].map(ser)});
+    const exp=o=>({tag:o.tag,className:o.className,text:o.text,style:cssText(o.style),title:o.title,children:o.children.map(exp)});
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone,painted=JSON.stringify([...list.children].map(ser)),expected=JSON.stringify(ORACLE.expected.tree.children.map(exp));
+    check('row DOM equals the shared oracle (canonical rows, modified asc, primary '+ORACLE.primary+'; classes, text, inline styles, tooltips, day lines; '+tz+')',tz==='America/New_York'&&painted===expected&&
+      list.querySelectorAll('.glimpse-md-dock-daysep').length===2);
+    // the display bound: every row painted, the later ones hidden; Show all is display only and reversible
+    const many=Array.from({length:450},(_,i)=>({uuid:'many-'+i,ancestor_path:[],occurrence:0,depth:i%3,name:'Row '+i,created:1772900000+i*7200,modified:1772900000+i*7200}));
+    fx.renderReply=body=>reply(body,{markdown:'# many\n',rows:many,render_spec:{...oracleSpec,sort_by:'created',sort_direction:'asc'}});
+    g('refresh').click();await settled();
+    const rowRenders=fx.renders.length,daylines=()=>[...list.querySelectorAll('.glimpse-md-dock-daysep')];
+    check('450 rows: all painted, the first 200 shown with "Showing 200 of 450 rows" and Show all; later rows and their day lines hidden',rowEls().length===450&&shown().length===200&&
+      shown().at(-1)===rowEls()[199]&&!g('rows-more').hidden&&g('rows-more-text').textContent==='Showing 200 of 450 rows'&&daylines().some(n=>!n.getClientRects().length)&&
+      daylines().filter(n=>n.getClientRects().length).every(n=>n.compareDocumentPosition(rowEls()[199])&Node.DOCUMENT_POSITION_FOLLOWING));
+    g('rows-all').click();
+    check('Show all shows every row (no request); Show first 200 brings the bound back',shown().length===450&&g('rows-more-text').textContent==='Showing all 450 rows'&&fx.renders.length===rowRenders);
+    g('rows-all').click();
+    check('… reversible, and still no request',shown().length===200&&g('rows-all').textContent==='Show all'&&fx.renders.length===rowRenders);
+    // fold, readability and width at 390 px with the list present
+    const scrollH=()=>g('scroll').getBoundingClientRect().height,listH=list.getBoundingClientRect().height,docOpen=scrollH();
+    check('at 390 px both read (list '+Math.round(listH)+' px, document '+Math.round(docOpen)+' px of '+w.innerHeight+'): the list scrolls inside a bounded height; no sideways page',w.innerWidth<=390&&noSideways()&&listH>80&&listH<=w.innerHeight*0.25&&
+      docOpen>=w.innerHeight*0.28&&cs(list,'overflowY')==='auto'&&cs(list,'overflowX')==='auto');
+    g('rows-box').open=false;await sleep(20);
+    check('the list folds to one line and the document takes the room ('+Math.round(docOpen)+' → '+Math.round(scrollH())+' px; list visible '+list.checkVisibility()+', summary '+Math.round(g('rows-box').querySelector('summary').getBoundingClientRect().height)+' px); Show all and the fold are thumb-sized',!list.checkVisibility()&&scrollH()>docOpen+60&&
+      g('rows-box').querySelector('summary').getBoundingClientRect().height>=40);
+    g('rows-box').open=true;await sleep(20);
+    check('… and opens again, the same rows, no request',shown().length===200&&fx.renders.length===rowRenders&&g('rows-all').getBoundingClientRect().height>=40);
+    frameEl.style.width='375px';await sleep(30);check('at 375 px with the list too',noSideways());
+    frameEl.style.width='1280px';frameEl.style.height='900px';await sleep(30);
+    check('wide: the list above the document, no sideways page',noSideways()&&g('rows-box').getBoundingClientRect().bottom<=g('scroll').getBoundingClientRect().top+1);
+    frameEl.style.width='390px';frameEl.style.height='844px';await sleep(30);
+    // the touch-only row height (the desktop keeps the dock's geometry)
+    const coarse=[...d.styleSheets].flatMap(sh=>{try{return [...sh.cssRules];}catch(_){return [];}}).find(r=>r.media?.mediaText==='(pointer: coarse)'&&r.cssText.includes('#g-rows .glimpse-md-dock-row'));
+    check('touch screens get finger-sized rows (6 px more above and below) through a pointer: coarse rule only',!!coarse&&/padding-top: 6px/.test(coarse.cssText)&&cs(rowEls()[0],'paddingTop')==='1px');
+    // glare: the list's text and the painter's small inline day labels lift
+    w.opcGlare.apply(true);await sleep(10);
+    const dayLabel=list.querySelector('.glimpse-md-dock-daysep-label');
+    check('glare: rows white and larger, the inline 9 px grey day labels bright and 12 px ('+cs(dayLabel,'color')+')',cs(rowEls()[0],'color')==='rgb(255, 255, 255)'&&cs(rowEls()[0],'fontSize')==='14px'&&
+      cs(dayLabel,'color')==='rgb(225, 233, 245)'&&cs(dayLabel,'fontSize')==='12px'&&cs(g('rows-more'),'fontSize')==='14.5px');
+    w.opcGlare.apply(false);await sleep(10);
+    check('… and back: the day labels keep the painter\'s own inline style',cs(dayLabel,'fontSize')==='9px'&&cs(rowEls()[0],'fontSize')==='12.5px');
+    check('Source, find and the document\'s views never repaint the list or fetch',(()=>{const n=fx.rowCalls.length,r=fx.renders.length;g('source').click();
+      const f=g('find');f.value='many';f.dispatchEvent(new w.Event('input'));g('rendered').click();f.value='';f.dispatchEvent(new w.Event('input'));g('rendered').click();
+      return fx.rowCalls.length===n&&fx.renders.length===r&&shown().length===200;})());
+    fx.renderReply=null;
+    // --- the two pickers, with Dan's real favorites and slice-group names (view-pickers.js): one unwrapped row per entry,
+    // the chooser's full width, sideways scroll for a long name, Docks nested, the extension's sections; phone and desktop
+    const real=await (await fetch('/transcription-pane/tests/fixtures/view-pickers-catalog.json')).json();
+    fx.catalog={status:200,body:{schemaVersion:1,docks:real.docks,groups:real.groups,errors:[],readAt:'x'}};
+    const pickerChecks=async(where,maxRow)=>{
+      api.toggleControls(true);g('pick').open=true;g('dock-box').open=true;await sleep(20);
+      check(where+': one picker open at a time',g('dock-box').open&&!g('group-box').open);
+      const docks=[...g('dock').querySelectorAll('.g-prow')],list=g('dock'),box=list.getBoundingClientRect();
+      const facts=[docks.length===real.docks.length,docks.every(b=>b.getBoundingClientRect().height<=maxRow&&cs(b,'whiteSpace')==='nowrap'),
+        list.scrollWidth>list.clientWidth,box.width>=g('pick').getBoundingClientRect().width-12-(g('pick').offsetWidth-g('pick').clientWidth),d.documentElement.scrollWidth<=d.documentElement.clientWidth+1];
+      check(where+': every favorite Dock one row, no wrap ('+Math.max(...docks.map(b=>b.getBoundingClientRect().height)).toFixed(1)+' px), the list the chooser\'s width ('+
+        Math.round(box.width)+' of '+Math.round(g('pick').getBoundingClientRect().width)+'), long names scrolling sideways, no sideways page ['+facts.map(Number).join('')+']',facts.every(Boolean));
+      const depth=b=>Number(b.dataset.depth),nested=docks.filter(b=>depth(b)>0);
+      check(where+': nested as the extension nests them (depths '+[...new Set(docks.map(depth))].join(',')+'), each level further right',nested.length>10&&Math.max(...docks.map(depth))===4&&
+        docks.every((b,i)=>b.querySelector('.g-pname').getBoundingClientRect().left-(i?0:0)>=box.left+depth(b)*16));
+      check(where+': at least 12 Docks in view at once',docks.filter(b=>b.getBoundingClientRect().bottom<=box.bottom+1).length>=12);
+      g('group-box').open=true;await sleep(20);
+      check(where+': opening the slice groups closes the Docks',!g('dock-box').open);
+      const exp=()=>[...g('group').querySelectorAll('.g-pexp')],leaves=()=>[...g('group').querySelectorAll('.g-pleaf')];
+      check(where+': sections start closed, as in the extension ('+exp().map(b=>b.textContent).join(' | ')+')',exp().length>=6&&exp().every(b=>b.disabled||b.getAttribute('aria-expanded')==='false')&&
+        exp()[0].textContent==='▸Research Lines'&&leaves().length===0);
+      exp().find(b=>b.textContent==='▸OpenCode').click();await sleep(10);
+      const inOpenCode=leaves().map(b=>b.textContent);
+      check(where+': ▸ OpenCode opens to its groups in their [n] order, short names ('+inOpenCode.slice(0,3).join(' · ')+'…)',inOpenCode[0]==='📡 PROGRAMS'&&inOpenCode.length===real.groups.filter(x=>/^OpenCode\s*\|/.test(x.name)).length&&
+        leaves().every(b=>b.dataset.depth==='1'));
+      const before=fx.renders.length;leaves()[0].click();await settled();
+      check(where+': a tap renders that group, marked in its list',last().value.group===real.groups.find(x=>x.name==='OpenCode|📡 PROGRAMS[-5000]').handle&&fx.renders.length===before+1&&
+        api.state.held.label==='Group · 📡 PROGRAMS'&&g('group').querySelector('[aria-current="true"]')?.textContent==='📡 PROGRAMS'&&!g('pick').open&&!ctlShown());
+    };
+    await load();
+    await pickerChecks('390 px',34);
+    frameEl.style.width='375px';await sleep(30);
+    check('375 px: still no sideways page with a picker open',(api.toggleControls(true),g('pick').open=true,g('dock-box').open=true,noSideways()));
+    frameEl.style.width='390px';
+    if(SHOT==='pickers-docks'){api.toggleControls(true);g('pick').open=true;g('dock-box').open=true;shot('pickers-docks');}
+    if(SHOT==='pickers-groups'){api.toggleControls(true);g('pick').open=true;g('group-box').open=true;shot('pickers-groups');}
+    // the desktop View pane: the same page in desktop-view-frame (denser rows), at the conversation column's width
+    frameEl.id='desktop-view-frame';frameEl.style.width='900px';frameEl.style.height='900px';
+    await load();
+    check('desktop embed',d.documentElement.dataset.viewEmbed==='desktop');
+    await pickerChecks('desktop',24);
+    if(SHOT==='pickers-desktop'){api.toggleControls(true);g('pick').open=true;g('dock-box').open=true;shot('pickers-desktop');}
+    frameEl.id='page';frameEl.style.width='390px';frameEl.style.height='844px';
+    // --- a partial catalog (no tab): the groups say why, a raw node still renders
+    fx.catalog={status:200,body:{schemaVersion:1,docks:[],groups:[],errors:[{source:'groups',error:NO_TAB+' no live Workflowy tab'},{source:'docks',error:NO_TAB+' no live Workflowy tab'}],readAt:'x'}};
+    await load();
+    check('without a tab the catalog says why, outside the Controls bar (seen with it folded), and nothing blocks a pasted handle',g('catalog-errors').textContent.startsWith('Slice groups unavailable: '+NO_TAB)&&
+      g('catalog-errors').closest('#g-status')&&!g('catalog-errors').closest('#g-ctl')&&(api.toggleControls(false),g('catalog-errors').getClientRects().length>0)&&!g('handle').disabled);
+    g('handle').value='3f3754e2';g('handle-render').click();await settled();
+    check('… and the raw node renders',api.state.held?.label==='Node · 3f3754e2'&&!!doc.isConnected&&g('doc').querySelector('h1'));
+    fx.catalog={status:502,body:{schemaVersion:1,status:'daemon',error:'daemon unreachable'}};
+    await load();
+    check('a failed catalog read is a line, not a blocker',g('catalog-errors').textContent==='Docks and groups unavailable (a pasted handle still works) · daemon unreachable');
+    // --- a missing renderer file: named, with the pane's own diagnostic; no substitute renderer
+    fx.assetReply=p=>p.includes('MISSING')?new Response(JSON.stringify({schemaVersion:1,status:'request',error:'Missing NEXUS asset glimpse-md-render-MISSING.js in checkout /x; set nexus_checkout in ~/.config/opencode-companion/pane-glimpse.json, then restart pane'}),{status:404}):null;
+    await load(t=>t.replace('/nexus-md/glimpse-md-render.js','/nexus-md/glimpse-md-render-MISSING.js'));
+    await until(()=>g('assets').textContent.includes('Missing NEXUS asset'),'asset diagnostic');
+    check('a missing renderer file is named on a plain line with the setting and the pane\'s diagnostic; GlimpseMd absent, no fallback',!g('assets').hidden&&
+      g('assets').textContent.includes('/nexus-md/glimpse-md-render-MISSING.js')&&g('assets').textContent.includes('pane-glimpse.json')&&!w.GlimpseMd);
+    g('handle').value='3f3754e2';g('handle-render').click();await settled();
+    check('a render still holds the Markdown (Copy MD works) but nothing paints it',api.state.held?.markdown===md&&g('doc').textContent.startsWith('Cannot paint: the shared renderer did not load'));
+    check('no page error anywhere ['+fx.errors.filter(e=>!/no-such-image|MISSING/.test(e)).join('; ')+']',!fx.errors.filter(e=>!/no-such-image|MISSING|resource error/.test(e)).length);
+  } catch(e) { if(!checks.some(c=>!c.passed))checks.push({name:'fixture: '+e.message,passed:false}); }
+  document.getElementById('results').textContent=JSON.stringify({passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks},null,2);
+  document.body.dataset.testPassed=String(checks.length>0&&checks.every(x=>x.passed));
+})();
+</script>
